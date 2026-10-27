@@ -1,0 +1,13 @@
+services:
+  app:
+    image: dmatik/school:local
+    build:
+      context: .
+      args:
+        APP_VERSION: "local"
+    ports:
+      - "8080:5173"
+    volumes:
+      - ./data:/app/data
+    restart: always
+

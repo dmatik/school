@@ -1,0 +1,125 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Background: Slate-50 (Soft Cool Grey) */
+    --background: 210 40% 98%;
+
+    /* Foreground: Slate-900 (Deep Text) */
+    --foreground: 222.2 47.4% 11.2%;
+
+    /* Cards: Pure White */
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 47.4% 11.2%;
+
+    /* Popovers: White */
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+
+    /* Primary Action */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary */
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    /* Muted */
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    /* Accents (Hover states) */
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    /* Destructive: Soft Red */
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders: Slate-200 */
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* Main Background: Slate-900 */
+    --background: 222.2 47.4% 11.2%;
+    --foreground: 210 40% 98%;
+
+    /* Cards */
+    --card: 217.2 32.6% 17.5%;
+    --card-foreground: 210 40% 98%;
+
+    /* Popovers (Dropdowns, etc) */
+    --popover: 217.2 32.6% 17.5%;
+    --popover-foreground: 210 40% 98%;
+
+    /* Primary */
+    --primary: 221.2 83.2% 53.3%;
+    --primary-foreground: 210 40% 98%;
+
+    /* Secondary */
+    --secondary: 217.2 32.6% 22%;
+    --secondary-foreground: 210 40% 98%;
+
+    /* Muted */
+    --muted: 217.2 32.6% 22%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    /* Accents */
+    --accent: 217.2 32.6% 22%;
+    --accent-foreground: 210 40% 98%;
+
+    /* Destructive */
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    /* Borders */
+    --border: 217.2 32.6% 25%;
+    --input: 217.2 32.6% 25%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+    font-family: 'Heebo', 'Assistant', sans-serif;
+  }
+
+  html,
+  body,
+  #root {
+    @apply bg-background text-foreground font-sans;
+    font-family: 'Heebo', 'Assistant', sans-serif;
+    height: 100%;
+    height: 100dvh;
+    overflow: hidden;
+    overscroll-behavior: none;
+  }
+
+  button,
+  input,
+  optgroup,
+  select,
+  textarea {
+    font-family: 'Heebo', 'Assistant', sans-serif;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply text-base;
+  }
+}
+
+@layer utilities {
+  .pb-safe {
+    padding-bottom: 16px;
+  }
+}
