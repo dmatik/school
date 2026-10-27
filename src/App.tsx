@@ -121,7 +121,7 @@ function App() {
   // Initial auth checking state
   if (authChecking) {
     return (
-      <div className="h-screen w-full flex items-center justify-center bg-background">
+      <div className="h-dvh w-full flex items-center justify-center bg-background">
         <LoadingSpinner />
       </div>
     )
@@ -139,7 +139,7 @@ function App() {
 
   return (
     <DirectionProvider dir={i18n.dir()}>
-      <div className="flex h-screen w-full bg-background text-foreground overflow-hidden">
+      <div className="flex h-dvh w-full bg-background text-foreground overflow-hidden">
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex flex-col w-64 border-e border-border bg-card/60 backdrop-blur-md shrink-0">
           {/* Header with App Title and User Profile shortcut */}
@@ -214,7 +214,7 @@ function App() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Mobile Header */}
-          <header className="md:hidden bg-background/80 backdrop-blur-md border-b border-border z-20 px-4 py-3 flex items-center justify-between shrink-0">
+          <header className="md:hidden bg-background/80 backdrop-blur-md border-b border-border z-20 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.75rem)] pb-3 flex items-center justify-between shrink-0">
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setActiveTab('account')}
@@ -289,7 +289,7 @@ function App() {
           </main>
 
           {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden bg-background/85 backdrop-blur-md border-t border-border pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5 z-30 shadow-sm shrink-0">
+          <nav className="md:hidden bg-background/85 backdrop-blur-md border-t border-border pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-2 z-30 shadow-sm shrink-0">
             <div className="flex justify-around items-center">
               <MobileNavButton
                 active={activeTab === 'incidents'}
