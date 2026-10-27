@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
+import { format } from "date-fns"
+import { DatePicker } from "@/components/ui/date-picker"
 import type { Incident, WebtopConfig } from "@/types"
 
 interface IncidentsPageProps {
@@ -39,6 +41,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
   const [selectedType, setSelectedType] = useState<string>("all")
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
 
   const loadData = useCallback(async () => {
@@ -128,6 +131,14 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
     return incidents.filter(inc => {
+      // Date filter
+      if (selectedDate) {
+        const formattedFilter = format(selectedDate, "yyyy-MM-dd")
+        if (inc.date !== formattedFilter) {
+          return false
+        }
+      }
+
       // Type filter
       if (selectedType !== "all" && inc.type !== selectedType) {
         return false
@@ -148,7 +159,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
       return true
     })
-  }, [incidents, selectedType, searchQuery])
+  }, [incidents, selectedDate, selectedType, searchQuery])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
@@ -220,25 +231,37 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
             />
           </div>
 
-          {/* Event Type Filter */}
-          {eventTypes.length > 0 && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Select value={selectedType} onValueChange={setSelectedType}>
-                <SelectTrigger className="h-9 text-xs px-3 min-w-[150px] sm:min-w-[170px] bg-background border-border">
-                  <SelectValue placeholder={t("incidents.all_types")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("incidents.all_types")}</SelectItem>
-                  {eventTypes.map(typ => (
-                    <SelectItem key={typ} value={typ}>
-                      {typ}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Date Filter */}
+            <div className="w-full sm:w-auto min-w-[140px] sm:min-w-[150px]">
+              <DatePicker
+                date={selectedDate}
+                setDate={setSelectedDate}
+                placeholder={t("common.all_dates")}
+                clearable={true}
+              />
             </div>
-          )}
+
+            {/* Event Type Filter */}
+            {eventTypes.length > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Select value={selectedType} onValueChange={setSelectedType}>
+                  <SelectTrigger className="h-9 text-xs px-3 min-w-[140px] sm:min-w-[160px] bg-background border-border">
+                    <SelectValue placeholder={t("incidents.all_types")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("incidents.all_types")}</SelectItem>
+                    {eventTypes.map(typ => (
+                      <SelectItem key={typ} value={typ}>
+                        {typ}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -290,12 +313,12 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
-              {searchQuery || selectedType !== "all"
+              {searchQuery || selectedType !== "all" || selectedDate
                 ? t("incidents.no_incidents_match")
                 : t("incidents.empty_title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedType !== "all"
+              {searchQuery || selectedType !== "all" || selectedDate
                 ? t("incidents.search_placeholder")
                 : t("incidents.empty_desc")}
             </p>

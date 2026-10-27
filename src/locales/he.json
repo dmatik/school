@@ -25,7 +25,9 @@
     "close": "סגירה",
     "date_format": "dd/MM/yyyy",
     "english": "English",
-    "hebrew": "עברית"
+    "hebrew": "עברית",
+    "all_dates": "כל התאריכים",
+    "today": "היום"
   },
   "incidents": {
     "title": "אירועי משמעת ונוכחות",
@@ -77,7 +79,9 @@
     "last_sync": "עודכן: {{date}}",
     "due_today": "היום",
     "lesson_hour": "שיעור {{hour}}",
-    "teacher_label": "מורה:"
+    "teacher_label": "מורה:",
+    "back_to_today": "חזור להיום",
+    "no_homework_for_date": "אין שיעורי בית שמורים לתאריך זה"
   },
   "auth": {
     "login_subtitle": "התחברות למערכת בית הספר",

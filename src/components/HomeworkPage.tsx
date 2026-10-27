@@ -21,6 +21,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
+import { format } from "date-fns"
+import { DatePicker } from "@/components/ui/date-picker"
 import { toast } from "@/hooks/use-toast"
 import type { HomeworkItem, WebtopConfig } from "@/types"
 
@@ -36,7 +38,14 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
   const [selectedSubject, setSelectedSubject] = useState<string>("all")
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => new Date())
   const [searchQuery, setSearchQuery] = useState("")
+
+  const isFutureDate = (d: Date) => {
+    const endOfToday = new Date()
+    endOfToday.setHours(23, 59, 59, 999)
+    return d > endOfToday
+  }
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -125,6 +134,14 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   // Filtered homework
   const filteredHomework = useMemo(() => {
     return homework.filter(hw => {
+      // Date filter
+      if (selectedDate) {
+        const formattedFilter = format(selectedDate, "yyyy-MM-dd")
+        if (hw.dueDate !== formattedFilter) {
+          return false
+        }
+      }
+
       // Subject filter
       if (selectedSubject !== "all" && hw.subject !== selectedSubject) {
         return false
@@ -145,7 +162,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
       return true
     })
-  }, [homework, selectedSubject, searchQuery])
+  }, [homework, selectedDate, selectedSubject, searchQuery])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
@@ -217,25 +234,38 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             />
           </div>
 
-          {/* Subject Filter */}
-          {subjects.length > 0 && (
-            <div className="flex items-center gap-1.5 shrink-0">
-              <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-              <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                <SelectTrigger className="h-9 text-xs px-3 min-w-[150px] sm:min-w-[170px] bg-background border-border">
-                  <SelectValue placeholder={t("homework.all_subjects")} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("homework.all_subjects")}</SelectItem>
-                  {subjects.map(s => (
-                    <SelectItem key={s} value={s}>
-                      {s}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Date Filter */}
+            <div className="w-full sm:w-auto min-w-[140px] sm:min-w-[150px]">
+              <DatePicker
+                date={selectedDate}
+                setDate={setSelectedDate}
+                placeholder={t("common.all_dates")}
+                disabled={isFutureDate}
+                clearable={true}
+              />
             </div>
-          )}
+
+            {/* Subject Filter */}
+            {subjects.length > 0 && (
+              <div className="flex items-center gap-1.5 shrink-0">
+                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+                <Select value={selectedSubject} onValueChange={setSelectedSubject}>
+                  <SelectTrigger className="h-9 text-xs px-3 min-w-[140px] sm:min-w-[160px] bg-background border-border">
+                    <SelectValue placeholder={t("homework.all_subjects")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">{t("homework.all_subjects")}</SelectItem>
+                    {subjects.map(s => (
+                      <SelectItem key={s} value={s}>
+                        {s}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+          </div>
         </div>
       )}
 
@@ -287,15 +317,37 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
               <BookOpen className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
-              {searchQuery || selectedSubject !== "all"
-                ? t("homework.no_homework_match")
-                : t("homework.empty_title")}
+              {selectedDate && !searchQuery && selectedSubject === "all"
+                ? t("homework.no_homework_for_date")
+                : searchQuery || selectedSubject !== "all" || selectedDate
+                  ? t("homework.no_homework_match")
+                  : t("homework.empty_title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedSubject !== "all"
+              {searchQuery || selectedSubject !== "all" || selectedDate
                 ? t("homework.search_placeholder")
                 : t("homework.empty_desc")}
             </p>
+            {selectedDate && (
+              <div className="flex items-center justify-center gap-2 mt-4">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDate(new Date())}
+                  className="text-xs h-8"
+                >
+                  {t("homework.back_to_today")}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setSelectedDate(undefined)}
+                  className="text-xs h-8"
+                >
+                  {t("common.all_dates")}
+                </Button>
+              </div>
+            )}
           </Card>
         </div>
       ) : (

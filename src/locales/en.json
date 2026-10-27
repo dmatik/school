@@ -25,7 +25,9 @@
     "close": "Close",
     "date_format": "PPP",
     "english": "English",
-    "hebrew": "עברית"
+    "hebrew": "עברית",
+    "all_dates": "All Dates",
+    "today": "Today"
   },
   "incidents": {
     "title": "School Incidents",
@@ -77,7 +79,9 @@
     "last_sync": "Updated: {{date}}",
     "due_today": "Today",
     "lesson_hour": "Lesson {{hour}}",
-    "teacher_label": "Teacher:"
+    "teacher_label": "Teacher:",
+    "back_to_today": "Back to Today",
+    "no_homework_for_date": "No saved homework for this date"
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",
