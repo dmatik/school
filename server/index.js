@@ -12,7 +12,7 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
-import { WebtopClient, encryptPassword, decryptPassword } from './webtop.js';
+import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear } from './webtop.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -855,32 +855,97 @@ async function syncWebtopData(userId) {
       console.warn(`Failed to fetch incidents for child ${child.id}:`, e.message);
     }
 
-    // 2. Homework
+    // 2. Homework & Weekly Lessons across past weeks (current week + last 3 weeks)
+    try {
+      const studyYear = getWebtopStudyYear();
+      const weeksToFetch = [0, -1, -2, -3];
+
+      for (const weekOffset of weeksToFetch) {
+        try {
+          const days = await client.getWeeklyLessonsAndHomework(child.id, child.classCode, studyYear, weekOffset);
+          for (const day of days) {
+            const dayDate = day.date ? day.date.split('T')[0] : null;
+            if (!dayDate) continue;
+
+            const hoursData = Array.isArray(day.hoursData) ? day.hoursData : [];
+            for (const hourSlot of hoursData) {
+              const lessons = Array.isArray(hourSlot.scheduale) ? hourSlot.scheduale : [];
+              for (const item of lessons) {
+                const homeworkText = item.homeWork ? item.homeWork.trim() : '';
+                const topicText = item.descClass ? item.descClass.trim() : '';
+
+                // Only record entries that have homework or a lesson topic
+                if (!homeworkText && !topicText) continue;
+
+                const hourNum = (item.hour_no !== undefined && item.hour_no !== null)
+                  ? parseInt(item.hour_no, 10)
+                  : (hourSlot.hour !== undefined && hourSlot.hour !== null ? parseInt(hourSlot.hour, 10) : null);
+
+                const subject = (item.subject_name || item.subject || '').trim();
+                const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
+                const hwId = `webtop-hw-${child.id}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+
+                allHomework.push({
+                  id: hwId,
+                  userId,
+                  studentId: child.id,
+                  studentName: childFullName,
+                  subject: subject || 'כללי',
+                  teacher: (item.teacher || '').trim(),
+                  dueDate: dayDate,
+                  description: homeworkText || topicText,
+                  lessonSubject: topicText,
+                  hourNum: (hourNum !== null && !isNaN(hourNum)) ? hourNum : null,
+                  rawData: JSON.stringify({ ...item, dayDate, weekOffset })
+                });
+              }
+            }
+          }
+        } catch (weekErr) {
+          console.warn(`Failed to fetch weekly lessons/homework for child ${child.id} (week ${weekOffset}):`, weekErr.message);
+        }
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch weekly homework for child ${child.id}:`, e.message);
+    }
+
+    // Fallback/supplemental: fetch today's dashboard homework
     try {
       const hwLessons = await client.getHomework(child.id, child.classCode, child.classNum);
       const today = new Date().toISOString().split('T')[0];
       for (const item of hwLessons) {
         const desc = item.homeworkData || item.lessonSubject || '';
-        const hwId = `webtop-hw-${child.id}-${item.studyGroupId || ''}-${item.hourNum || ''}-${item.lesson || ''}`.replace(/\s+/g, '-');
+        if (!desc.trim()) continue;
+        const hourNum = item.hourNum ? parseInt(item.hourNum, 10) : null;
+        const subject = (item.lesson || '').trim();
+        const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
+        const hwId = `webtop-hw-${child.id}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
         allHomework.push({
           id: hwId,
           userId,
           studentId: child.id,
           studentName: childFullName,
-          subject: item.lesson || '',
-          teacher: item.teacher || '',
+          subject: subject || 'כללי',
+          teacher: (item.teacher || '').trim(),
           dueDate: today,
-          description: desc,
-          lessonSubject: item.lessonSubject || '',
-          hourNum: item.hourNum ? parseInt(item.hourNum, 10) : null,
+          description: desc.trim(),
+          lessonSubject: (item.lessonSubject || '').trim(),
+          hourNum: (hourNum !== null && !isNaN(hourNum)) ? hourNum : null,
           rawData: JSON.stringify(item)
         });
       }
     } catch (e) {
-      console.warn(`Failed to fetch homework for child ${child.id}:`, e.message);
+      console.warn(`Failed to fetch dashboard homework for child ${child.id}:`, e.message);
     }
   }
+
+  // Deduplicate homework by ID
+  const uniqueHomeworkMap = new Map();
+  for (const hw of allHomework) {
+    uniqueHomeworkMap.set(hw.id, hw);
+  }
+  const dedupedHomework = Array.from(uniqueHomeworkMap.values());
 
   // Atomically update DB records for this user
   const syncTx = db.transaction(() => {
@@ -924,7 +989,7 @@ async function syncWebtopData(userId) {
         raw_data = excluded.raw_data
     `);
 
-    for (const hw of allHomework) {
+    for (const hw of dedupedHomework) {
       upsertHw.run(
         hw.id, hw.userId, hw.studentId, hw.studentName, hw.subject,
         hw.teacher, hw.dueDate, hw.description, hw.lessonSubject, hw.hourNum,

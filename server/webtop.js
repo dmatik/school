@@ -44,6 +44,12 @@ export function encryptWebtopPayload(text) {
   return encrypted;
 }
 
+export function getWebtopStudyYear(date = new Date()) {
+  const year = date.getFullYear();
+  const month = date.getMonth(); // 0-indexed: 0 = Jan, 7 = Aug, 8 = Sep
+  return month >= 7 ? year + 1 : year;
+}
+
 export class WebtopClient {
   constructor() {
     this.cookieHeader = '';
@@ -174,6 +180,32 @@ export class WebtopClient {
 
     const lessons = data.data?.dataTable || [];
     return lessons;
+  }
+
+  async getWeeklyLessonsAndHomework(childId, classCode, studyYear = getWebtopStudyYear(), weekIndex = 0) {
+    const response = await fetch(`${WEBTOP_API_BASE}/api/PupilCard/GetPupilLessonsAndHomework`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({
+        studentID: childId,
+        classCode: classCode,
+        studyYear: studyYear,
+        weekIndex: weekIndex,
+        moduleID: 11
+      }),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to fetch weekly lessons and homework: HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    if (!data.status) {
+      throw new Error(data.message || 'Failed to fetch weekly lessons and homework');
+    }
+
+    return Array.isArray(data.data) ? data.data : [];
   }
 }
 

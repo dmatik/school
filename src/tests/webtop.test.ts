@@ -1,8 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { encryptPassword, decryptPassword, encryptWebtopPayload } from '../../server/webtop.js';
+import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear } from '../../server/webtop.js';
 
-describe('Webtop Cryptographic Utilities', () => {
+describe('Webtop Cryptographic & Academic Utilities', () => {
   it('encrypts and decrypts passwords reliably using AES-256-GCM', () => {
     const originalPassword = 'MySecretSchoolPassword#2026!';
     const encrypted = encryptPassword(originalPassword);
@@ -32,6 +32,16 @@ describe('Webtop Cryptographic Utilities', () => {
     expect(encrypted.length).toBeGreaterThan(0);
     // Base64 format check
     expect(/^[A-Za-z0-9+/=]+$/.test(encrypted)).toBe(true);
+  });
+
+  it('correctly calculates the Webtop studyYear across months', () => {
+    // School year in Israel: Sept-Dec of year X belongs to school year X+1
+    expect(getWebtopStudyYear(new Date('2025-10-15'))).toBe(2026);
+    expect(getWebtopStudyYear(new Date('2025-09-01'))).toBe(2026);
+    expect(getWebtopStudyYear(new Date('2026-01-10'))).toBe(2026);
+    expect(getWebtopStudyYear(new Date('2026-06-20'))).toBe(2026);
+    // Next school year starts in August/September 2026
+    expect(getWebtopStudyYear(new Date('2026-09-01'))).toBe(2027);
   });
 });
 
