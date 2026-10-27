@@ -61,11 +61,16 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS incidents (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      student_id TEXT,
       student_name TEXT,
       date TEXT,
       type TEXT,
-      description TEXT,
+      subject TEXT,
       teacher TEXT,
+      description TEXT,
+      hour_num INTEGER,
+      is_justified INTEGER DEFAULT 0,
+      event_code INTEGER,
       raw_data TEXT,
       created_at TEXT NOT NULL
     );
@@ -76,10 +81,14 @@ export function initDb() {
     CREATE TABLE IF NOT EXISTS homework (
       id TEXT PRIMARY KEY,
       user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      student_id TEXT,
       student_name TEXT,
       subject TEXT,
+      teacher TEXT,
       due_date TEXT,
       description TEXT,
+      lesson_subject TEXT,
+      hour_num INTEGER,
       completed INTEGER DEFAULT 0,
       raw_data TEXT,
       created_at TEXT NOT NULL
@@ -87,6 +96,41 @@ export function initDb() {
 
     CREATE INDEX IF NOT EXISTS idx_homework_user ON homework(user_id);
     CREATE INDEX IF NOT EXISTS idx_homework_due_date ON homework(user_id, due_date);
+
+    CREATE TABLE IF NOT EXISTS webtop_credentials (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      username TEXT NOT NULL,
+      encrypted_password TEXT NOT NULL,
+      selected_child_id TEXT,
+      linked_children TEXT DEFAULT '[]',
+      last_synced_at TEXT,
+      sync_status TEXT DEFAULT 'idle',
+      sync_error TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_webtop_credentials_user ON webtop_credentials(user_id);
+  `);
+
+  // Migrate existing tables if they lack new columns
+  const incidentsCols = db.prepare("PRAGMA table_info(incidents)").all().map(c => c.name);
+  if (!incidentsCols.includes('student_id')) db.exec("ALTER TABLE incidents ADD COLUMN student_id TEXT;");
+  if (!incidentsCols.includes('subject')) db.exec("ALTER TABLE incidents ADD COLUMN subject TEXT;");
+  if (!incidentsCols.includes('hour_num')) db.exec("ALTER TABLE incidents ADD COLUMN hour_num INTEGER;");
+  if (!incidentsCols.includes('is_justified')) db.exec("ALTER TABLE incidents ADD COLUMN is_justified INTEGER DEFAULT 0;");
+  if (!incidentsCols.includes('event_code')) db.exec("ALTER TABLE incidents ADD COLUMN event_code INTEGER;");
+
+  const homeworkCols = db.prepare("PRAGMA table_info(homework)").all().map(c => c.name);
+  if (!homeworkCols.includes('student_id')) db.exec("ALTER TABLE homework ADD COLUMN student_id TEXT;");
+  if (!homeworkCols.includes('teacher')) db.exec("ALTER TABLE homework ADD COLUMN teacher TEXT;");
+  if (!homeworkCols.includes('lesson_subject')) db.exec("ALTER TABLE homework ADD COLUMN lesson_subject TEXT;");
+  if (!homeworkCols.includes('hour_num')) db.exec("ALTER TABLE homework ADD COLUMN hour_num INTEGER;");
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_incidents_student ON incidents(user_id, student_id);
+    CREATE INDEX IF NOT EXISTS idx_homework_student ON homework(user_id, student_id);
   `);
 
   // Seed default admin if no users exist
