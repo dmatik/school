@@ -78,7 +78,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
   return (
     <div className="h-dvh w-full overflow-y-auto overscroll-y-contain flex flex-col justify-center items-center bg-gradient-to-br from-background via-muted/30 to-background p-4 relative">
       {/* Top Controls */}
-      <div className="absolute top-4 end-4 flex items-center gap-2">
+      <div className="absolute top-[calc(env(safe-area-inset-top,0px)+1rem)] end-4 flex items-center gap-2">
         <LanguageSwitcher />
         <ModeToggle />
       </div>
