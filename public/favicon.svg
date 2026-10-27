@@ -8,7 +8,7 @@
   
   <rect x="32" y="32" width="448" height="448" rx="128" ry="128" fill="#ffffff" />
   
-  <g fill="url(#mainGradient)">
+  <g transform="translate(-20.5, -10.2) scale(1.08)" fill="url(#mainGradient)">
     <!-- Mortarboard Top -->
     <path d="M 246 122 C 252 119 260 119 266 122 L 438 196 C 445 199 445 204 438 207 L 266 281 C 260 284 252 284 246 281 L 74 207 C 67 204 67 199 74 196 Z" />
     
