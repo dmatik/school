@@ -22,6 +22,7 @@ interface DatePickerProps {
     className?: string
     disabled?: (date: Date) => boolean
     clearable?: boolean
+    formatPattern?: string
 }
 
 export function DatePicker({
@@ -30,7 +31,8 @@ export function DatePicker({
     placeholder,
     className,
     disabled,
-    clearable = true
+    clearable = true,
+    formatPattern = "EEEE, PPP"
 }: DatePickerProps) {
     const { t, i18n } = useTranslation()
     const isRtl = i18n.dir() === 'rtl'
@@ -45,6 +47,15 @@ export function DatePicker({
         e.stopPropagation()
         setDate(undefined)
     }
+
+    const formattedDate = React.useMemo(() => {
+        if (!date) return placeholder || t('common.select_date')
+        try {
+            return format(date, formatPattern || t('common.date_format'), { locale: isRtl ? he : enUS })
+        } catch {
+            return date.toLocaleDateString()
+        }
+    }, [date, formatPattern, isRtl, placeholder, t])
 
     return (
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
@@ -61,7 +72,7 @@ export function DatePicker({
                     >
                         <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
                         <span className="truncate">
-                            {date ? format(date, t('common.date_format'), { locale: isRtl ? he : enUS }) : (placeholder || t('common.select_date'))}
+                            {formattedDate}
                         </span>
                     </Button>
                 </PopoverTrigger>

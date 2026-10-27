@@ -7,9 +7,7 @@ import {
   Filter,
   User,
   GraduationCap,
-  Calendar,
   CheckCircle2,
-  XCircle,
   Loader2,
   BookOpen
 } from "lucide-react"
@@ -27,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
+import { DateBadge } from "@/components/ui/date-badge"
 import type { Incident, WebtopConfig } from "@/types"
 
 interface IncidentsPageProps {
@@ -180,11 +179,11 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
         </div>
 
         {/* Header Actions */}
-        <div className="flex flex-wrap items-center gap-2.5">
+        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
           {/* Child Selector */}
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-              <SelectTrigger className="h-8 text-xs gap-1.5 px-3 min-w-[140px] bg-background border-border">
+              <SelectTrigger className="h-8 text-xs gap-1.5 px-3 flex-1 sm:flex-initial sm:min-w-[150px] bg-background border-border min-w-0">
                 <div className="flex items-center gap-1.5 truncate">
                   <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
                   <SelectValue placeholder={t("incidents.all_students")} />
@@ -208,7 +207,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
               size="sm"
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 text-xs h-8"
+              className="flex items-center gap-1.5 text-xs h-8 shrink-0 ms-auto sm:ms-0"
             >
               <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
               <span>{syncing ? t("incidents.syncing") : t("incidents.sync_now")}</span>
@@ -231,9 +230,31 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
             />
           </div>
 
-          <div className="flex flex-wrap items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto shrink-0">
+            {/* Event Type Filter */}
+            {eventTypes.length > 0 && (
+              <div className="flex items-center gap-2 w-full sm:w-auto">
+                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
+                <div className="flex-1 sm:flex-initial sm:min-w-[150px]">
+                  <Select value={selectedType} onValueChange={setSelectedType}>
+                    <SelectTrigger className="h-9 text-xs px-3 w-full sm:w-auto min-w-0 bg-background border-border">
+                      <SelectValue placeholder={t("incidents.all_types")} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("incidents.all_types")}</SelectItem>
+                      {eventTypes.map(typ => (
+                        <SelectItem key={typ} value={typ}>
+                          {typ}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
             {/* Date Filter */}
-            <div className="w-full sm:w-auto min-w-[140px] sm:min-w-[150px]">
+            <div className={cn("w-full sm:w-auto sm:min-w-[210px]", eventTypes.length > 0 && "ps-6 sm:ps-0")}>
               <DatePicker
                 date={selectedDate}
                 setDate={setSelectedDate}
@@ -241,26 +262,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                 clearable={true}
               />
             </div>
-
-            {/* Event Type Filter */}
-            {eventTypes.length > 0 && (
-              <div className="flex items-center gap-1.5 shrink-0">
-                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-                <Select value={selectedType} onValueChange={setSelectedType}>
-                  <SelectTrigger className="h-9 text-xs px-3 min-w-[140px] sm:min-w-[160px] bg-background border-border">
-                    <SelectValue placeholder={t("incidents.all_types")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">{t("incidents.all_types")}</SelectItem>
-                    {eventTypes.map(typ => (
-                      <SelectItem key={typ} value={typ}>
-                        {typ}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -327,7 +328,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredIncidents.map((inc) => {
-            const isJustified = Boolean(inc.isJustified)
             return (
               <Card
                 key={inc.id}
@@ -340,10 +340,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                       {inc.type}
                     </span>
 
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
-                      <Calendar className="w-3.5 h-3.5" />
-                      <span>{new Date(inc.date).toLocaleDateString()}</span>
-                    </div>
+                    <DateBadge date={inc.date} />
                   </div>
 
                   {/* Student & Subject */}
@@ -383,21 +380,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                       {inc.description}
                     </p>
                   )}
-
-                  {/* Justified Status */}
-                  <div className="pt-1 flex items-center justify-end">
-                    {isJustified ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3" />
-                        <span>{t("incidents.justified")}</span>
-                      </span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-destructive bg-destructive/10 px-2 py-0.5 rounded-full border border-destructive/20">
-                        <XCircle className="w-3 h-3" />
-                        <span>{t("incidents.not_justified")}</span>
-                      </span>
-                    )}
-                  </div>
                 </CardContent>
               </Card>
             )
