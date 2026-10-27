@@ -266,8 +266,8 @@ function App() {
                   className="h-full"
                 >
                   <Suspense fallback={<LoadingSpinner />}>
-                    {activeTab === 'incidents' && <IncidentsPage />}
-                    {activeTab === 'homework' && <HomeworkPage />}
+                    {activeTab === 'incidents' && <IncidentsPage token={token} />}
+                    {activeTab === 'homework' && <HomeworkPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
                         currentUser={currentUser}

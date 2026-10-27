@@ -12,6 +12,7 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
+import { WebtopClient, encryptPassword, decryptPassword } from './webtop.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -789,17 +790,391 @@ app.get('/api/users', authenticate, (req, res) => {
   }
 });
 
-/* --- Incidents & Homework Placeholders (Ready for Webtop Integration) --- */
+/* --- Webtop Sync & Data Endpoints --- */
+
+async function syncWebtopData(userId) {
+  const creds = db.prepare('SELECT * FROM webtop_credentials WHERE user_id = ?').get(userId);
+  if (!creds) {
+    throw new Error('Webtop credentials not configured');
+  }
+
+  const plainPassword = decryptPassword(creds.encrypted_password);
+  const client = new WebtopClient();
+  await client.login(creds.username, plainPassword);
+
+  const dash = await client.initDashboard();
+  const rawChildren = dash.childrens || [];
+  const linkedChildren = rawChildren.map(c => ({
+    id: c.id,
+    firstName: c.firstName,
+    lastName: c.lastName,
+    classCode: c.classCode,
+    classNum: c.classNum,
+    cellphone: c.cellphone || null
+  }));
+
+  let selectedChildId = creds.selected_child_id;
+  if (!selectedChildId || !linkedChildren.some(c => c.id === selectedChildId)) {
+    selectedChildId = linkedChildren[0]?.id || null;
+  }
+
+  // Update credentials row with fresh children list & syncing status
+  db.prepare(`
+    UPDATE webtop_credentials
+    SET linked_children = ?, selected_child_id = ?, sync_status = 'syncing', updated_at = ?
+    WHERE user_id = ?
+  `).run(JSON.stringify(linkedChildren), selectedChildId, new Date().toISOString(), userId);
+
+  const allIncidents = [];
+  const allHomework = [];
+
+  for (const child of linkedChildren) {
+    const childFullName = `${child.firstName} ${child.lastName}`.trim();
+
+    // 1. Incidents
+    try {
+      const incidents = await client.getIncidents(child.id, child.classCode);
+      for (const ev of incidents) {
+        allIncidents.push({
+          id: `webtop-inc-${ev.eventID || crypto.randomUUID()}`,
+          userId,
+          studentId: child.id,
+          studentName: childFullName,
+          date: ev.eventDate ? ev.eventDate.split('T')[0] : new Date().toISOString().split('T')[0],
+          type: ev.eventType || '',
+          subject: ev.subjectName || '',
+          teacher: ev.teacherName || '',
+          description: ev.remark || ev.justifiedRemark || '',
+          hourNum: ev.hourNum || null,
+          isJustified: ev.isJustified ? 1 : 0,
+          eventCode: ev.eventCode || null,
+          rawData: JSON.stringify(ev)
+        });
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch incidents for child ${child.id}:`, e.message);
+    }
+
+    // 2. Homework
+    try {
+      const hwLessons = await client.getHomework(child.id, child.classCode, child.classNum);
+      const today = new Date().toISOString().split('T')[0];
+      for (const item of hwLessons) {
+        const desc = item.homeworkData || item.lessonSubject || '';
+        const hwId = `webtop-hw-${child.id}-${item.studyGroupId || ''}-${item.hourNum || ''}-${item.lesson || ''}`.replace(/\s+/g, '-');
+
+        allHomework.push({
+          id: hwId,
+          userId,
+          studentId: child.id,
+          studentName: childFullName,
+          subject: item.lesson || '',
+          teacher: item.teacher || '',
+          dueDate: today,
+          description: desc,
+          lessonSubject: item.lessonSubject || '',
+          hourNum: item.hourNum ? parseInt(item.hourNum, 10) : null,
+          rawData: JSON.stringify(item)
+        });
+      }
+    } catch (e) {
+      console.warn(`Failed to fetch homework for child ${child.id}:`, e.message);
+    }
+  }
+
+  // Atomically update DB records for this user
+  const syncTx = db.transaction(() => {
+    // Upsert incidents
+    const upsertIncident = db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        student_name = excluded.student_name,
+        date = excluded.date,
+        type = excluded.type,
+        subject = excluded.subject,
+        teacher = excluded.teacher,
+        description = excluded.description,
+        hour_num = excluded.hour_num,
+        is_justified = excluded.is_justified,
+        event_code = excluded.event_code,
+        raw_data = excluded.raw_data
+    `);
+
+    for (const inc of allIncidents) {
+      upsertIncident.run(
+        inc.id, inc.userId, inc.studentId, inc.studentName, inc.date, inc.type,
+        inc.subject, inc.teacher, inc.description, inc.hourNum, inc.isJustified,
+        inc.eventCode, inc.rawData, new Date().toISOString()
+      );
+    }
+
+    // Upsert homework
+    const upsertHw = db.prepare(`
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, raw_data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
+        student_name = excluded.student_name,
+        subject = excluded.subject,
+        teacher = excluded.teacher,
+        due_date = excluded.due_date,
+        description = excluded.description,
+        lesson_subject = excluded.lesson_subject,
+        hour_num = excluded.hour_num,
+        raw_data = excluded.raw_data
+    `);
+
+    for (const hw of allHomework) {
+      upsertHw.run(
+        hw.id, hw.userId, hw.studentId, hw.studentName, hw.subject,
+        hw.teacher, hw.dueDate, hw.description, hw.lessonSubject, hw.hourNum,
+        hw.rawData, new Date().toISOString()
+      );
+    }
+
+    // Mark sync success
+    db.prepare(`
+      UPDATE webtop_credentials
+      SET last_synced_at = ?, sync_status = 'success', sync_error = null, updated_at = ?
+      WHERE user_id = ?
+    `).run(new Date().toISOString(), new Date().toISOString(), userId);
+  });
+
+  syncTx();
+
+  return {
+    childrenCount: linkedChildren.length,
+    incidentsCount: allIncidents.length,
+    homeworkCount: allHomework.length
+  };
+}
+
+// GET /api/webtop/config
+app.get('/api/webtop/config', authenticate, (req, res) => {
+  try {
+    const creds = db.prepare(`
+      SELECT username, selected_child_id, linked_children, last_synced_at, sync_status, sync_error
+      FROM webtop_credentials
+      WHERE user_id = ?
+    `).get(req.user.id);
+
+    if (!creds) {
+      return res.json({
+        configured: false,
+        username: null,
+        selectedChildId: null,
+        linkedChildren: [],
+        lastSyncedAt: null,
+        syncStatus: 'idle',
+        syncError: null
+      });
+    }
+
+    let linkedChildren = [];
+    try {
+      linkedChildren = JSON.parse(creds.linked_children || '[]');
+    } catch {
+      linkedChildren = [];
+    }
+
+    res.json({
+      configured: true,
+      username: creds.username,
+      selectedChildId: creds.selected_child_id,
+      linkedChildren,
+      lastSyncedAt: creds.last_synced_at,
+      syncStatus: creds.sync_status,
+      syncError: creds.sync_error
+    });
+  } catch (err) {
+    console.error('Failed to fetch Webtop config:', err);
+    res.status(500).json({ error: 'Failed to fetch Webtop configuration' });
+  }
+});
+
+// POST /api/webtop/test - verify credentials live without persisting
+app.post('/api/webtop/test', authenticate, async (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    const client = new WebtopClient();
+    const user = await client.login(username, password);
+    const dash = await client.initDashboard();
+    const rawChildren = dash.childrens || [];
+    const children = rawChildren.map(c => ({
+      id: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      classCode: c.classCode,
+      classNum: c.classNum,
+      cellphone: c.cellphone || null
+    }));
+
+    res.json({
+      success: true,
+      user: {
+        firstName: user.firstName,
+        lastName: user.lastName,
+        institutionName: user.school_name || ''
+      },
+      children
+    });
+  } catch (err) {
+    console.error('Webtop test login failed:', err.message);
+    res.status(400).json({ error: err.message || 'Webtop authentication failed' });
+  }
+});
+
+// POST /api/webtop/config - save credentials & run initial sync
+app.post('/api/webtop/config', authenticate, async (req, res) => {
+  try {
+    const { username, password, selectedChildId } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Username and password are required' });
+    }
+
+    const client = new WebtopClient();
+    await client.login(username, password);
+    const dash = await client.initDashboard();
+    const rawChildren = dash.childrens || [];
+    const linkedChildren = rawChildren.map(c => ({
+      id: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      classCode: c.classCode,
+      classNum: c.classNum,
+      cellphone: c.cellphone || null
+    }));
+
+    let effectiveChildId = selectedChildId;
+    if (!effectiveChildId || !linkedChildren.some(c => c.id === effectiveChildId)) {
+      effectiveChildId = linkedChildren[0]?.id || null;
+    }
+
+    const encryptedPass = encryptPassword(password);
+    const now = new Date().toISOString();
+
+    const existing = db.prepare('SELECT id FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    if (existing) {
+      db.prepare(`
+        UPDATE webtop_credentials
+        SET username = ?, encrypted_password = ?, selected_child_id = ?, linked_children = ?, updated_at = ?
+        WHERE user_id = ?
+      `).run(username, encryptedPass, effectiveChildId, JSON.stringify(linkedChildren), now, req.user.id);
+    } else {
+      db.prepare(`
+        INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, linked_children, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run(crypto.randomUUID(), req.user.id, username, encryptedPass, effectiveChildId, JSON.stringify(linkedChildren), now, now);
+    }
+
+    let syncResult = null;
+    try {
+      syncResult = await syncWebtopData(req.user.id);
+    } catch (syncErr) {
+      console.warn('Initial sync warning:', syncErr.message);
+    }
+
+    res.json({
+      success: true,
+      username,
+      selectedChildId: effectiveChildId,
+      linkedChildren,
+      syncResult
+    });
+  } catch (err) {
+    console.error('Failed to configure Webtop:', err);
+    res.status(400).json({ error: err.message || 'Failed to configure Webtop' });
+  }
+});
+
+// PATCH /api/webtop/child - switch active child
+app.patch('/api/webtop/child', authenticate, (req, res) => {
+  try {
+    const { childId } = req.body;
+    if (!childId) {
+      return res.status(400).json({ error: 'childId is required' });
+    }
+    const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    if (!creds) {
+      return res.status(404).json({ error: 'Webtop credentials not configured' });
+    }
+
+    const linked = JSON.parse(creds.linked_children || '[]');
+    if (childId !== 'all' && !linked.some(c => c.id === childId)) {
+      return res.status(400).json({ error: 'Child not found in linked children' });
+    }
+
+    db.prepare(`
+      UPDATE webtop_credentials
+      SET selected_child_id = ?, updated_at = ?
+      WHERE user_id = ?
+    `).run(childId, new Date().toISOString(), req.user.id);
+
+    res.json({ success: true, selectedChildId: childId });
+  } catch (err) {
+    console.error('Failed to switch child:', err);
+    res.status(500).json({ error: 'Failed to switch child' });
+  }
+});
+
+// POST /api/webtop/sync - trigger manual sync
+app.post('/api/webtop/sync', authenticate, async (req, res) => {
+  try {
+    const creds = db.prepare('SELECT id FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    if (!creds) {
+      return res.status(400).json({ error: 'Webtop credentials not configured' });
+    }
+
+    const result = await syncWebtopData(req.user.id);
+    res.json({ success: true, result });
+  } catch (err) {
+    console.error('Failed to sync Webtop data:', err);
+    // Persist error status
+    db.prepare(`
+      UPDATE webtop_credentials
+      SET sync_status = 'error', sync_error = ?, updated_at = ?
+      WHERE user_id = ?
+    `).run(err.message || 'Sync failed', new Date().toISOString(), req.user.id);
+
+    res.status(500).json({ error: err.message || 'Failed to sync Webtop data' });
+  }
+});
+
+// DELETE /api/webtop/config - remove credentials and clear synced data
+app.delete('/api/webtop/config', authenticate, (req, res) => {
+  try {
+    db.prepare('DELETE FROM webtop_credentials WHERE user_id = ?').run(req.user.id);
+    db.prepare('DELETE FROM incidents WHERE user_id = ?').run(req.user.id);
+    db.prepare('DELETE FROM homework WHERE user_id = ?').run(req.user.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to delete Webtop config:', err);
+    res.status(500).json({ error: 'Failed to remove Webtop configuration' });
+  }
+});
 
 // GET /api/incidents
 app.get('/api/incidents', authenticate, (req, res) => {
   try {
-    const incidents = db.prepare(`
-      SELECT id, student_name as studentName, date, type, description, teacher, raw_data as rawData, created_at as createdAt
+    const { childId } = req.query;
+    let query = `
+      SELECT id, student_id as studentId, student_name as studentName, date, type, subject, teacher, description, hour_num as hourNum, is_justified as isJustified, event_code as eventCode, raw_data as rawData, created_at as createdAt
       FROM incidents
       WHERE user_id = ?
-      ORDER BY date DESC
-    `).all(req.user.id);
+    `;
+    const params = [req.user.id];
+
+    if (childId && childId !== 'all') {
+      query += ` AND student_id = ?`;
+      params.push(childId);
+    }
+
+    query += ` ORDER BY date DESC, hour_num ASC`;
+    const incidents = db.prepare(query).all(...params);
 
     res.json({ incidents });
   } catch (err) {
@@ -811,17 +1186,44 @@ app.get('/api/incidents', authenticate, (req, res) => {
 // GET /api/homework
 app.get('/api/homework', authenticate, (req, res) => {
   try {
-    const homework = db.prepare(`
-      SELECT id, student_name as studentName, subject, due_date as dueDate, description, completed, raw_data as rawData, created_at as createdAt
+    const { childId } = req.query;
+    let query = `
+      SELECT id, student_id as studentId, student_name as studentName, subject, teacher, due_date as dueDate, description, lesson_subject as lessonSubject, hour_num as hourNum, completed, raw_data as rawData, created_at as createdAt
       FROM homework
       WHERE user_id = ?
-      ORDER BY due_date DESC
-    `).all(req.user.id);
+    `;
+    const params = [req.user.id];
 
-    res.json({ homework });
+    if (childId && childId !== 'all') {
+      query += ` AND student_id = ?`;
+      params.push(childId);
+    }
+
+    query += ` ORDER BY due_date DESC, hour_num ASC`;
+    const homework = db.prepare(query).all(...params);
+
+    res.json({ homework: homework.map(h => ({ ...h, completed: Boolean(h.completed) })) });
   } catch (err) {
     console.error('Failed to fetch homework:', err);
     res.status(500).json({ error: 'Failed to fetch homework' });
+  }
+});
+
+// PATCH /api/homework/:id/toggle
+app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
+  try {
+    const item = db.prepare('SELECT id, completed FROM homework WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    if (!item) {
+      return res.status(404).json({ error: 'Homework item not found' });
+    }
+
+    const newCompleted = item.completed ? 0 : 1;
+    db.prepare('UPDATE homework SET completed = ? WHERE id = ?').run(newCompleted, req.params.id);
+
+    res.json({ success: true, completed: Boolean(newCompleted) });
+  } catch (err) {
+    console.error('Failed to toggle homework:', err);
+    res.status(500).json({ error: 'Failed to toggle homework' });
   }
 });
 

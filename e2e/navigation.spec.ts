@@ -29,22 +29,23 @@ test.describe('Navigation Flow', () => {
     await loginWithUser(page, adminUser);
 
     // Default tab should be Incidents
-    await expect(page.locator('text=אירועי משמעת ונוכחות')).toBeVisible();
+    await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
 
     // Click Homework tab
     const homeworkBtn = page.locator('aside nav button').nth(1);
     await homeworkBtn.click();
-    await expect(page.locator('text=שיעורי בית ומטלות')).toBeVisible();
+    await expect(page.locator('main h1')).toContainText(/שיעורי בית|Homework/);
 
     // Click Admin tab
     const adminBtn = page.locator('aside nav button').nth(2);
     await adminBtn.click();
-    await expect(page.locator('text=ניהול מערכת')).toBeVisible();
+    await expect(page.locator('main h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
 
     // Click Account shortcut
     const accountBtn = page.locator('aside button').first();
     await accountBtn.click();
-    await expect(page.locator('text=הגדרות חשבון')).toBeVisible();
+    await expect(page.locator('main h2').first()).toContainText(/הגדרות חשבון|Account Settings/);
+    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
   });
 
   test('regular user does not see Admin tab', async ({ page }) => {
