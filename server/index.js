@@ -12,22 +12,26 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
-import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear } from './webtop.js';
+import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret } from './webtop.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-app.set('trust proxy', 1);
+if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
+  app.set('trust proxy', 1);
+}
 const PORT = process.env.PORT || 3001;
 
-// In-memory rate limiting map: ip -> { count, resetAt }
+// In-memory rate limiting map: key -> { count, resetAt }
 const authRateLimits = new Map();
 function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 60), windowMs = 60 * 1000) {
   return (req, res, next) => {
     const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const userPart = req.body?.username ? `:${String(req.body.username).toLowerCase().trim()}` : '';
+    const key = `${ip}${userPart}`;
     const now = Date.now();
-    const record = authRateLimits.get(ip) || { count: 0, resetAt: now + windowMs };
+    const record = authRateLimits.get(key) || { count: 0, resetAt: now + windowMs };
 
     if (now > record.resetAt) {
       record.count = 0;
@@ -35,7 +39,7 @@ function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 6
     }
 
     record.count++;
-    authRateLimits.set(ip, record);
+    authRateLimits.set(key, record);
 
     if (record.count > maxAttempts) {
       return res.status(429).json({
@@ -51,15 +55,32 @@ function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 6
 // Periodic cleanup of rate limits every 10 minutes
 setInterval(() => {
   const now = Date.now();
-  for (const [ip, rec] of authRateLimits.entries()) {
+  for (const [key, rec] of authRateLimits.entries()) {
     if (rec.resetAt < now) {
-      authRateLimits.delete(ip);
+      authRateLimits.delete(key);
     }
   }
 }, 10 * 60 * 1000).unref();
 
 // In-memory WebAuthn challenges: challengeId -> { challenge, userId, username, expiresAt }
 const webauthnChallenges = new Map();
+const MAX_CHALLENGES = 1000;
+
+function storeWebAuthnChallenge(challengeId, challengeData) {
+  const now = Date.now();
+  if (webauthnChallenges.size >= MAX_CHALLENGES) {
+    for (const [id, val] of webauthnChallenges.entries()) {
+      if (val.expiresAt < now) {
+        webauthnChallenges.delete(id);
+      }
+    }
+    if (webauthnChallenges.size >= MAX_CHALLENGES) {
+      const oldestKey = webauthnChallenges.keys().next().value;
+      if (oldestKey) webauthnChallenges.delete(oldestKey);
+    }
+  }
+  webauthnChallenges.set(challengeId, challengeData);
+}
 
 // Periodic cleanup of expired challenges every 5 minutes
 setInterval(() => {
@@ -72,43 +93,48 @@ setInterval(() => {
 }, 5 * 60 * 1000).unref();
 
 function getWebAuthnConfig(req) {
-  const rawOrigin = req.headers.origin || req.headers.referer;
-  let clientOrigin = null;
-  let clientHostname = null;
+  const allowedOrigins = new Set([
+    'http://localhost:5173',
+    'http://localhost:3001',
+    'http://localhost:8080',
+    'http://127.0.0.1:5173',
+    'http://127.0.0.1:3001',
+    'http://127.0.0.1:8080',
+  ]);
 
-  if (rawOrigin) {
-    try {
-      const parsed = new URL(rawOrigin);
-      clientOrigin = `${parsed.protocol}//${parsed.host}`;
-      clientHostname = parsed.hostname;
-    } catch {
-      // ignore
-    }
+  if (process.env.EXPECTED_ORIGIN) {
+    process.env.EXPECTED_ORIGIN.split(',').forEach(o => {
+      const trimmed = o.trim();
+      if (trimmed) allowedOrigins.add(trimmed);
+    });
   }
 
   const hostHeader = req.get('host') || 'localhost:3001';
   const serverHostname = hostHeader.split(':')[0];
   const serverOrigin = `${req.protocol}://${hostHeader}`;
 
-  const rpID = process.env.RP_ID || clientHostname || serverHostname || 'localhost';
-
-  const origins = new Set();
-  if (process.env.EXPECTED_ORIGIN) {
-    process.env.EXPECTED_ORIGIN.split(',').forEach(o => origins.add(o.trim()));
+  // Allow server origin if on loopback
+  if (['localhost', '127.0.0.1'].includes(serverHostname)) {
+    allowedOrigins.add(serverOrigin);
   }
-  if (clientOrigin) origins.add(clientOrigin);
-  if (serverOrigin) origins.add(serverOrigin);
 
-  // Permitted local development and container origins
-  origins.add('http://localhost:5173');
-  origins.add('http://localhost:3001');
-  origins.add('http://localhost:8080');
-  origins.add('http://127.0.0.1:5173');
-  origins.add('http://127.0.0.1:3001');
-  origins.add('http://127.0.0.1:8080');
+  let rpID = process.env.RP_ID;
+  if (!rpID) {
+    if (['localhost', '127.0.0.1'].includes(serverHostname)) {
+      rpID = serverHostname;
+    } else if (process.env.EXPECTED_ORIGIN) {
+      try {
+        const firstOrigin = process.env.EXPECTED_ORIGIN.split(',')[0].trim();
+        rpID = new URL(firstOrigin).hostname;
+      } catch {
+        rpID = 'localhost';
+      }
+    } else {
+      rpID = 'localhost';
+    }
+  }
 
-  const expectedOrigin = Array.from(origins);
-  return { rpID, expectedOrigin, rpName: 'School' };
+  return { rpID, expectedOrigin: Array.from(allowedOrigins), rpName: 'School' };
 }
 
 // Initialize SQLite database
@@ -129,7 +155,52 @@ function getOrCreateJwtSecret() {
   return generated;
 }
 
+function getOrCreateEncryptionSecret() {
+  if (process.env.ENCRYPTION_KEY) {
+    return process.env.ENCRYPTION_KEY;
+  }
+
+  const row = db.prepare('SELECT value FROM settings WHERE key = ?').get('encryption_secret');
+  if (row?.value) {
+    return row.value;
+  }
+
+  const generated = crypto.randomBytes(64).toString('hex');
+  db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)').run('encryption_secret', generated);
+  return generated;
+}
+
 const JWT_SECRET = getOrCreateJwtSecret();
+const ENCRYPTION_SECRET = getOrCreateEncryptionSecret();
+setEncryptionSecret(ENCRYPTION_SECRET);
+
+// Migrate any legacy-encrypted credentials to the active dynamic encryption secret
+try {
+  const credentials = db.prepare('SELECT id, encrypted_password FROM webtop_credentials').all();
+  for (const cred of credentials) {
+    try {
+      const parts = cred.encrypted_password.split(':');
+      if (parts.length === 3) {
+        const [ivHex, authTagHex, encryptedHex] = parts;
+        const keyBytes = crypto.scryptSync(ENCRYPTION_SECRET, 'school-db-salt', 32);
+        const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, Buffer.from(ivHex, 'hex'));
+        decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+        decipher.update(encryptedHex, 'hex', 'utf8');
+        decipher.final('utf8');
+      }
+    } catch {
+      try {
+        const plain = decryptPassword(cred.encrypted_password);
+        const upgraded = encryptPassword(plain);
+        db.prepare('UPDATE webtop_credentials SET encrypted_password = ? WHERE id = ?').run(upgraded, cred.id);
+      } catch (migrationErr) {
+        console.warn(`[Webtop] Could not migrate credentials for ID ${cred.id}:`, migrationErr.message);
+      }
+    }
+  }
+} catch {
+  // Ignored if table does not exist yet
+}
 
 function safeJsonParse(value, fallback = []) {
   if (!value) return fallback;
@@ -164,7 +235,7 @@ export function authenticate(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, role, first_name, last_name, avatar, token_version FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, role, first_name, last_name, token_version FROM users WHERE id = ?').get(payload.id);
     if (!user) {
       return res.status(401).json({ error: 'User no longer exists' });
     }
@@ -180,8 +251,7 @@ export function authenticate(req, res, next) {
       username: user.username,
       role: user.role,
       firstName: user.first_name || '',
-      lastName: user.last_name || '',
-      avatar: user.avatar || ''
+      lastName: user.last_name || ''
     };
     next();
   } catch {
@@ -260,10 +330,10 @@ app.post('/api/auth/passkey/register-options', authenticate, async (req, res) =>
     });
 
     const challengeId = crypto.randomUUID();
-    webauthnChallenges.set(challengeId, {
+    storeWebAuthnChallenge(challengeId, {
       challenge: options.challenge,
       userId: req.user.id,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 2 * 60 * 1000,
     });
 
     res.json({ options, challengeId });
@@ -340,7 +410,7 @@ app.post('/api/auth/passkey/register-verify', authenticate, async (req, res) => 
 });
 
 // POST /api/auth/passkey/login-options
-app.post('/api/auth/passkey/login-options', async (req, res) => {
+app.post('/api/auth/passkey/login-options', rateLimitAuth(20, 60000), async (req, res) => {
   try {
     const { username } = req.body || {};
     const { rpID } = getWebAuthnConfig(req);
@@ -364,10 +434,10 @@ app.post('/api/auth/passkey/login-options', async (req, res) => {
     });
 
     const challengeId = crypto.randomUUID();
-    webauthnChallenges.set(challengeId, {
+    storeWebAuthnChallenge(challengeId, {
       challenge: options.challenge,
       username: username?.trim(),
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 2 * 60 * 1000,
     });
 
     res.json({ options, challengeId });
@@ -477,7 +547,13 @@ app.patch('/api/auth/passkeys/:id', authenticate, (req, res) => {
 
 // GET /api/auth/me
 app.get('/api/auth/me', authenticate, (req, res) => {
-  res.json({ user: req.user });
+  const row = db.prepare('SELECT avatar FROM users WHERE id = ?').get(req.user.id);
+  res.json({
+    user: {
+      ...req.user,
+      avatar: row?.avatar || ''
+    }
+  });
 });
 
 // PUT /api/auth/profile
@@ -767,10 +843,10 @@ app.delete('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
 });
 
 // GET /api/users
-app.get('/api/users', authenticate, (req, res) => {
+app.get('/api/users', authenticate, requireAdmin, (req, res) => {
   try {
     const users = db.prepare(`
-      SELECT id, username, first_name, last_name, avatar
+      SELECT id, username, first_name, last_name
       FROM users
       ORDER BY username ASC
     `).all();
@@ -780,8 +856,7 @@ app.get('/api/users', authenticate, (req, res) => {
         id: u.id,
         username: u.username,
         firstName: u.first_name || '',
-        lastName: u.last_name || '',
-        avatar: u.avatar || ''
+        lastName: u.last_name || ''
       }))
     });
   } catch (err) {
@@ -799,6 +874,24 @@ async function syncWebtopData(userId) {
   }
 
   const plainPassword = decryptPassword(creds.encrypted_password);
+
+  // Transparently re-encrypt credentials if stored under legacy secret
+  try {
+    const keyBytes = crypto.scryptSync(ENCRYPTION_SECRET, 'school-db-salt', 32);
+    const parts = creds.encrypted_password.split(':');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, Buffer.from(parts[0], 'hex'));
+    decipher.setAuthTag(Buffer.from(parts[1], 'hex'));
+    decipher.update(parts[2], 'hex', 'utf8');
+    decipher.final('utf8');
+  } catch {
+    try {
+      const upgraded = encryptPassword(plainPassword);
+      db.prepare('UPDATE webtop_credentials SET encrypted_password = ? WHERE id = ?').run(upgraded, creds.id);
+    } catch {
+      // Ignore background upgrade failure
+    }
+  }
+
   const client = new WebtopClient();
   await client.login(creds.username, plainPassword);
 
@@ -840,7 +933,7 @@ async function syncWebtopData(userId) {
       const incidents = await client.getIncidents(child.id, child.classCode);
       for (const ev of incidents) {
         allIncidents.push({
-          id: `webtop-inc-${ev.eventID || crypto.randomUUID()}`,
+          id: `webtop-inc-${userId}-${ev.eventID || crypto.randomUUID()}`,
           userId,
           studentId: child.id,
           studentName: childFullName,
@@ -887,7 +980,7 @@ async function syncWebtopData(userId) {
 
                 const subject = (item.subject_name || item.subject || '').trim();
                 const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-                const hwId = `webtop-hw-${child.id}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+                const hwId = `webtop-hw-${userId}-${child.id}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
                 allHomework.push({
                   id: hwId,
@@ -923,7 +1016,7 @@ async function syncWebtopData(userId) {
         const hourNum = item.hourNum ? parseInt(item.hourNum, 10) : null;
         const subject = (item.lesson || '').trim();
         const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-        const hwId = `webtop-hw-${child.id}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+        const hwId = `webtop-hw-${userId}-${child.id}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
         allHomework.push({
           id: hwId,
@@ -1256,9 +1349,12 @@ app.post('/api/webtop/sync', authenticate, async (req, res) => {
 // DELETE /api/webtop/config - remove credentials and clear synced data
 app.delete('/api/webtop/config', authenticate, (req, res) => {
   try {
-    db.prepare('DELETE FROM webtop_credentials WHERE user_id = ?').run(req.user.id);
-    db.prepare('DELETE FROM incidents WHERE user_id = ?').run(req.user.id);
-    db.prepare('DELETE FROM homework WHERE user_id = ?').run(req.user.id);
+    const deleteTx = db.transaction(() => {
+      db.prepare('DELETE FROM webtop_credentials WHERE user_id = ?').run(req.user.id);
+      db.prepare('DELETE FROM incidents WHERE user_id = ?').run(req.user.id);
+      db.prepare('DELETE FROM homework WHERE user_id = ?').run(req.user.id);
+    });
+    deleteTx();
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete Webtop config:', err);
@@ -1327,7 +1423,7 @@ app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
     }
 
     const newCompleted = item.completed ? 0 : 1;
-    db.prepare('UPDATE homework SET completed = ? WHERE id = ?').run(newCompleted, req.params.id);
+    db.prepare('UPDATE homework SET completed = ? WHERE id = ? AND user_id = ?').run(newCompleted, req.params.id, req.user.id);
 
     res.json({ success: true, completed: Boolean(newCompleted) });
   } catch (err) {

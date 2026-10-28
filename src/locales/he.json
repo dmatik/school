@@ -191,7 +191,13 @@
     "color_rose": "ורוד",
     "color_cyan": "טורקיז",
     "color_orange": "כתום",
-    "color_indigo": "אינדיגו"
+    "color_indigo": "אינדיגו",
+    "passkey_failed": "הפעולה עם מפתח הגישה נכשלה או בוטלה.",
+    "webtop_save_failed": "שמירת פרטי Webtop נכשלה",
+    "color_update_failed": "עדכון הצבע נכשל",
+    "disconnect_failed": "ניתוק חיבור Webtop נכשל",
+    "sync_error": "שגיאת סנכרון",
+    "sync_failed": "הסנכרון נכשל"
   },
   "admin": {
     "title": "ניהול מערכת",

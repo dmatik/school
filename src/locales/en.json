@@ -191,7 +191,13 @@
     "color_rose": "Rose",
     "color_cyan": "Cyan",
     "color_orange": "Orange",
-    "color_indigo": "Indigo"
+    "color_indigo": "Indigo",
+    "passkey_failed": "Passkey action failed or was cancelled.",
+    "webtop_save_failed": "Failed to save Webtop credentials",
+    "color_update_failed": "Failed to update color",
+    "disconnect_failed": "Failed to disconnect Webtop",
+    "sync_error": "Sync error",
+    "sync_failed": "Sync failed"
   },
   "admin": {
     "title": "System Administration",

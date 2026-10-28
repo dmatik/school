@@ -26,6 +26,15 @@ describe('Webtop Cryptographic & Academic Utilities', () => {
     expect(() => decryptPassword(tampered)).toThrow();
   });
 
+  it('decrypts legacy passwords encrypted with the backward-compatible fallback secret', () => {
+    // Legacy ciphertext generated using 'school-webtop-credential-salt-2026'
+    // '7a088ab05a1902f886ab8f5d:2ba3d0f0771bf1792b28756c9f832663:c64064314f35f61474f00b6b729a7b'
+    const legacyCipher = '7a088ab05a1902f886ab8f5d:2ba3d0f0771bf1792b28756c9f832663:c64064314f35f61474f00b6b729a7b';
+    const decrypted = decryptPassword(legacyCipher);
+    expect(decrypted).toBeDefined();
+    expect(decrypted.length).toBeGreaterThan(0);
+  });
+
   it('encrypts string payloads for Webtop server using AES-256-CBC', () => {
     const encrypted = encryptWebtopPayload('testuser0');
     expect(typeof encrypted).toBe('string');

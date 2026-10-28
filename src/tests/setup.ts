@@ -24,17 +24,20 @@ window.ResizeObserver = class ResizeObserver {
 }
 
 // 3. Mock react-i18next
+const stableT = (key: string) => {
+    if (key === 'common.date_format') return 'yyyy-MM-dd'
+    return key
+}
+const stableI18n = {
+    changeLanguage: () => new Promise(() => { }),
+    language: 'en',
+    dir: () => 'ltr',
+}
+
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
-        t: (key: string) => {
-            if (key === 'common.date_format') return 'yyyy-MM-dd'
-            return key
-        },
-        i18n: {
-            changeLanguage: () => new Promise(() => { }),
-            language: 'en',
-            dir: () => 'ltr',
-        },
+        t: stableT,
+        i18n: stableI18n,
     }),
     initReactI18next: {
         type: '3rdParty',

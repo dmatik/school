@@ -20,8 +20,10 @@ export function uuidv4() {
   });
 }
 
-export function parseLocalDate(dateInput: string | Date): Date {
-  if (dateInput instanceof Date) return dateInput
+export function parseLocalDate(dateInput: string | Date | null | undefined): Date {
+  if (!dateInput) return new Date()
+  if (dateInput instanceof Date) return isNaN(dateInput.getTime()) ? new Date() : dateInput
+  if (typeof dateInput !== "string") return new Date()
   const clean = dateInput.split("T")[0]
   const parts = clean.split("-").map(Number)
   if (parts.length === 3 && !parts.some(isNaN)) {
