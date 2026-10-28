@@ -4,7 +4,6 @@ import {
   AlertCircle,
   RefreshCw,
   Search,
-  Filter,
   User,
   GraduationCap,
   CheckCircle2,
@@ -54,9 +53,14 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
-  const [selectedType, setSelectedType] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
+
+  const isFutureDate = (d: Date) => {
+    const endOfToday = new Date()
+    endOfToday.setHours(23, 59, 59, 999)
+    return d > endOfToday
+  }
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -134,14 +138,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   }
 
   // Unique types list for filtering
-  const eventTypes = useMemo(() => {
-    const set = new Set<string>()
-    for (const inc of incidents) {
-      if (inc.type) set.add(inc.type)
-    }
-    return Array.from(set)
-  }, [incidents])
-
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
     return incidents.filter(inc => {
@@ -151,11 +147,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
         if (inc.date !== formattedFilter) {
           return false
         }
-      }
-
-      // Type filter
-      if (selectedType !== "all" && inc.type !== selectedType) {
-        return false
       }
 
       // Search query
@@ -173,7 +164,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
       return true
     })
-  }, [incidents, selectedDate, selectedType, searchQuery])
+  }, [incidents, selectedDate, searchQuery])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
@@ -184,11 +175,11 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <AlertCircle className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               {t("incidents.title")}
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t("incidents.subtitle")}
           </p>
         </div>
@@ -198,9 +189,9 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
           {/* Child Selector */}
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-              <SelectTrigger className="h-8 text-xs gap-1.5 px-3 flex-1 sm:flex-initial sm:min-w-[150px] bg-background border-border min-w-0">
-                <div className="flex items-center gap-1.5 truncate">
-                  <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <SelectTrigger className="h-9 text-sm gap-2 px-3 flex-1 sm:flex-initial sm:min-w-[160px] bg-background border-border min-w-0">
+                <div className="flex items-center gap-2 truncate">
+                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
                   <SelectValue placeholder={t("incidents.all_students")} />
                 </div>
               </SelectTrigger>
@@ -222,61 +213,38 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
               size="sm"
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 text-xs h-8 shrink-0 ms-auto sm:ms-0"
+              className="flex items-center gap-2 text-sm h-9 shrink-0 ms-auto sm:ms-0 px-3"
             >
-              <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
+              <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
               <span>{syncing ? t("incidents.syncing") : t("incidents.sync_now")}</span>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Filter / Search Bar */}
+      {/* Search & Date Filter */}
       {incidents.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/60 p-3 rounded-xl border border-border">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("incidents.search_placeholder")}
-              className="ps-9 h-9 text-xs"
+              className="ps-9 h-9 text-sm"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto shrink-0">
-            {/* Event Type Filter */}
-            {eventTypes.length > 0 && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 sm:flex-initial sm:min-w-[150px]">
-                  <Select value={selectedType} onValueChange={setSelectedType}>
-                    <SelectTrigger className="h-9 text-xs px-3 w-full sm:w-auto min-w-0 bg-background border-border">
-                      <SelectValue placeholder={t("incidents.all_types")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("incidents.all_types")}</SelectItem>
-                      {eventTypes.map(typ => (
-                        <SelectItem key={typ} value={typ}>
-                          {typ}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* Date Filter */}
-            <div className={cn("w-full sm:w-auto sm:min-w-[210px]", eventTypes.length > 0 && "ps-6 sm:ps-0")}>
-              <DatePicker
-                date={selectedDate}
-                setDate={setSelectedDate}
-                placeholder={t("common.all_dates")}
-                clearable={true}
-              />
-            </div>
+          {/* Date Filter */}
+          <div className="w-full sm:w-auto sm:min-w-[220px]">
+            <DatePicker
+              date={selectedDate}
+              setDate={setSelectedDate}
+              placeholder={t("common.all_dates")}
+              disabled={isFutureDate}
+              clearable={true}
+            />
           </div>
         </div>
       )}
@@ -329,12 +297,12 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
               <CheckCircle2 className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
-              {searchQuery || selectedType !== "all" || selectedDate
+              {searchQuery || selectedDate
                 ? t("incidents.no_incidents_match")
                 : t("incidents.empty_title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedType !== "all" || selectedDate
+              {searchQuery || selectedDate
                 ? t("incidents.search_placeholder")
                 : t("incidents.empty_desc")}
             </p>
@@ -407,7 +375,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                 </CardHeader>
 
                 {inc.description && (
-                  <CardContent className="p-4 sm:p-5 pt-0">
+                  <CardContent className="p-4 sm:p-5 pt-2.5 sm:pt-2.5">
                     {/* Remark / Description */}
                     <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-md border border-border/50 text-start leading-relaxed">
                       {inc.description}

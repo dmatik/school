@@ -4,7 +4,6 @@ import {
   BookOpen,
   RefreshCw,
   Search,
-  Filter,
   User,
   GraduationCap,
   Loader2,
@@ -54,7 +53,6 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
-  const [selectedSubject, setSelectedSubject] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => new Date())
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -139,15 +137,6 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
     }
   }
 
-  // Unique subjects list for filtering
-  const subjects = useMemo(() => {
-    const set = new Set<string>()
-    for (const hw of homework) {
-      if (hw.subject) set.add(hw.subject)
-    }
-    return Array.from(set)
-  }, [homework])
-
   // Filtered homework
   const filteredHomework = useMemo(() => {
     return homework.filter(hw => {
@@ -157,11 +146,6 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
         if (hw.dueDate !== formattedFilter) {
           return false
         }
-      }
-
-      // Subject filter
-      if (selectedSubject !== "all" && hw.subject !== selectedSubject) {
-        return false
       }
 
       // Search query
@@ -179,7 +163,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
       return true
     })
-  }, [homework, selectedDate, selectedSubject, searchQuery])
+  }, [homework, selectedDate, searchQuery])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
@@ -190,11 +174,11 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             <div className="p-2 rounded-lg bg-primary/10 text-primary">
               <BookOpen className="w-5 h-5" />
             </div>
-            <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               {t("homework.title")}
             </h1>
           </div>
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground">
             {t("homework.subtitle")}
           </p>
         </div>
@@ -204,9 +188,9 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
           {/* Child Selector */}
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-              <SelectTrigger className="h-8 text-xs gap-1.5 px-3 flex-1 sm:flex-initial sm:min-w-[150px] bg-background border-border min-w-0">
-                <div className="flex items-center gap-1.5 truncate">
-                  <User className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+              <SelectTrigger className="h-9 text-sm gap-2 px-3 flex-1 sm:flex-initial sm:min-w-[160px] bg-background border-border min-w-0">
+                <div className="flex items-center gap-2 truncate">
+                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
                   <SelectValue placeholder={t("homework.all_students")} />
                 </div>
               </SelectTrigger>
@@ -228,62 +212,38 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
               size="sm"
               onClick={handleSync}
               disabled={syncing}
-              className="flex items-center gap-1.5 text-xs h-8 shrink-0 ms-auto sm:ms-0"
+              className="flex items-center gap-2 text-sm h-9 shrink-0 ms-auto sm:ms-0 px-3"
             >
-              <RefreshCw className={syncing ? "w-3.5 h-3.5 animate-spin" : "w-3.5 h-3.5"} />
+              <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
               <span>{syncing ? t("homework.syncing") : t("homework.sync_now")}</span>
             </Button>
           )}
         </div>
       </div>
 
-      {/* Filter / Search Bar */}
+      {/* Search & Date Filter */}
       {homework.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between bg-card/60 p-3 rounded-xl border border-border">
+        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1">
+          <div className="relative flex-1 sm:max-w-md">
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("homework.search_placeholder")}
-              className="ps-9 h-9 text-xs"
+              className="ps-9 h-9 text-sm"
             />
           </div>
 
-          <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full sm:w-auto shrink-0">
-            {/* Subject Filter */}
-            {subjects.length > 0 && (
-              <div className="flex items-center gap-2 w-full sm:w-auto">
-                <Filter className="w-4 h-4 text-muted-foreground shrink-0" />
-                <div className="flex-1 sm:flex-initial sm:min-w-[150px]">
-                  <Select value={selectedSubject} onValueChange={setSelectedSubject}>
-                    <SelectTrigger className="h-9 text-xs px-3 w-full sm:w-auto min-w-0 bg-background border-border">
-                      <SelectValue placeholder={t("homework.all_subjects")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">{t("homework.all_subjects")}</SelectItem>
-                      {subjects.map(s => (
-                        <SelectItem key={s} value={s}>
-                          {s}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-
-            {/* Date Filter */}
-            <div className={cn("w-full sm:w-auto sm:min-w-[210px]", subjects.length > 0 && "ps-6 sm:ps-0")}>
-              <DatePicker
-                date={selectedDate}
-                setDate={setSelectedDate}
-                placeholder={t("common.all_dates")}
-                disabled={isFutureDate}
-                clearable={true}
-              />
-            </div>
+          {/* Date Filter */}
+          <div className="w-full sm:w-auto sm:min-w-[220px]">
+            <DatePicker
+              date={selectedDate}
+              setDate={setSelectedDate}
+              placeholder={t("common.all_dates")}
+              disabled={isFutureDate}
+              clearable={true}
+            />
           </div>
         </div>
       )}
@@ -336,14 +296,14 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
               <BookOpen className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
-              {selectedDate && !searchQuery && selectedSubject === "all"
+              {selectedDate && !searchQuery
                 ? t("homework.no_homework_for_date")
-                : searchQuery || selectedSubject !== "all" || selectedDate
+                : searchQuery || selectedDate
                   ? t("homework.no_homework_match")
                   : t("homework.empty_title")}
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedSubject !== "all" || selectedDate
+              {searchQuery || selectedDate
                 ? t("homework.search_placeholder")
                 : t("homework.empty_desc")}
             </p>
@@ -434,7 +394,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                 </CardHeader>
 
                 {hasContent && (
-                  <CardContent className="p-4 sm:p-5 pt-0 space-y-3">
+                  <CardContent className="p-4 sm:p-5 pt-2.5 sm:pt-2.5 space-y-3">
                     {/* Lesson Topic */}
                     {hw.lessonSubject && (
                       <div className="text-xs font-medium text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 text-start">

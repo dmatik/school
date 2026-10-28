@@ -1,9 +1,29 @@
-import { render, screen } from '@testing-library/react'
-import { describe, it, expect } from 'vitest'
+import { render, screen, fireEvent } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
 import { IncidentsPage } from '../components/IncidentsPage'
 import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
+import { Calendar } from '../components/ui/calendar'
+
+describe('Calendar Component', () => {
+  it('renders today with distinct highlight class when unselected', () => {
+    const { container } = render(<Calendar mode="single" />)
+    const todayCell = container.querySelector('[data-today="true"]')
+    expect(todayCell).toBeTruthy()
+    expect(todayCell?.className).toContain('[&:not([data-selected])]:border-primary/60')
+    expect(todayCell?.className).toContain('[&:not([data-selected])]:text-primary')
+  })
+
+  it('renders selected date cleanly without conflicting today text color', () => {
+    const today = new Date()
+    const { container } = render(<Calendar mode="single" selected={today} />)
+    const selectedCell = container.querySelector('[data-selected="true"]')
+    expect(selectedCell).toBeTruthy()
+    expect(selectedCell?.className).toContain('bg-primary')
+    expect(selectedCell?.className).toContain('text-primary-foreground')
+  })
+})
 
 describe('DatePicker Component', () => {
   it('renders one-liner format with weekday and full date when date is selected', () => {
@@ -15,6 +35,24 @@ describe('DatePicker Component', () => {
   it('renders placeholder when no date is selected', () => {
     render(<DatePicker setDate={() => {}} placeholder="Select a date" />)
     expect(screen.getByText("Select a date")).toBeInTheDocument()
+  })
+
+  it('opens popover and allows selecting today via Today button', () => {
+    const handleSetDate = vi.fn()
+    render(<DatePicker setDate={handleSetDate} placeholder="Select a date" />)
+
+    // Open popover by clicking the trigger button
+    fireEvent.click(screen.getByRole('button', { name: /Select a date/i }))
+
+    // Today button in footer should now be visible
+    const todayBtn = screen.getByRole('button', { name: /^(common\.today|Today|היום)$/i })
+    expect(todayBtn).toBeInTheDocument()
+
+    // Click Today button
+    fireEvent.click(todayBtn)
+    expect(handleSetDate).toHaveBeenCalled()
+    const calledDate = handleSetDate.mock.calls[0][0]
+    expect(calledDate).toBeInstanceOf(Date)
   })
 })
 

@@ -37,11 +37,26 @@ export function DatePicker({
     const { t, i18n } = useTranslation()
     const isRtl = i18n.dir() === 'rtl'
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false)
+    const [calendarMonth, setCalendarMonth] = React.useState<Date>(() => date || new Date())
+
+    React.useEffect(() => {
+        if (isPopoverOpen) {
+            setCalendarMonth(date || new Date())
+        }
+    }, [isPopoverOpen, date])
 
     const handleSelect = (newDate: Date | undefined) => {
         setDate(newDate)
         setIsPopoverOpen(false)
     }
+
+    const handleToday = () => {
+        const today = new Date()
+        setCalendarMonth(today)
+        handleSelect(today)
+    }
+
+    const isTodayDisabled = disabled ? disabled(new Date()) : false
 
     const handleClear = (e: React.MouseEvent) => {
         e.stopPropagation()
@@ -64,13 +79,13 @@ export function DatePicker({
                     <Button
                         variant={"outline"}
                         className={cn(
-                            "w-full justify-start text-start font-normal gap-2 h-9 text-xs px-3",
+                            "w-full justify-start text-start font-normal gap-2 h-9 text-sm px-3",
                             !date && "text-muted-foreground",
                             clearable && date && "pe-7",
                             className
                         )}
                     >
-                        <CalendarIcon className="h-3.5 w-3.5 shrink-0" />
+                        <CalendarIcon className="h-4 w-4 shrink-0" />
                         <span className="truncate">
                             {formattedDate}
                         </span>
@@ -93,9 +108,34 @@ export function DatePicker({
                     selected={date}
                     onSelect={handleSelect}
                     disabled={disabled}
-                    defaultMonth={date || new Date()}
+                    month={calendarMonth}
+                    onMonthChange={setCalendarMonth}
                     initialFocus
                 />
+                <div className="p-2 border-t border-border flex items-center justify-between gap-2 bg-muted/20">
+                    <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={isTodayDisabled}
+                        className="text-xs h-7 px-2.5 font-medium text-primary hover:bg-primary/10 hover:text-primary disabled:opacity-40"
+                        onClick={handleToday}
+                    >
+                        {t('common.today')}
+                    </Button>
+                    {clearable && (
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            disabled={!date}
+                            className="text-xs h-7 px-2.5 text-muted-foreground hover:text-foreground disabled:opacity-40"
+                            onClick={() => handleSelect(undefined)}
+                        >
+                            {t('common.all_dates')}
+                        </Button>
+                    )}
+                </div>
             </PopoverContent>
         </Popover>
     )
