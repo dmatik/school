@@ -24,14 +24,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
 import { toast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate } from "@/lib/utils"
 import { isPasskeySupported, registerPasskey, fetchUserPasskeys, deletePasskey, type PasskeyInfo } from "@/lib/webauthn"
 import { compressImage } from "@/lib/image"
 import { CHILD_COLORS, getChildBadgeClasses } from "@/lib/child-colors"
@@ -242,25 +235,6 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       })
     } finally {
       setSyncingWebtop(false)
-    }
-  }
-
-  const handleSelectChild = async (childId: string) => {
-    try {
-      const res = await fetch("/api/webtop/child", {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ childId })
-      })
-
-      if (res.ok) {
-        setWebtopConfig(prev => prev ? { ...prev, selectedChildId: childId } : null)
-      }
-    } catch (err) {
-      console.error("Failed to switch child:", err)
     }
   }
 
@@ -802,43 +776,24 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
             ) : webtopConfig?.configured && !isEditingWebtop ? (
               <div className="space-y-5">
                 {/* Connected Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 p-4 rounded-xl bg-muted/30 border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/30 border">
                   <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">{t("account.webtop_username")}</span>
                     <span className="text-sm font-semibold text-foreground block">{webtopConfig.username}</span>
                   </div>
 
                   <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">{t("account.webtop_active_child")}</span>
-                    {webtopConfig.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
-                      <Select
-                        value={webtopConfig.selectedChildId || webtopConfig.linkedChildren[0]?.id || ""}
-                        onValueChange={handleSelectChild}
-                      >
-                        <SelectTrigger className="h-9 text-xs px-2.5 w-full bg-background border-border">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {webtopConfig.linkedChildren.map(c => (
-                            <SelectItem key={c.id} value={c.id}>
-                              {c.firstName} {c.lastName} ({c.classCode ? `כיתה ${c.classCode}-${c.classNum}` : ''})
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    ) : (
-                      <span className="text-sm text-muted-foreground">-</span>
-                    )}
-                  </div>
-
-                  <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">
                       {t("account.webtop_last_synced", { date: "" }).replace(":", "")}
                     </span>
-                    <span className="text-xs font-medium text-foreground block">
-                      {webtopConfig.lastSyncedAt
-                        ? new Date(webtopConfig.lastSyncedAt).toLocaleString()
-                        : "-"}
+                    <span className="text-xs font-medium text-foreground block tabular-nums">
+                      {webtopConfig.lastSyncedAt ? (
+                        <bdi dir="ltr" className="inline-block">
+                          {formatSystemDateTime(webtopConfig.lastSyncedAt)}
+                        </bdi>
+                      ) : (
+                        "-"
+                      )}
                     </span>
                   </div>
                 </div>
@@ -884,13 +839,16 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                               </span>
                               {child.classCode && (
                                 <span className="text-xs text-muted-foreground">
-                                  ({t("account.class_label", { code: child.classCode, num: child.classNum })})
+                                  ({t("account.class_label", {
+                                    code: formatGradeHebrew(child.classCode),
+                                    num: child.classNum
+                                  })})
                                 </span>
                               )}
                             </div>
 
                             {/* Color selection buttons */}
-                            <div className="flex items-center gap-1.5 flex-wrap">
+                            <div className="flex items-center gap-2 flex-wrap">
                               {/* Default / No Color button */}
                               <button
                                 type="button"
@@ -1134,11 +1092,17 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                             ) : null}
                           </div>
                           <div className="text-[11px] sm:text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                            <span>{t("account.created_on", { date: new Date(p.createdAt).toLocaleDateString() })}</span>
+                            <span>
+                              {t("account.created_on", { date: "" })}
+                              <bdi dir="ltr">{formatSystemDate(p.createdAt)}</bdi>
+                            </span>
                             {p.lastUsedAt && (
                               <>
                                 <span className="opacity-40">•</span>
-                                <span>{t("account.last_used", { date: new Date(p.lastUsedAt).toLocaleDateString() })}</span>
+                                <span>
+                                  {t("account.last_used", { date: "" })}
+                                  <bdi dir="ltr">{formatSystemDate(p.lastUsedAt)}</bdi>
+                                </span>
                               </>
                             )}
                           </div>

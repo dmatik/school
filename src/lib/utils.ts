@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
+import { format } from "date-fns"
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
@@ -28,4 +29,50 @@ export function parseLocalDate(dateInput: string | Date): Date {
   }
   const parsed = new Date(dateInput)
   return isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+const HEBREW_GRADE_MAP: Record<number, string> = {
+  1: "א",
+  2: "ב",
+  3: "ג",
+  4: "ד",
+  5: "ה",
+  6: "ו",
+  7: "ז",
+  8: "ח",
+  9: "ט",
+  10: "י",
+  11: "יא",
+  12: "יב"
+}
+
+export function formatGradeHebrew(code: number | string | null | undefined): string {
+  if (code == null) return ""
+  const num = typeof code === "number" ? code : parseInt(String(code), 10)
+  if (!isNaN(num) && HEBREW_GRADE_MAP[num]) {
+    return HEBREW_GRADE_MAP[num]
+  }
+  return String(code)
+}
+
+export function formatSystemDateTime(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return "-"
+  try {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput
+    if (isNaN(d.getTime())) return "-"
+    return format(d, "dd/MM/yyyy, HH:mm:ss")
+  } catch {
+    return "-"
+  }
+}
+
+export function formatSystemDate(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return "-"
+  try {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput
+    if (isNaN(d.getTime())) return "-"
+    return format(d, "dd/MM/yyyy")
+  } catch {
+    return "-"
+  }
 }

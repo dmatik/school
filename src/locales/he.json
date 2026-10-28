@@ -180,7 +180,7 @@
     "webtop_sync_success": "הסנכרון הושלם בהצלחה! סונכרנו {{incidents}} אירועים ו-{{homework}} שיעורי בית.",
     "webtop_sync_failed": "הסנכרון נכשל: {{error}}",
     "webtop_linked_kids_title": "ילדים מקושרים וצבעי תגיות",
-    "webtop_linked_kids_desc": "בחר צבע תגית ייחודי עבור כל ילד כדי להבדיל בקלות בין שיעורי הבית בכרטיסים",
+    "webtop_linked_kids_desc": "בחירת צבע תגית אישי עבור כל ילד",
     "class_label": "כיתה {{code}}-{{num}}",
     "child_color_updated": "צבע התגית עבור {{name}} עודכן בהצלחה",
     "color_default": "ברירת מחדל",
