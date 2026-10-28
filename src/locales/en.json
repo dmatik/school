@@ -180,7 +180,7 @@
     "webtop_sync_success": "Sync complete! Updated {{incidents}} incidents and {{homework}} homework items.",
     "webtop_sync_failed": "Sync failed: {{error}}",
     "webtop_linked_kids_title": "Linked Children & Badge Colors",
-    "webtop_linked_kids_desc": "Select a unique badge color for each child to easily tell their homework cards apart",
+    "webtop_linked_kids_desc": "Choose a unique badge color for each child",
     "class_label": "Class {{code}}-{{num}}",
     "child_color_updated": "Badge color for {{name}} updated successfully",
     "color_default": "Default",

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -17,5 +17,52 @@ describe('cn utility', () => {
     it('merges conflicting tailwind classes (uses tailwind-merge)', () => {
         const result = cn('px-2 p-4')
         expect(result).toBe('p-4')
+    })
+})
+
+describe('formatGradeHebrew utility', () => {
+    it('converts grade numbers 1-12 to their corresponding Hebrew letters', () => {
+        expect(formatGradeHebrew(1)).toBe('א')
+        expect(formatGradeHebrew(2)).toBe('ב')
+        expect(formatGradeHebrew(3)).toBe('ג')
+        expect(formatGradeHebrew(4)).toBe('ד')
+        expect(formatGradeHebrew(5)).toBe('ה')
+        expect(formatGradeHebrew(6)).toBe('ו')
+        expect(formatGradeHebrew(7)).toBe('ז')
+        expect(formatGradeHebrew(8)).toBe('ח')
+        expect(formatGradeHebrew(9)).toBe('ט')
+        expect(formatGradeHebrew(10)).toBe('י')
+        expect(formatGradeHebrew(11)).toBe('יא')
+        expect(formatGradeHebrew(12)).toBe('יב')
+    })
+
+    it('handles numeric string representations', () => {
+        expect(formatGradeHebrew('4')).toBe('ד')
+        expect(formatGradeHebrew('6')).toBe('ו')
+    })
+
+    it('falls back gracefully on non-numeric or already Hebrew inputs', () => {
+        expect(formatGradeHebrew('ד')).toBe('ד')
+        expect(formatGradeHebrew(null)).toBe('')
+        expect(formatGradeHebrew(undefined)).toBe('')
+    })
+})
+
+describe('formatSystemDateTime and formatSystemDate utilities', () => {
+    it('formats a date and time string using DD/MM/YYYY and 24-hour time', () => {
+        const d = new Date(2026, 9, 28, 17, 29, 7) // Oct 28, 2026, 17:29:07
+        const result = formatSystemDateTime(d)
+        expect(result).toBe('28/10/2026, 17:29:07')
+
+        const dateOnly = formatSystemDate(d)
+        expect(dateOnly).toBe('28/10/2026')
+    })
+
+    it('returns "-" for null, undefined, or invalid dates', () => {
+        expect(formatSystemDateTime(null)).toBe('-')
+        expect(formatSystemDateTime(undefined)).toBe('-')
+        expect(formatSystemDateTime('invalid-date')).toBe('-')
+        expect(formatSystemDate(null)).toBe('-')
+        expect(formatSystemDate(undefined)).toBe('-')
     })
 })
