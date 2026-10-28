@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import {
   UserPlus,
@@ -79,7 +79,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   const [isSubmittingPassword, setIsSubmittingPassword] = useState(false)
 
   // Helper to extract localized error messages safely from responses
-  const getErrorMessage = async (res: Response, fallbackKey: string) => {
+  const getErrorMessage = useCallback(async (res: Response, fallbackKey: string) => {
     let data: { error?: string; users?: User[] } | null = null
     try {
       const isJson = res.headers.get("content-type")?.includes("application/json")
@@ -120,10 +120,10 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     if (translated && translated !== `admin.${err}`) return translated
 
     return err || t(fallbackKey)
-  }
+  }, [t])
 
   // Fetch Users
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
       const res = await fetch("/api/admin/users", {
@@ -146,11 +146,11 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     } finally {
       setLoading(false)
     }
-  }
+  }, [token, t, getErrorMessage])
 
   useEffect(() => {
     fetchUsers()
-  }, [])
+  }, [fetchUsers])
 
   // Handle Create User
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -350,14 +350,17 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   }
 
   // Filtered users
-  const filteredUsers = users.filter((u) => {
-    const q = searchQuery.toLowerCase()
-    return (
-      u.username.toLowerCase().includes(q) ||
-      (u.firstName && u.firstName.toLowerCase().includes(q)) ||
-      (u.lastName && u.lastName.toLowerCase().includes(q))
-    )
-  })
+  const filteredUsers = useMemo(() => {
+    const q = searchQuery.toLowerCase().trim()
+    if (!q) return users
+    return users.filter((u) => {
+      return (
+        u.username.toLowerCase().includes(q) ||
+        (u.firstName && u.firstName.toLowerCase().includes(q)) ||
+        (u.lastName && u.lastName.toLowerCase().includes(q))
+      )
+    })
+  }, [users, searchQuery])
 
   return (
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-5xl mx-auto space-y-6">

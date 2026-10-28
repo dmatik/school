@@ -179,7 +179,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || "Failed to save Webtop credentials")
+        throw new Error(data.error || t("account.webtop_save_failed"))
       }
 
       setIsEditingWebtop(false)
@@ -198,7 +198,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       toast({
         variant: "destructive",
         title: t("common.error"),
-        description: err instanceof Error ? err.message : "Error saving Webtop credentials"
+        description: err instanceof Error ? err.message : t("account.webtop_save_failed")
       })
     } finally {
       setSavingWebtop(false)
@@ -251,7 +251,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update color")
+        throw new Error(data.error || t("account.color_update_failed"))
       }
 
       setWebtopConfig(prev => {
@@ -274,7 +274,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       toast({
         variant: "destructive",
         title: t("common.error"),
-        description: err instanceof Error ? err.message : "Error updating color"
+        description: err instanceof Error ? err.message : t("account.color_update_failed")
       })
     }
   }
@@ -287,7 +287,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         headers: { Authorization: `Bearer ${token}` }
       })
 
-      if (!res.ok) throw new Error("Failed to disconnect")
+      if (!res.ok) throw new Error(t("account.disconnect_failed"))
 
       setShowDisconnectDialog(false)
       setIsEditingWebtop(false)
@@ -304,7 +304,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       toast({
         variant: "destructive",
         title: t("common.error"),
-        description: err instanceof Error ? err.message : "Error disconnecting"
+        description: err instanceof Error ? err.message : t("account.disconnect_failed")
       })
     } finally {
       setDisconnectingWebtop(false)

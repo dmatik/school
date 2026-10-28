@@ -23,8 +23,8 @@ db.pragma('busy_timeout = 5000');
 db.pragma('synchronous = NORMAL');
 
 // Initialize schema
-export function initDb() {
-  db.exec(`
+export function initDb(targetDb = db) {
+  targetDb.exec(`
     CREATE TABLE IF NOT EXISTS settings (
       key TEXT PRIMARY KEY,
       value TEXT NOT NULL
@@ -115,26 +115,26 @@ export function initDb() {
   `);
 
   // Migrate existing tables if they lack new columns
-  const incidentsCols = db.prepare("PRAGMA table_info(incidents)").all().map(c => c.name);
-  if (!incidentsCols.includes('student_id')) db.exec("ALTER TABLE incidents ADD COLUMN student_id TEXT;");
-  if (!incidentsCols.includes('subject')) db.exec("ALTER TABLE incidents ADD COLUMN subject TEXT;");
-  if (!incidentsCols.includes('hour_num')) db.exec("ALTER TABLE incidents ADD COLUMN hour_num INTEGER;");
-  if (!incidentsCols.includes('is_justified')) db.exec("ALTER TABLE incidents ADD COLUMN is_justified INTEGER DEFAULT 0;");
-  if (!incidentsCols.includes('event_code')) db.exec("ALTER TABLE incidents ADD COLUMN event_code INTEGER;");
+  const incidentsCols = targetDb.prepare("PRAGMA table_info(incidents)").all().map(c => c.name);
+  if (!incidentsCols.includes('student_id')) targetDb.exec("ALTER TABLE incidents ADD COLUMN student_id TEXT;");
+  if (!incidentsCols.includes('subject')) targetDb.exec("ALTER TABLE incidents ADD COLUMN subject TEXT;");
+  if (!incidentsCols.includes('hour_num')) targetDb.exec("ALTER TABLE incidents ADD COLUMN hour_num INTEGER;");
+  if (!incidentsCols.includes('is_justified')) targetDb.exec("ALTER TABLE incidents ADD COLUMN is_justified INTEGER DEFAULT 0;");
+  if (!incidentsCols.includes('event_code')) targetDb.exec("ALTER TABLE incidents ADD COLUMN event_code INTEGER;");
 
-  const homeworkCols = db.prepare("PRAGMA table_info(homework)").all().map(c => c.name);
-  if (!homeworkCols.includes('student_id')) db.exec("ALTER TABLE homework ADD COLUMN student_id TEXT;");
-  if (!homeworkCols.includes('teacher')) db.exec("ALTER TABLE homework ADD COLUMN teacher TEXT;");
-  if (!homeworkCols.includes('lesson_subject')) db.exec("ALTER TABLE homework ADD COLUMN lesson_subject TEXT;");
-  if (!homeworkCols.includes('hour_num')) db.exec("ALTER TABLE homework ADD COLUMN hour_num INTEGER;");
+  const homeworkCols = targetDb.prepare("PRAGMA table_info(homework)").all().map(c => c.name);
+  if (!homeworkCols.includes('student_id')) targetDb.exec("ALTER TABLE homework ADD COLUMN student_id TEXT;");
+  if (!homeworkCols.includes('teacher')) targetDb.exec("ALTER TABLE homework ADD COLUMN teacher TEXT;");
+  if (!homeworkCols.includes('lesson_subject')) targetDb.exec("ALTER TABLE homework ADD COLUMN lesson_subject TEXT;");
+  if (!homeworkCols.includes('hour_num')) targetDb.exec("ALTER TABLE homework ADD COLUMN hour_num INTEGER;");
 
-  db.exec(`
+  targetDb.exec(`
     CREATE INDEX IF NOT EXISTS idx_incidents_student ON incidents(user_id, student_id);
     CREATE INDEX IF NOT EXISTS idx_homework_student ON homework(user_id, student_id);
   `);
 
   // Seed default admin if no users exist
-  const countStmt = db.prepare('SELECT COUNT(*) as count FROM users');
+  const countStmt = targetDb.prepare('SELECT COUNT(*) as count FROM users');
   const userCount = countStmt.get().count;
 
   if (userCount === 0) {
@@ -142,7 +142,7 @@ export function initDb() {
     const passwordHash = bcrypt.hashSync('admin', salt);
     const now = new Date().toISOString();
 
-    const insertAdmin = db.prepare(`
+    const insertAdmin = targetDb.prepare(`
       INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, created_at, updated_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
     `);

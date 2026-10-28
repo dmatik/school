@@ -3,13 +3,31 @@ import crypto from 'crypto';
 const WEBTOP_API_BASE = 'https://webtopserver.smartschool.co.il/server';
 
 // Server-side credential encryption (AES-256-GCM)
-const ENCRYPTION_SECRET = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET || 'school-webtop-credential-salt-2026';
-const KEY_BYTES = crypto.scryptSync(ENCRYPTION_SECRET, 'school-db-salt', 32);
+let cachedKeyBytes = null;
+
+export function setEncryptionSecret(secret, salt = 'school-db-salt') {
+  if (!secret) return;
+  cachedKeyBytes = crypto.scryptSync(secret, salt, 32);
+}
+
+function getKeyBytes() {
+  if (cachedKeyBytes) return cachedKeyBytes;
+  const secret = process.env.ENCRYPTION_KEY || process.env.JWT_SECRET;
+  if (secret) {
+    cachedKeyBytes = crypto.scryptSync(secret, 'school-db-salt', 32);
+    return cachedKeyBytes;
+  }
+  if (process.env.NODE_ENV === 'test') {
+    return crypto.scryptSync('school-test-credential-salt-only', 'school-db-salt', 32);
+  }
+  throw new Error('ENCRYPTION_KEY or JWT_SECRET must be configured for credential encryption');
+}
 
 export function encryptPassword(plainText) {
   if (!plainText) return '';
+  const keyBytes = getKeyBytes();
   const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv('aes-256-gcm', KEY_BYTES, iv);
+  const cipher = crypto.createCipheriv('aes-256-gcm', keyBytes, iv);
   let encrypted = cipher.update(plainText, 'utf8', 'hex');
   encrypted += cipher.final('hex');
   const authTag = cipher.getAuthTag();
@@ -22,10 +40,11 @@ export function decryptPassword(cipherText) {
   if (parts.length !== 3) {
     throw new Error('Invalid encrypted password format');
   }
+  const keyBytes = getKeyBytes();
   const [ivHex, authTagHex, encryptedHex] = parts;
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-gcm', KEY_BYTES, iv);
+  const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, iv);
   decipher.setAuthTag(authTag);
   let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
   decrypted += decipher.final('utf8');

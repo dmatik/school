@@ -1,32 +1,57 @@
-import { describe, it, expect, beforeAll, afterAll } from 'vitest'
-import db, { initDb } from '../../server/db.js'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
+import Database from 'better-sqlite3'
+import { initDb } from '../../server/db.js'
 import bcrypt from 'bcryptjs'
 
-describe('SQLite Database & Auth System', () => {
-  beforeAll(() => {
-    initDb()
-    db.prepare("DELETE FROM users WHERE id IN ('u1', 'test-user-1', 'test-user-2', 'temp-user', 'temp-passkey-user')").run()
-    db.prepare("UPDATE users SET username = 'admin', password_hash = ? WHERE id = 'admin-default'")
-      .run(bcrypt.hashSync('admin', 10))
+interface UserRow {
+  id: string
+  username: string
+  password_hash: string
+  role: string
+  first_name?: string
+  last_name?: string
+}
+
+interface IncidentRow {
+  id: string
+  user_id: string
+  student_name: string
+  date: string
+  type: string
+  description: string
+}
+
+interface AuthenticatorRow {
+  id: string
+  user_id: string
+  public_key: Buffer
+  counter: number
+  device_name: string
+  transports: string
+  last_used_at: string
+}
+
+describe('SQLite Database & Auth System (Isolated In-Memory)', () => {
+  let db: InstanceType<typeof Database>
+
+  beforeEach(() => {
+    db = new Database(':memory:')
+    db.pragma('foreign_keys = ON')
+    initDb(db)
   })
 
-  afterAll(() => {
-    try {
-      db.prepare("DELETE FROM users WHERE id IN ('u1', 'test-user-1', 'test-user-2', 'temp-user', 'temp-passkey-user')").run()
-      if (db.open) {
-        db.close()
-      }
-    } catch {
-      // ignore
+  afterEach(() => {
+    if (db && db.open) {
+      db.close()
     }
   })
 
   it('initializes database with default admin user (admin / admin)', () => {
-    const adminUser = db.prepare('SELECT * FROM users WHERE role = ?').get('admin') as any
+    const adminUser = db.prepare('SELECT * FROM users WHERE role = ?').get('admin') as UserRow | undefined
     expect(adminUser).toBeDefined()
-    expect(adminUser.username).toBe('admin')
-    expect(adminUser.role).toBe('admin')
-    expect(bcrypt.compareSync('admin', adminUser.password_hash)).toBe(true)
+    expect(adminUser?.username).toBe('admin')
+    expect(adminUser?.role).toBe('admin')
+    expect(bcrypt.compareSync('admin', adminUser!.password_hash)).toBe(true)
   })
 
   it('allows updating admin credentials in database', () => {
@@ -34,13 +59,9 @@ describe('SQLite Database & Auth System', () => {
     db.prepare("UPDATE users SET username = 'admin_updated', password_hash = ? WHERE id = 'admin-default'")
       .run(newHash)
 
-    const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get('admin-default') as any
-    expect(updatedUser.username).toBe('admin_updated')
-    expect(bcrypt.compareSync('newSecretPassword123', updatedUser.password_hash)).toBe(true)
-
-    // Restore to admin / admin
-    db.prepare("UPDATE users SET username = 'admin', password_hash = ? WHERE id = 'admin-default'")
-      .run(bcrypt.hashSync('admin', 10))
+    const updatedUser = db.prepare('SELECT * FROM users WHERE id = ?').get('admin-default') as UserRow | undefined
+    expect(updatedUser?.username).toBe('admin_updated')
+    expect(bcrypt.compareSync('newSecretPassword123', updatedUser!.password_hash)).toBe(true)
   })
 
   it('enforces unique usernames (case-insensitive)', () => {
@@ -81,12 +102,12 @@ describe('SQLite Database & Auth System', () => {
     `).run('inc2', user2Id, 'Student 2', '2026-03-01', 'Absence', 'Sick', now)
 
     // Verify user 1 only sees user 1 incidents
-    const user1Incidents = db.prepare('SELECT * FROM incidents WHERE user_id = ?').all(user1Id) as any[]
+    const user1Incidents = db.prepare('SELECT * FROM incidents WHERE user_id = ?').all(user1Id) as IncidentRow[]
     expect(user1Incidents).toHaveLength(1)
     expect(user1Incidents[0].type).toBe('Late')
 
     // Verify user 2 only sees user 2 incidents
-    const user2Incidents = db.prepare('SELECT * FROM incidents WHERE user_id = ?').all(user2Id) as any[]
+    const user2Incidents = db.prepare('SELECT * FROM incidents WHERE user_id = ?').all(user2Id) as IncidentRow[]
     expect(user2Incidents).toHaveLength(1)
     expect(user2Incidents[0].type).toBe('Absence')
   })
@@ -150,19 +171,19 @@ describe('SQLite Database & Auth System', () => {
     )
 
     // Retrieve and verify
-    const authRecord = db.prepare('SELECT * FROM authenticators WHERE id = ?').get('cred-id-123') as any
+    const authRecord = db.prepare('SELECT * FROM authenticators WHERE id = ?').get('cred-id-123') as AuthenticatorRow | undefined
     expect(authRecord).toBeDefined()
-    expect(authRecord.user_id).toBe(tempUserId)
-    expect(authRecord.device_name).toBe('MacBook Pro Touch ID')
-    expect(Buffer.compare(authRecord.public_key, rawPubKey)).toBe(0)
-    expect(JSON.parse(authRecord.transports)).toEqual(['internal'])
+    expect(authRecord?.user_id).toBe(tempUserId)
+    expect(authRecord?.device_name).toBe('MacBook Pro Touch ID')
+    expect(Buffer.compare(authRecord!.public_key, rawPubKey)).toBe(0)
+    expect(JSON.parse(authRecord!.transports)).toEqual(['internal'])
 
     // Update counter and last_used
     const later = new Date(Date.now() + 1000).toISOString()
     db.prepare('UPDATE authenticators SET counter = ?, last_used_at = ? WHERE id = ?').run(1, later, 'cred-id-123')
-    const updatedRecord = db.prepare('SELECT * FROM authenticators WHERE id = ?').get('cred-id-123') as any
-    expect(updatedRecord.counter).toBe(1)
-    expect(updatedRecord.last_used_at).toBe(later)
+    const updatedRecord = db.prepare('SELECT * FROM authenticators WHERE id = ?').get('cred-id-123') as AuthenticatorRow | undefined
+    expect(updatedRecord?.counter).toBe(1)
+    expect(updatedRecord?.last_used_at).toBe(later)
 
     // Verify cascade deletion
     db.prepare('DELETE FROM users WHERE id = ?').run(tempUserId)
@@ -171,12 +192,12 @@ describe('SQLite Database & Auth System', () => {
   })
 
   it('correctly queries admin count without SQLite syntax error and identifies sole admin', () => {
-    const adminCount = (db.prepare('SELECT COUNT(*) as c FROM users WHERE role = ?').get('admin') as any).c
+    const adminCount = (db.prepare('SELECT COUNT(*) as c FROM users WHERE role = ?').get('admin') as { c: number }).c
     expect(adminCount).toBeGreaterThanOrEqual(1)
 
-    const defaultAdmin = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get('admin-default') as any
+    const defaultAdmin = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get('admin-default') as UserRow | undefined
     expect(defaultAdmin).toBeDefined()
-    expect(defaultAdmin.username).toBe('admin')
-    expect(defaultAdmin.role).toBe('admin')
+    expect(defaultAdmin?.username).toBe('admin')
+    expect(defaultAdmin?.role).toBe('admin')
   })
 })

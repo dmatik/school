@@ -114,7 +114,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || "Sync failed")
+        throw new Error(data.error || t("account.sync_failed"))
       }
 
       await loadData()
@@ -130,7 +130,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
       toast({
         variant: "destructive",
         title: t("common.error"),
-        description: err instanceof Error ? err.message : "Sync error"
+        description: err instanceof Error ? err.message : t("account.sync_error")
       })
     } finally {
       setSyncing(false)

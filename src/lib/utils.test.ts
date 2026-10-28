@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -64,5 +64,28 @@ describe('formatSystemDateTime and formatSystemDate utilities', () => {
         expect(formatSystemDateTime('invalid-date')).toBe('-')
         expect(formatSystemDate(null)).toBe('-')
         expect(formatSystemDate(undefined)).toBe('-')
+    })
+})
+
+describe('parseLocalDate utility', () => {
+    it('parses YYYY-MM-DD strings cleanly into local date objects', () => {
+        const d = parseLocalDate('2026-10-28')
+        expect(d.getFullYear()).toBe(2026)
+        expect(d.getMonth()).toBe(9) // 0-indexed October
+        expect(d.getDate()).toBe(28)
+    })
+
+    it('handles ISO strings with timestamps', () => {
+        const d = parseLocalDate('2026-05-15T12:00:00Z')
+        expect(d.getFullYear()).toBe(2026)
+        expect(d.getMonth()).toBe(4) // May
+        expect(d.getDate()).toBe(15)
+    })
+
+    it('gracefully handles null, undefined, or empty values without throwing', () => {
+        expect(() => parseLocalDate(null)).not.toThrow()
+        expect(() => parseLocalDate(undefined)).not.toThrow()
+        expect(() => parseLocalDate('')).not.toThrow()
+        expect(parseLocalDate(null)).toBeInstanceOf(Date)
     })
 })
