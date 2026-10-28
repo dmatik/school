@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear } from '../../server/webtop.js';
+import { initDb } from '../../server/db.js';
 
 describe('Webtop Cryptographic & Academic Utilities', () => {
   it('encrypts and decrypts passwords reliably using AES-256-GCM', () => {
@@ -220,6 +221,53 @@ describe('Webtop Database & Data Models', () => {
     db.prepare('UPDATE homework SET completed = 1 WHERE id = ?').run('hw-1');
     const toggledHw = db.prepare('SELECT completed FROM homework WHERE id = ?').get('hw-1') as any;
     expect(toggledHw.completed).toBe(1);
+  });
+
+  it('migrates legacy unscoped IDs to user-scoped IDs and eliminates duplicates', () => {
+    const now = new Date().toISOString();
+
+    // 1. Old incident + duplicate new incident
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-1001', 'user-1', 'child-1', 'Child One', '2026-10-27', 'Late', now);
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-user-1-1001', 'user-1', 'child-1', 'Child One', '2026-10-27', 'Late', now);
+
+    // 2. Old incident without duplicate
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-1002', 'user-1', 'child-1', 'Child One', '2026-10-27', 'Discipline', now);
+
+    // 3. Old homework marked completed + duplicate new homework uncompleted
+    db.prepare(`
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+    `).run('webtop-hw-child-1-2026-10-28-1-math', 'user-1', 'child-1', 'Child One', 'Math', '2026-10-28', now);
+    db.prepare(`
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+    `).run('webtop-hw-user-1-child-1-2026-10-28-1-math', 'user-1', 'child-1', 'Child One', 'Math', '2026-10-28', now);
+
+    // Run initDb migration on this database instance
+    initDb(db);
+
+    // Check incidents
+    const incidents = db.prepare('SELECT id FROM incidents WHERE user_id = ?').all('user-1') as any[];
+    expect(incidents).toHaveLength(2);
+    expect(incidents.map(i => i.id).sort()).toEqual([
+      'webtop-inc-user-1-1001',
+      'webtop-inc-user-1-1002'
+    ]);
+
+    // Check homework and completion state preservation
+    const homework = db.prepare('SELECT id, completed FROM homework WHERE user_id = ?').all('user-1') as any[];
+    expect(homework).toHaveLength(1);
+    expect(homework[0].id).toBe('webtop-hw-user-1-child-1-2026-10-28-1-math');
+    expect(homework[0].completed).toBe(1);
   });
 });
 

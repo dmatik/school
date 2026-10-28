@@ -133,6 +133,53 @@ export function initDb(targetDb = db) {
     CREATE INDEX IF NOT EXISTS idx_homework_student ON homework(user_id, student_id);
   `);
 
+  // Migrate legacy unscoped incident and homework IDs to user-scoped IDs & clean duplicates
+  try {
+    const migrateTx = targetDb.transaction(() => {
+      // 1. Incidents migration
+      const oldIncidents = targetDb.prepare(`
+        SELECT id, user_id FROM incidents
+        WHERE id LIKE 'webtop-inc-%'
+      `).all();
+
+      for (const inc of oldIncidents) {
+        if (!inc.id.startsWith(`webtop-inc-${inc.user_id}-`)) {
+          const newId = `webtop-inc-${inc.user_id}-${inc.id.slice('webtop-inc-'.length)}`;
+          const existing = targetDb.prepare('SELECT id FROM incidents WHERE id = ?').get(newId);
+          if (existing) {
+            targetDb.prepare('DELETE FROM incidents WHERE id = ?').run(inc.id);
+          } else {
+            targetDb.prepare('UPDATE incidents SET id = ? WHERE id = ?').run(newId, inc.id);
+          }
+        }
+      }
+
+      // 2. Homework migration
+      const oldHw = targetDb.prepare(`
+        SELECT id, user_id, completed FROM homework
+        WHERE id LIKE 'webtop-hw-%'
+      `).all();
+
+      for (const hw of oldHw) {
+        if (!hw.id.startsWith(`webtop-hw-${hw.user_id}-`)) {
+          const newId = `webtop-hw-${hw.user_id}-${hw.id.slice('webtop-hw-'.length)}`;
+          const existing = targetDb.prepare('SELECT id, completed FROM homework WHERE id = ?').get(newId);
+          if (existing) {
+            if (hw.completed && !existing.completed) {
+              targetDb.prepare('UPDATE homework SET completed = 1 WHERE id = ?').run(newId);
+            }
+            targetDb.prepare('DELETE FROM homework WHERE id = ?').run(hw.id);
+          } else {
+            targetDb.prepare('UPDATE homework SET id = ? WHERE id = ?').run(newId, hw.id);
+          }
+        }
+      }
+    });
+    migrateTx();
+  } catch (err) {
+    console.warn('Failed to run incident/homework ID migration:', err.message);
+  }
+
   // Seed default admin if no users exist
   const countStmt = targetDb.prepare('SELECT COUNT(*) as count FROM users');
   const userCount = countStmt.get().count;
