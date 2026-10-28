@@ -90,6 +90,12 @@
   * {
     @apply border-border;
     font-family: 'Heebo', 'Assistant', sans-serif;
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  *::-webkit-scrollbar {
+    display: none;
   }
 
   html,
@@ -119,6 +125,13 @@
 }
 
 @layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
   .pb-safe {
     padding-bottom: 16px;
   }

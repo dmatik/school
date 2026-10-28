@@ -237,7 +237,7 @@ function App() {
                 )}
               </button>
 
-              <div className="flex flex-row items-baseline gap-2">
+              <div className="flex flex-row items-baseline gap-3.5">
                 <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                   {t('common.app_title')}
                 </h1>
