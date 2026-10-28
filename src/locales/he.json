@@ -178,7 +178,20 @@
     "webtop_saved_success": "פרטי Webtop נשמרו והסנכרון הראשוני הושלם בהצלחה!",
     "webtop_disconnected_success": "החיבור ל-Webtop נותק בהצלחה.",
     "webtop_sync_success": "הסנכרון הושלם בהצלחה! סונכרנו {{incidents}} אירועים ו-{{homework}} שיעורי בית.",
-    "webtop_sync_failed": "הסנכרון נכשל: {{error}}"
+    "webtop_sync_failed": "הסנכרון נכשל: {{error}}",
+    "webtop_linked_kids_title": "ילדים מקושרים וצבעי תגיות",
+    "webtop_linked_kids_desc": "בחר צבע תגית ייחודי עבור כל ילד כדי להבדיל בקלות בין שיעורי הבית בכרטיסים",
+    "class_label": "כיתה {{code}}-{{num}}",
+    "child_color_updated": "צבע התגית עבור {{name}} עודכן בהצלחה",
+    "color_default": "ברירת מחדל",
+    "color_blue": "כחול",
+    "color_emerald": "ירוק",
+    "color_purple": "סגול",
+    "color_amber": "ענבר",
+    "color_rose": "ורוד",
+    "color_cyan": "טורקיז",
+    "color_orange": "כתום",
+    "color_indigo": "אינדיגו"
   },
   "admin": {
     "title": "ניהול מערכת",

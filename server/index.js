@@ -804,13 +804,17 @@ async function syncWebtopData(userId) {
 
   const dash = await client.initDashboard();
   const rawChildren = dash.childrens || [];
+  const existingLinked = JSON.parse(creds.linked_children || '[]');
+  const colorMap = new Map(existingLinked.map(c => [c.id, c.color]));
+
   const linkedChildren = rawChildren.map(c => ({
     id: c.id,
     firstName: c.firstName,
     lastName: c.lastName,
     classCode: c.classCode,
     classNum: c.classNum,
-    cellphone: c.cellphone || null
+    cellphone: c.cellphone || null,
+    color: colorMap.get(c.id) || null
   }));
 
   let selectedChildId = creds.selected_child_id;
@@ -1122,8 +1126,14 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
     const encryptedPass = encryptPassword(password);
     const now = new Date().toISOString();
 
-    const existing = db.prepare('SELECT id FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    const existing = db.prepare('SELECT id, linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
     if (existing) {
+      const prevLinked = JSON.parse(existing.linked_children || '[]');
+      const colorMap = new Map(prevLinked.map(c => [c.id, c.color]));
+      for (const c of linkedChildren) {
+        if (colorMap.has(c.id)) c.color = colorMap.get(c.id);
+      }
+
       db.prepare(`
         UPDATE webtop_credentials
         SET username = ?, encrypted_password = ?, selected_child_id = ?, linked_children = ?, updated_at = ?
@@ -1183,6 +1193,40 @@ app.patch('/api/webtop/child', authenticate, (req, res) => {
   } catch (err) {
     console.error('Failed to switch child:', err);
     res.status(500).json({ error: 'Failed to switch child' });
+  }
+});
+
+// PATCH /api/webtop/child-color - set badge color for a linked child
+app.patch('/api/webtop/child-color', authenticate, (req, res) => {
+  try {
+    const { childId, color } = req.body;
+    if (!childId) {
+      return res.status(400).json({ error: 'childId is required' });
+    }
+
+    const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    if (!creds) {
+      return res.status(404).json({ error: 'Webtop credentials not configured' });
+    }
+
+    const linked = JSON.parse(creds.linked_children || '[]');
+    const childIndex = linked.findIndex(c => c.id === childId);
+    if (childIndex === -1) {
+      return res.status(404).json({ error: 'Child not found in linked children' });
+    }
+
+    linked[childIndex].color = typeof color === 'string' && color.trim() ? color.trim() : null;
+
+    db.prepare(`
+      UPDATE webtop_credentials
+      SET linked_children = ?, updated_at = ?
+      WHERE user_id = ?
+    `).run(JSON.stringify(linked), new Date().toISOString(), req.user.id);
+
+    res.json({ success: true, linkedChildren: linked });
+  } catch (err) {
+    console.error('Failed to update child color:', err);
+    res.status(500).json({ error: 'Failed to update child color' });
   }
 });
 

@@ -18,6 +18,7 @@ export interface WebtopChild {
   classCode: number;
   classNum: number;
   cellphone?: string | null;
+  color?: string | null;
 }
 
 export interface WebtopConfig {

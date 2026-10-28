@@ -34,6 +34,7 @@ import {
 } from "@/components/ui/select"
 import { isPasskeySupported, registerPasskey, fetchUserPasskeys, deletePasskey, type PasskeyInfo } from "@/lib/webauthn"
 import { compressImage } from "@/lib/image"
+import { CHILD_COLORS, getChildBadgeClasses } from "@/lib/child-colors"
 import type { User as UserType, WebtopConfig } from "@/types"
 
 interface AccountPageProps {
@@ -260,6 +261,47 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       }
     } catch (err) {
       console.error("Failed to switch child:", err)
+    }
+  }
+
+  const handleUpdateChildColor = async (childId: string, color: string | null) => {
+    try {
+      const res = await fetch("/api/webtop/child-color", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ childId, color })
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update color")
+      }
+
+      setWebtopConfig(prev => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          linkedChildren: prev.linkedChildren.map(c =>
+            c.id === childId ? { ...c, color } : c
+          )
+        }
+      })
+
+      const child = webtopConfig?.linkedChildren.find(c => c.id === childId)
+      toast({
+        variant: "success",
+        title: t("common.confirm"),
+        description: t("account.child_color_updated", { name: child ? `${child.firstName} ${child.lastName}` : "" })
+      })
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : "Error updating color"
+      })
     }
   }
 
@@ -806,6 +848,87 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{t("account.webtop_status_error")}: {webtopConfig.syncError}</span>
+                  </div>
+                )}
+
+                {/* Linked Kids Color Selection */}
+                {webtopConfig.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+                  <div className="space-y-3 pt-1">
+                    <div className="space-y-0.5">
+                      <span className="text-xs font-semibold text-foreground block">
+                        {t("account.webtop_linked_kids_title")}
+                      </span>
+                      <span className="text-xs text-muted-foreground block">
+                        {t("account.webtop_linked_kids_desc")}
+                      </span>
+                    </div>
+
+                    <div className="space-y-2.5">
+                      {webtopConfig.linkedChildren.map((child) => {
+                        const childFullName = `${child.firstName} ${child.lastName}`.trim()
+                        const childBadgeClass = getChildBadgeClasses(child.color)
+
+                        return (
+                          <div
+                            key={child.id}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-background border border-border/80 shadow-xs"
+                          >
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              <span
+                                className={cn(
+                                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border transition-all",
+                                  childBadgeClass
+                                )}
+                              >
+                                {childFullName}
+                              </span>
+                              {child.classCode && (
+                                <span className="text-xs text-muted-foreground">
+                                  ({t("account.class_label", { code: child.classCode, num: child.classNum })})
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Color selection buttons */}
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              {/* Default / No Color button */}
+                              <button
+                                type="button"
+                                title={t("account.color_default")}
+                                onClick={() => handleUpdateChildColor(child.id, null)}
+                                className={cn(
+                                  "w-6 h-6 rounded-full border flex items-center justify-center text-[10px] transition-all hover:scale-110",
+                                  !child.color
+                                    ? "border-primary bg-primary/10 text-primary font-bold ring-2 ring-primary/30"
+                                    : "border-border/80 bg-muted/40 text-muted-foreground"
+                                )}
+                              >
+                                ✕
+                              </button>
+
+                              {CHILD_COLORS.map((col) => {
+                                const isSelected = child.color === col.id
+                                return (
+                                  <button
+                                    key={col.id}
+                                    type="button"
+                                    title={t(col.labelKey)}
+                                    onClick={() => handleUpdateChildColor(child.id, col.id)}
+                                    className={cn(
+                                      "w-6 h-6 rounded-full transition-all hover:scale-110 shadow-xs",
+                                      col.bg,
+                                      isSelected
+                                        ? "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
+                                        : "opacity-75 hover:opacity-100"
+                                    )}
+                                  />
+                                )
+                              })}
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
                   </div>
                 )}
 

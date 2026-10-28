@@ -18,3 +18,14 @@ export function uuidv4() {
     return v.toString(16);
   });
 }
+
+export function parseLocalDate(dateInput: string | Date): Date {
+  if (dateInput instanceof Date) return dateInput
+  const clean = dateInput.split("T")[0]
+  const parts = clean.split("-").map(Number)
+  if (parts.length === 3 && !parts.some(isNaN)) {
+    return new Date(parts[0], parts[1] - 1, parts[2])
+  }
+  const parsed = new Date(dateInput)
+  return isNaN(parsed.getTime()) ? new Date() : parsed
+}
