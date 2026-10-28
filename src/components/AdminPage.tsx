@@ -385,7 +385,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
       {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative flex-1 sm:max-w-md">
+        <div className="relative w-full sm:w-72">
           <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("admin.search_placeholder")}

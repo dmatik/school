@@ -44,11 +44,25 @@ export function decryptPassword(cipherText) {
   const [ivHex, authTagHex, encryptedHex] = parts;
   const iv = Buffer.from(ivHex, 'hex');
   const authTag = Buffer.from(authTagHex, 'hex');
-  const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, iv);
-  decipher.setAuthTag(authTag);
-  let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-  decrypted += decipher.final('utf8');
-  return decrypted;
+  try {
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, iv);
+    decipher.setAuthTag(authTag);
+    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
+    decrypted += decipher.final('utf8');
+    return decrypted;
+  } catch (err) {
+    // If decryption fails with the active secret, fallback to legacy static secret for backward compatibility
+    try {
+      const legacyKeyBytes = crypto.scryptSync('school-webtop-credential-salt-2026', 'school-db-salt', 32);
+      const legacyDecipher = crypto.createDecipheriv('aes-256-gcm', legacyKeyBytes, iv);
+      legacyDecipher.setAuthTag(authTag);
+      let decrypted = legacyDecipher.update(encryptedHex, 'hex', 'utf8');
+      decrypted += legacyDecipher.final('utf8');
+      return decrypted;
+    } catch {
+      throw err;
+    }
+  }
 }
 
 // Webtop Client-to-Server AES-256-CBC string encryption

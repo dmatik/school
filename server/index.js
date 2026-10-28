@@ -174,6 +174,34 @@ const JWT_SECRET = getOrCreateJwtSecret();
 const ENCRYPTION_SECRET = getOrCreateEncryptionSecret();
 setEncryptionSecret(ENCRYPTION_SECRET);
 
+// Migrate any legacy-encrypted credentials to the active dynamic encryption secret
+try {
+  const credentials = db.prepare('SELECT id, encrypted_password FROM webtop_credentials').all();
+  for (const cred of credentials) {
+    try {
+      const parts = cred.encrypted_password.split(':');
+      if (parts.length === 3) {
+        const [ivHex, authTagHex, encryptedHex] = parts;
+        const keyBytes = crypto.scryptSync(ENCRYPTION_SECRET, 'school-db-salt', 32);
+        const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, Buffer.from(ivHex, 'hex'));
+        decipher.setAuthTag(Buffer.from(authTagHex, 'hex'));
+        decipher.update(encryptedHex, 'hex', 'utf8');
+        decipher.final('utf8');
+      }
+    } catch {
+      try {
+        const plain = decryptPassword(cred.encrypted_password);
+        const upgraded = encryptPassword(plain);
+        db.prepare('UPDATE webtop_credentials SET encrypted_password = ? WHERE id = ?').run(upgraded, cred.id);
+      } catch (migrationErr) {
+        console.warn(`[Webtop] Could not migrate credentials for ID ${cred.id}:`, migrationErr.message);
+      }
+    }
+  }
+} catch {
+  // Ignored if table does not exist yet
+}
+
 function safeJsonParse(value, fallback = []) {
   if (!value) return fallback;
   try {
@@ -846,6 +874,24 @@ async function syncWebtopData(userId) {
   }
 
   const plainPassword = decryptPassword(creds.encrypted_password);
+
+  // Transparently re-encrypt credentials if stored under legacy secret
+  try {
+    const keyBytes = crypto.scryptSync(ENCRYPTION_SECRET, 'school-db-salt', 32);
+    const parts = creds.encrypted_password.split(':');
+    const decipher = crypto.createDecipheriv('aes-256-gcm', keyBytes, Buffer.from(parts[0], 'hex'));
+    decipher.setAuthTag(Buffer.from(parts[1], 'hex'));
+    decipher.update(parts[2], 'hex', 'utf8');
+    decipher.final('utf8');
+  } catch {
+    try {
+      const upgraded = encryptPassword(plainPassword);
+      db.prepare('UPDATE webtop_credentials SET encrypted_password = ? WHERE id = ?').run(upgraded, creds.id);
+    } catch {
+      // Ignore background upgrade failure
+    }
+  }
+
   const client = new WebtopClient();
   await client.login(creds.username, plainPassword);
 
