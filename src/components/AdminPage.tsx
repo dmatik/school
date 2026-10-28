@@ -363,11 +363,15 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-row justify-between items-center gap-3 border-b pb-3 sm:pb-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold flex items-center gap-2">
-            <Shield className="w-5 h-5 text-amber-500 shrink-0" />
-            <span className="truncate">{t("admin.title")}</span>
-          </h2>
+        <div className="min-w-0 flex-1 space-y-1">
+          <div className="flex items-center gap-2">
+            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
+              <Shield className="w-5 h-5 shrink-0" />
+            </div>
+            <h2 className="text-xl font-bold tracking-tight text-foreground truncate">
+              {t("admin.title")}
+            </h2>
+          </div>
           <p className="text-muted-foreground text-xs truncate">{t("admin.subtitle")}</p>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-9 px-3">
@@ -378,13 +382,13 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
       {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 sm:max-w-md">
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder={t("admin.search_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-9"
+            className="ps-9 h-9 text-sm"
           />
         </div>
         <div className="text-sm text-muted-foreground self-end sm:self-center">

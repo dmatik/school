@@ -195,8 +195,8 @@
   },
   "admin": {
     "title": "System Administration",
-    "subtitle": "Manage system users, roles, and access credentials",
-    "add_user_button": "Add New User",
+    "subtitle": "Manage users and permissions",
+    "add_user_button": "Add User",
     "search_placeholder": "Search users by name or username...",
     "total_users": "Total: {{count}} users",
     "no_users": "No users found",
