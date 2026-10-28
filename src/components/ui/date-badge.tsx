@@ -3,22 +3,11 @@ import { format } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { useTranslation } from "react-i18next"
 import { Calendar } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
 
 export interface DateBadgeProps {
   date?: string | Date | null
   className?: string
-}
-
-function parseLocalDate(dateInput: string | Date): Date {
-  if (dateInput instanceof Date) return dateInput
-  const clean = dateInput.split("T")[0]
-  const parts = clean.split("-").map(Number)
-  if (parts.length === 3 && !parts.some(isNaN)) {
-    return new Date(parts[0], parts[1] - 1, parts[2])
-  }
-  const parsed = new Date(dateInput)
-  return isNaN(parsed.getTime()) ? new Date() : parsed
 }
 
 export function DateBadge({ date, className }: DateBadgeProps) {

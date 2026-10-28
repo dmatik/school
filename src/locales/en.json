@@ -178,7 +178,20 @@
     "webtop_saved_success": "Webtop credentials saved and initial synchronization completed!",
     "webtop_disconnected_success": "Webtop disconnected successfully.",
     "webtop_sync_success": "Sync complete! Updated {{incidents}} incidents and {{homework}} homework items.",
-    "webtop_sync_failed": "Sync failed: {{error}}"
+    "webtop_sync_failed": "Sync failed: {{error}}",
+    "webtop_linked_kids_title": "Linked Children & Badge Colors",
+    "webtop_linked_kids_desc": "Select a unique badge color for each child to easily tell their homework cards apart",
+    "class_label": "Class {{code}}-{{num}}",
+    "child_color_updated": "Badge color for {{name}} updated successfully",
+    "color_default": "Default",
+    "color_blue": "Blue",
+    "color_emerald": "Emerald",
+    "color_purple": "Purple",
+    "color_amber": "Amber",
+    "color_rose": "Rose",
+    "color_cyan": "Cyan",
+    "color_orange": "Orange",
+    "color_indigo": "Indigo"
   },
   "admin": {
     "title": "System Administration",

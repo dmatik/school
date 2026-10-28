@@ -29,11 +29,11 @@ const LoadingSpinner = () => (
   </div>
 )
 
-type AppTab = 'incidents' | 'homework' | 'admin' | 'account'
+type AppTab = 'homework' | 'incidents' | 'admin' | 'account'
 
 function App() {
   const { t, i18n } = useTranslation()
-  const [activeTab, setActiveTab] = useState<AppTab>('incidents')
+  const [activeTab, setActiveTab] = useState<AppTab>('homework')
 
   // Auth State
   const [token, setToken] = useState<string | null>(() => {
@@ -103,14 +103,14 @@ function App() {
     localStorage.setItem("auth_token", newToken)
     setToken(newToken)
     setCurrentUser(user)
-    setActiveTab('incidents')
+    setActiveTab('homework')
   }
 
   const handleLogout = () => {
     localStorage.removeItem("auth_token")
     setToken(null)
     setCurrentUser(null)
-    setActiveTab('incidents')
+    setActiveTab('homework')
   }
 
   // Update document title on language change
@@ -178,16 +178,16 @@ function App() {
           {/* Desktop Nav Items */}
           <nav className="flex-1 p-4 space-y-1.5 overflow-y-auto">
             <MenuButton
-              active={activeTab === 'incidents'}
-              onClick={() => setActiveTab('incidents')}
-              icon={AlertCircle}
-              label={t('common.incidents')}
-            />
-            <MenuButton
               active={activeTab === 'homework'}
               onClick={() => setActiveTab('homework')}
               icon={BookOpen}
               label={t('common.homework')}
+            />
+            <MenuButton
+              active={activeTab === 'incidents'}
+              onClick={() => setActiveTab('incidents')}
+              icon={AlertCircle}
+              label={t('common.incidents')}
             />
             {currentUser.role === 'admin' && (
               <MenuButton
@@ -266,8 +266,8 @@ function App() {
                   className="h-full"
                 >
                   <Suspense fallback={<LoadingSpinner />}>
-                    {activeTab === 'incidents' && <IncidentsPage token={token} />}
                     {activeTab === 'homework' && <HomeworkPage token={token} />}
+                    {activeTab === 'incidents' && <IncidentsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
                         currentUser={currentUser}
@@ -292,16 +292,16 @@ function App() {
           <nav className="md:hidden bg-background/85 backdrop-blur-md border-t border-border pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-1.5 z-30 shadow-sm shrink-0">
             <div className="flex justify-around items-center">
               <MobileNavButton
-                active={activeTab === 'incidents'}
-                onClick={() => setActiveTab('incidents')}
-                icon={AlertCircle}
-                label={t('common.incidents')}
-              />
-              <MobileNavButton
                 active={activeTab === 'homework'}
                 onClick={() => setActiveTab('homework')}
                 icon={BookOpen}
                 label={t('common.homework')}
+              />
+              <MobileNavButton
+                active={activeTab === 'incidents'}
+                onClick={() => setActiveTab('incidents')}
+                icon={AlertCircle}
+                label={t('common.incidents')}
               />
               {currentUser.role === 'admin' && (
                 <MobileNavButton

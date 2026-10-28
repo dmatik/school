@@ -8,7 +8,8 @@ import {
   User,
   GraduationCap,
   Loader2,
-  FileText
+  FileText,
+  Calendar
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -21,9 +22,11 @@ import {
   SelectValue
 } from "@/components/ui/select"
 import { format } from "date-fns"
+import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { DateBadge } from "@/components/ui/date-badge"
-import { cn } from "@/lib/utils"
+import { cn, parseLocalDate } from "@/lib/utils"
+import { getSubjectConfig } from "@/lib/subject-icons"
+import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
 import type { HomeworkItem, WebtopConfig } from "@/types"
 
@@ -32,7 +35,20 @@ interface HomeworkPageProps {
 }
 
 export function HomeworkPage({ token }: HomeworkPageProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
+  const isRtl = i18n.dir() === "rtl"
+  const dateLocale = isRtl ? he : enUS
+
+  const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
+    if (!dateInput) return ""
+    try {
+      const d = parseLocalDate(dateInput)
+      return format(d, "EEEE, PPP", { locale: dateLocale })
+    } catch {
+      return ""
+    }
+  }, [dateLocale])
+
   const [homework, setHomework] = useState<HomeworkItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const [loading, setLoading] = useState(true)
@@ -356,59 +372,84 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredHomework.map((hw) => {
+            const subjectConfig = getSubjectConfig(hw.subject)
+            const SubjectIcon = subjectConfig.icon
+            const matchedChild = webtopConfig?.linkedChildren?.find(
+              (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
+            )
+            const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+            const hasContent = Boolean(hw.lessonSubject || (hw.description && hw.description !== hw.lessonSubject))
+
             return (
               <Card
                 key={hw.id}
-                className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col justify-between"
+                className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col"
               >
-                <CardHeader className="pb-3 space-y-2">
-                  {/* Top Bar with Subject Badge & Date */}
-                  <div className="flex items-start justify-between gap-2">
-                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold bg-indigo-500/10 text-indigo-700 dark:text-indigo-400 border border-indigo-500/20">
-                      <BookOpen className="w-3.5 h-3.5" />
-                      <span>{hw.subject}</span>
-                      {hw.hourNum && (
-                        <span className="font-normal text-[11px] opacity-80">
-                          ({t("homework.lesson_hour", { hour: hw.hourNum })})
-                        </span>
+                <CardHeader className={cn("p-4 sm:p-5 space-y-2", hasContent && "pb-2 sm:pb-2.5")}>
+                  <div className="flex items-start justify-between gap-3">
+                    {/* Right side (Hebrew/RTL start): Lesson badge, Date (one line, no badge), Teacher */}
+                    <div className="space-y-1.5 min-w-0">
+                      {/* Lesson Name Badge */}
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold border",
+                        subjectConfig.badgeClass
+                      )}>
+                        <SubjectIcon className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{hw.subject}</span>
+                        {hw.hourNum && (
+                          <span className="font-normal text-xs opacity-85 shrink-0">
+                            ({t("homework.lesson_hour", { hour: hw.hourNum })})
+                          </span>
+                        )}
+                      </span>
+
+                      {/* Date in one line, no badge, below lesson name */}
+                      {hw.dueDate && (
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                          <Calendar className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+                          <span>{formatOneLineDate(hw.dueDate)}</span>
+                        </div>
                       )}
-                    </span>
 
-                    <DateBadge date={hw.dueDate} />
-                  </div>
-
-                  {/* Student Name */}
-                  {hw.studentName && (
-                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                      <User className="w-3 h-3" />
-                      <span className="font-medium text-foreground">{hw.studentName}</span>
+                      {/* Teacher name below date */}
+                      {hw.teacher && (
+                        <div className="text-xs text-muted-foreground flex items-center gap-1">
+                          <span className="font-medium text-foreground/80">{t("homework.teacher_label")}</span>
+                          <span className="truncate">{hw.teacher}</span>
+                        </div>
+                      )}
                     </div>
-                  )}
+
+                    {/* Left side (Hebrew/RTL end): Kid name as badge */}
+                    {hw.studentName && (
+                      <span className={cn(
+                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
+                        childBadgeClass
+                      )}>
+                        <User className="w-3.5 h-3.5 opacity-70 shrink-0" />
+                        <span className="truncate max-w-[130px] sm:max-w-none">{hw.studentName}</span>
+                      </span>
+                    )}
+                  </div>
                 </CardHeader>
 
-                <CardContent className="pt-0 space-y-3">
-                  {/* Teacher */}
-                  {hw.teacher && (
-                    <div className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span className="font-medium text-foreground/80">{t("homework.teacher_label")}</span>
-                      <span>{hw.teacher}</span>
-                    </div>
-                  )}
+                {hasContent && (
+                  <CardContent className="p-4 sm:p-5 pt-0 space-y-3">
+                    {/* Lesson Topic */}
+                    {hw.lessonSubject && (
+                      <div className="text-xs font-medium text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 text-start">
+                        {hw.lessonSubject}
+                      </div>
+                    )}
 
-                  {/* Lesson Topic */}
-                  {hw.lessonSubject && (
-                    <div className="text-xs font-medium text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 text-start">
-                      {hw.lessonSubject}
-                    </div>
-                  )}
-
-                  {/* Homework Description / Instructions */}
-                  {hw.description && hw.description !== hw.lessonSubject && (
-                    <p className="text-xs bg-muted/40 p-2.5 rounded-md border border-border/50 text-start leading-relaxed text-foreground/90">
-                      {hw.description}
-                    </p>
-                  )}
-                </CardContent>
+                    {/* Homework Description / Instructions */}
+                    {hw.description && hw.description !== hw.lessonSubject && (
+                      <p className="text-xs bg-muted/40 p-2.5 rounded-md border border-border/50 text-start leading-relaxed text-foreground/90">
+                        {hw.description}
+                      </p>
+                    )}
+                  </CardContent>
+                )}
               </Card>
             )
           })}

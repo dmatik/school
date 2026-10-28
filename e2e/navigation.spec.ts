@@ -24,17 +24,17 @@ test.describe('Navigation Flow', () => {
     cleanupAllTestUsers();
   });
 
-  test('admin user sees Incidents, Homework, and Admin tabs', async ({ page }) => {
+  test('admin user sees Homework, Incidents, and Admin tabs', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Default tab should be Incidents
-    await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
-
-    // Click Homework tab
-    const homeworkBtn = page.locator('aside nav button').nth(1);
-    await homeworkBtn.click();
+    // Default tab should be Homework
     await expect(page.locator('main h1')).toContainText(/שיעורי בית|Homework/);
+
+    // Click Incidents tab
+    const incidentsBtn = page.locator('aside nav button').nth(1);
+    await incidentsBtn.click();
+    await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
 
     // Click Admin tab
     const adminBtn = page.locator('aside nav button').nth(2);
