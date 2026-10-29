@@ -78,3 +78,40 @@ export function formatSystemDate(dateInput: string | Date | null | undefined): s
     return "-"
   }
 }
+
+/**
+ * Extracts only the actual homework text from a homework item.
+ * Never falls back to displaying the lesson topic or what was taught in class.
+ */
+export function getHomeworkText(hw: {
+  description?: string | null
+  lessonSubject?: string | null
+  rawData?: string | null
+}): string {
+  if (hw.rawData) {
+    try {
+      const raw = typeof hw.rawData === "string" ? JSON.parse(hw.rawData) : hw.rawData
+      if (raw && typeof raw === "object") {
+        // Webtop weekly schedule lesson: item.homeWork
+        if ("homeWork" in raw) {
+          return raw.homeWork ? String(raw.homeWork).trim() : ""
+        }
+        // Webtop dashboard homework: item.homeworkData
+        if ("homeworkData" in raw) {
+          return raw.homeworkData ? String(raw.homeworkData).trim() : ""
+        }
+      }
+    } catch {
+      // ignore parse error and proceed to fallback
+    }
+  }
+
+  // Fallback when rawData is unavailable:
+  // If description matches lessonSubject, it was populated with the lesson subject due to lack of homework
+  if (hw.lessonSubject && hw.description && hw.description.trim() === hw.lessonSubject.trim()) {
+    return ""
+  }
+
+  return hw.description ? hw.description.trim() : ""
+}
+

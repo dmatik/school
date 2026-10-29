@@ -23,7 +23,7 @@ import {
 import { format } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { cn, parseLocalDate } from "@/lib/utils"
+import { cn, parseLocalDate, getHomeworkText } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
@@ -137,9 +137,15 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
     }
   }
 
-  // Filtered homework
+  // Filtered homework: display only cards where we actually have homework
   const filteredHomework = useMemo(() => {
     const list = homework.filter(hw => {
+      // Must actually have homework
+      const hwText = getHomeworkText(hw)
+      if (!hwText) {
+        return false
+      }
+
       // Date filter
       if (selectedDate) {
         const formattedFilter = format(selectedDate, "yyyy-MM-dd")
@@ -155,8 +161,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
           (hw.subject && hw.subject.toLowerCase().includes(q)) ||
           (hw.teacher && hw.teacher.toLowerCase().includes(q)) ||
           (hw.studentName && hw.studentName.toLowerCase().includes(q)) ||
-          (hw.description && hw.description.toLowerCase().includes(q)) ||
-          (hw.lessonSubject && hw.lessonSubject.toLowerCase().includes(q))
+          hwText.toLowerCase().includes(q)
 
         if (!match) return false
       }
@@ -387,6 +392,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                     (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const homeworkText = getHomeworkText(hw)
 
                   return (
                     <Card
@@ -439,12 +445,12 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                         )}
                       </div>
 
-                      {/* Homework text below */}
-                      {hw.description && (
-                        <p className="text-sm font-medium text-start leading-snug text-foreground">
-                          {hw.description}
+                      {/* Homework text below: only display actual homework, never lesson subject / class topic */}
+                      {homeworkText ? (
+                        <p className="text-sm font-medium text-start leading-snug text-foreground whitespace-pre-line">
+                          {homeworkText}
                         </p>
-                      )}
+                      ) : null}
                     </Card>
                   )
                 })}
