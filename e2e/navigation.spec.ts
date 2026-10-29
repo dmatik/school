@@ -24,7 +24,7 @@ test.describe('Navigation Flow', () => {
     cleanupAllTestUsers();
   });
 
-  test('admin user sees Homework, Incidents, and Admin tabs', async ({ page }) => {
+  test('admin user sees Homework, Incidents, Settings, and Admin tabs', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
@@ -36,8 +36,14 @@ test.describe('Navigation Flow', () => {
     await incidentsBtn.click();
     await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
 
-    // Click Admin tab
-    const adminBtn = page.locator('aside nav button').nth(2);
+    // Click Settings tab (3rd tab, before Admin)
+    const settingsBtn = page.locator('aside nav button').nth(2);
+    await settingsBtn.click();
+    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
+    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
+
+    // Click Admin tab (4th tab)
+    const adminBtn = page.locator('aside nav button').nth(3);
     await adminBtn.click();
     await expect(page.locator('main h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
 
@@ -45,16 +51,22 @@ test.describe('Navigation Flow', () => {
     const accountBtn = page.locator('aside button').first();
     await accountBtn.click();
     await expect(page.locator('main h2').first()).toContainText(/הגדרות חשבון|Account Settings/);
-    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
+    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
   });
 
-  test('regular user does not see Admin tab', async ({ page }) => {
+  test('regular user sees Homework, Incidents, and Settings tabs but not Admin tab', async ({ page }) => {
     regularUser = createTestUser('user');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 2 (Incidents and Homework)
+    // Nav items count in aside nav should be 3 (Homework, Incidents, Settings)
     const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(2);
+    await expect(navButtons).toHaveCount(3);
+
+    // Click Settings tab
+    const settingsBtn = navButtons.nth(2);
+    await settingsBtn.click();
+    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
+    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
   });
 });
 

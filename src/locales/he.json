@@ -5,6 +5,8 @@
     "homework": "שיעורי בית",
     "admin": "ניהול מערכת",
     "admin_short": "ניהול",
+    "settings": "הגדרות",
+    "settings_short": "הגדרות",
     "account": "חשבון",
     "cancel": "ביטול",
     "confirm": "אישור",
@@ -166,7 +168,7 @@
     "webtop_status_connected": "מחובר ומסונכרן",
     "webtop_status_not_connected": "טרם הוגדר חיבור",
     "webtop_status_error": "שגיאת סנכרון",
-    "webtop_sync_button": "סנכרן עכשיו",
+    "webtop_sync_button": "סנכרן",
     "webtop_syncing": "מסנכרן...",
     "webtop_disconnect": "נתק חיבור",
     "webtop_disconnect_confirm": "האם אתה בטוח שברצונך לנתק את החיבור ל-Webtop ולמחוק את כל הנתונים המסונכרנים?",
@@ -198,6 +200,9 @@
     "disconnect_failed": "ניתוק חיבור Webtop נכשל",
     "sync_error": "שגיאת סנכרון",
     "sync_failed": "הסנכרון נכשל"
+  },
+  "settings": {
+    "title": "הגדרות"
   },
   "admin": {
     "title": "ניהול מערכת",
