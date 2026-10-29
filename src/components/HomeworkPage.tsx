@@ -405,7 +405,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                           {/* Subject icon as a badge spanning the height of both subject & teacher rows */}
                           <div
                             className={cn(
-                              "w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 shadow-xs",
+                              "w-11 h-11 rounded-lg border flex items-center justify-center shrink-0 shadow-xs",
                               subjectBadgeClass
                             )}
                           >
@@ -413,7 +413,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                           </div>
 
                           {/* Subject Title & Teacher name right below it */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[40px]">
+                          <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[44px]">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
                               {hw.hourNum && (
@@ -425,7 +425,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
                             {/* Teacher name right below subject title, plain text without badge and without icon */}
                             {hw.teacher && (
-                              <div className="text-xs text-muted-foreground font-medium truncate mt-0.5">
+                              <div className="text-sm text-muted-foreground font-medium truncate mt-0.5">
                                 {hw.teacher}
                               </div>
                             )}
