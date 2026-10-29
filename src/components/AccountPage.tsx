@@ -568,10 +568,10 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                           <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
                         </div>
                         <div className="min-w-0 flex-1">
-                          <div className="text-sm font-semibold truncate flex items-center gap-1.5">
-                            <span className="truncate">{p.deviceName}</span>
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 min-w-0">
+                            <span className="text-sm font-semibold truncate">{p.deviceName}</span>
                             {p.backedUp ? (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">
+                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0 self-start sm:self-auto">
                                 {t("account.synced")}
                               </span>
                             ) : null}
