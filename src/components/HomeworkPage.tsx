@@ -200,59 +200,36 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border">
-        <div className="flex items-center gap-2">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
             <BookOpen className="w-5 h-5" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground">
+          <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
             {t("homework.title")}
           </h1>
         </div>
 
-        {/* Header Actions */}
-        <div className="flex items-center gap-2 w-full sm:w-auto shrink-0">
-          {/* Child Selector */}
-          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-              <SelectTrigger className="h-9 text-sm gap-2 px-3 flex-1 sm:flex-initial sm:min-w-[160px] bg-background border-border min-w-0">
-                <div className="flex items-center gap-2 truncate">
-                  <User className="w-4 h-4 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder={t("homework.all_students")} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">{t("homework.all_students")}</SelectItem>
-                {webtopConfig.linkedChildren.map(c => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-
-          {/* Sync Button */}
-          {webtopConfig?.configured && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleSync}
-              disabled={syncing}
-              className="flex items-center gap-2 text-sm h-9 shrink-0 ms-auto sm:ms-0 px-3"
-            >
-              <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
-              <span>{syncing ? t("homework.syncing") : t("homework.sync_now")}</span>
-            </Button>
-          )}
-        </div>
+        {/* Sync Button */}
+        {webtopConfig?.configured && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSync}
+            disabled={syncing}
+            className="flex items-center gap-2 text-sm h-9 shrink-0 px-3"
+          >
+            <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+            <span>{syncing ? t("homework.syncing") : t("homework.sync_now")}</span>
+          </Button>
+        )}
       </div>
 
-      {/* Search & Date Filter */}
-      {homework.length > 0 && (
-        <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
+      {/* Search & Filters */}
+      {(homework.length > 0 || webtopConfig?.configured) && (
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1 sm:max-w-md">
+          <div className="relative flex-1 md:max-w-xs lg:max-w-sm">
             <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
               value={searchQuery}
@@ -262,15 +239,42 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             />
           </div>
 
-          {/* Date Filter */}
-          <div className="w-full sm:w-auto sm:min-w-[220px]">
-            <DatePicker
-              date={selectedDate}
-              setDate={setSelectedDate}
-              placeholder={t("common.all_dates")}
-              disabled={isFutureDate}
-              clearable={true}
-            />
+          {/* Kids Dropdown & Date Filter in the same row */}
+          <div className={cn(
+            "gap-2 w-full md:flex md:w-auto md:items-center",
+            webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
+          )}>
+            {/* Child Selector */}
+            {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+              <Select value={selectedChildId} onValueChange={setSelectedChildId}>
+                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-background border-border min-w-0">
+                  <div className="flex items-center gap-2 truncate">
+                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <SelectValue placeholder={t("homework.all_students")} />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">{t("homework.all_students")}</SelectItem>
+                  {webtopConfig.linkedChildren.map(c => (
+                    <SelectItem key={c.id} value={c.id}>
+                      {c.firstName} {c.lastName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+
+            {/* Date Filter */}
+            <div className="w-full md:w-[175px] min-w-0">
+              <DatePicker
+                date={selectedDate}
+                setDate={setSelectedDate}
+                placeholder={t("common.all_dates")}
+                disabled={isFutureDate}
+                clearable={true}
+                formatPattern="dd/MM/yyyy"
+              />
+            </div>
           </div>
         </div>
       )}
