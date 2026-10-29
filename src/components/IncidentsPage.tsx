@@ -140,7 +140,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   // Unique types list for filtering
   // Filtered incidents
   const filteredIncidents = useMemo(() => {
-    return incidents.filter(inc => {
+    const list = incidents.filter(inc => {
       // Date filter
       if (selectedDate) {
         const formattedFilter = format(selectedDate, "yyyy-MM-dd")
@@ -164,24 +164,32 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
       return true
     })
+
+    // Deduplicate in UI by ID or eventCode + date + studentName
+    const deduped: Incident[] = []
+    const seen = new Set<string>()
+    for (const inc of list) {
+      const key = inc.id || `${inc.studentName}::${inc.date}::${inc.type}::${inc.hourNum || 0}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        deduped.push(inc)
+      }
+    }
+
+    return deduped
   }, [incidents, selectedDate, searchQuery])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <AlertCircle className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">
-              {t("incidents.title")}
-            </h1>
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <AlertCircle className="w-5 h-5" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("incidents.subtitle")}
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            {t("incidents.title")}
+          </h1>
         </div>
 
         {/* Header Actions */}
@@ -309,7 +317,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredIncidents.map((inc) => {
             const SubjectIcon = getSubjectIcon(inc.subject)
             const matchedChild = webtopConfig?.linkedChildren?.find(
@@ -322,27 +330,27 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                 key={inc.id}
                 className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col"
               >
-                <CardHeader className={cn("p-4 sm:p-5 space-y-2", inc.description && "pb-2 sm:pb-2.5")}>
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Right side (Hebrew/RTL start): Incident type badge, Date (one line, no badge), Subject & Teacher */}
-                    <div className="space-y-1.5 min-w-0">
-                      {/* Incident Name / Type Badge */}
-                      <span className="inline-flex items-center px-3 py-1 rounded-md text-sm font-bold bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                <CardHeader className={cn("p-2.5 sm:p-3 space-y-1", inc.description && "pb-1.5 sm:pb-2")}>
+                  <div className="flex items-start justify-between gap-2.5">
+                    {/* Right side (Hebrew/RTL start): Incident type, Date (one line, no badge), Subject & Teacher */}
+                    <div className="space-y-1 min-w-0">
+                      {/* Incident Name / Type as text with color, no badge */}
+                      <span className="font-bold text-base text-amber-700 dark:text-amber-400 block truncate">
                         {inc.type}
                       </span>
 
                       {/* Date in one line, no badge, below incident name */}
                       {inc.date && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Calendar className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                          <Calendar className="w-4 h-4 text-muted-foreground/80 shrink-0" />
                           <span>{formatOneLineDate(inc.date)}</span>
                         </div>
                       )}
 
-                      {/* Subject with lesson hour */}
+                      {/* Subject with lesson hour - without accent color on icon */}
                       {inc.subject && (
-                        <div className="text-xs text-foreground font-semibold flex items-center gap-1.5 pt-0.5">
-                          <SubjectIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                        <div className="text-sm text-foreground font-medium flex items-center gap-1.5">
+                          <SubjectIcon className="w-4 h-4 text-muted-foreground/80 shrink-0" />
                           <span className="truncate">{inc.subject}</span>
                           {inc.hourNum && (
                             <span className="text-xs font-normal text-muted-foreground shrink-0">
@@ -352,22 +360,21 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                         </div>
                       )}
 
-                      {/* Teacher name */}
+                      {/* Teacher name with user icon */}
                       {inc.teacher && (
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span className="font-medium text-foreground/80">{t("incidents.teacher_label")}</span>
+                        <div className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                          <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
                           <span className="truncate">{inc.teacher}</span>
                         </div>
                       )}
                     </div>
 
-                    {/* Left side (Hebrew/RTL end): Kid name as badge */}
+                    {/* Left side (Hebrew/RTL end): Kid name as badge without icon */}
                     {inc.studentName && (
                       <span className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
+                        "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
                         childBadgeClass
                       )}>
-                        <User className="w-3.5 h-3.5 opacity-70 shrink-0" />
                         <span className="truncate max-w-[130px] sm:max-w-none">{inc.studentName}</span>
                       </span>
                     )}
@@ -375,9 +382,9 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
                 </CardHeader>
 
                 {inc.description && (
-                  <CardContent className="p-4 sm:p-5 pt-2.5 sm:pt-2.5">
+                  <CardContent className="p-2.5 sm:p-3 pt-1 sm:pt-1.5">
                     {/* Remark / Description */}
-                    <p className="text-xs text-muted-foreground bg-muted/40 p-2.5 rounded-md border border-border/50 text-start leading-relaxed">
+                    <p className="text-xs text-muted-foreground bg-muted/40 p-2 rounded-md border border-border/50 text-start leading-snug">
                       {inc.description}
                     </p>
                   </CardContent>

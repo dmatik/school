@@ -543,7 +543,6 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       <div className="flex flex-row justify-between items-center gap-3 border-b pb-3 sm:pb-4">
         <div className="min-w-0 flex-1">
           <h2 className="text-xl font-bold truncate">{t("account.title")}</h2>
-          <p className="text-muted-foreground text-xs truncate">{t("account.subtitle")}</p>
         </div>
         <Button
           variant="outline"

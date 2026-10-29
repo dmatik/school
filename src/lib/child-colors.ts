@@ -85,6 +85,17 @@ export function getChildBadgeClasses(colorId?: string | null): string {
   return "bg-muted/70 text-foreground border-border/60"
 }
 
+export function getChildTextColor(colorId?: string | null): string {
+  if (!colorId) {
+    return "text-primary"
+  }
+  const found = CHILD_COLORS.find(c => c.id === colorId)
+  if (found) {
+    return found.badgeText
+  }
+  return "text-primary"
+}
+
 export function getChildColor(colorId?: string | null): ChildColorOption | undefined {
   return CHILD_COLORS.find(c => c.id === colorId)
 }

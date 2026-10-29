@@ -54,7 +54,7 @@
     "subject_label": "Subject:"
   },
   "homework": {
-    "title": "Homework & Tasks",
+    "title": "Homework",
     "subtitle": "Assigned school homework, deadlines, and exercises from Webtop",
     "empty_title": "No Homework Assigned",
     "empty_desc": "Homework items, instructions, and due dates will appear here once the Webtop API integration is configured.",
