@@ -25,7 +25,7 @@ import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { cn, parseLocalDate } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses, getChildTextColor } from "@/lib/child-colors"
+import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
 import type { HomeworkItem, WebtopConfig } from "@/types"
 
@@ -382,33 +382,55 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                 {group.items.map((hw) => {
                   const subjectConfig = getSubjectConfig(hw.subject)
                   const SubjectIcon = subjectConfig.icon
+                  const subjectBadgeClass = subjectConfig.badgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
-                  const childAccentClass = getChildTextColor(matchedChild?.color)
 
                   return (
                     <Card
                       key={hw.id}
-                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-1"
+                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-1.5"
                     >
-                      {/* Top Row: Subject (bigger, bolder text + icon) & Name badge (without icon) */}
-                      <div className="flex items-center justify-between gap-2">
-                        <div className="flex items-center gap-1.5 min-w-0">
-                          <SubjectIcon className={cn("w-4 h-4 shrink-0", childAccentClass)} />
-                          <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
-                          {hw.hourNum && (
-                            <span className="font-normal text-xs text-muted-foreground shrink-0">
-                              ({t("homework.lesson_hour", { hour: hw.hourNum })})
-                            </span>
-                          )}
+                      {/* Top Row: Subject Icon as a badge spanning both rows, Subject Title & Teacher right below, Student Name badge */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          {/* Subject icon as a badge spanning the height of both subject & teacher rows */}
+                          <div
+                            className={cn(
+                              "w-10 h-10 rounded-lg border flex items-center justify-center shrink-0 shadow-xs",
+                              subjectBadgeClass
+                            )}
+                          >
+                            <SubjectIcon className="w-5 h-5 shrink-0" />
+                          </div>
+
+                          {/* Subject Title & Teacher name right below it */}
+                          <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[40px]">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
+                              {hw.hourNum && (
+                                <span className="font-normal text-xs text-muted-foreground shrink-0">
+                                  ({t("homework.lesson_hour", { hour: hw.hourNum })})
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Teacher name right below subject title, plain text without badge and without icon */}
+                            {hw.teacher && (
+                              <div className="text-xs text-muted-foreground font-medium truncate mt-0.5">
+                                {hw.teacher}
+                              </div>
+                            )}
+                          </div>
                         </div>
 
+                        {/* Student Name badge without icon */}
                         {hw.studentName && (
                           <span
                             className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
+                              "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}
                           >
@@ -417,19 +439,11 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                         )}
                       </div>
 
-                      {/* Homework text right below the subject */}
+                      {/* Homework text below */}
                       {hw.description && (
                         <p className="text-sm font-medium text-start leading-snug text-foreground">
                           {hw.description}
                         </p>
-                      )}
-
-                      {/* Teacher name with person icon, without "teacher:" */}
-                      {hw.teacher && (
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                          <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                          <span className="truncate">{hw.teacher}</span>
-                        </div>
                       )}
                     </Card>
                   )
