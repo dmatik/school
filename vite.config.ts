@@ -9,6 +9,7 @@ export default defineConfig({
     react(),
     VitePWA({
       selfDestroying: true,
+      useCredentials: true,
       includeAssets: ['favicon.svg'],
       manifest: {
         name: "בית הספר",
