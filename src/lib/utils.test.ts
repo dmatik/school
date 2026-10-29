@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -87,5 +87,91 @@ describe('parseLocalDate utility', () => {
         expect(() => parseLocalDate(undefined)).not.toThrow()
         expect(() => parseLocalDate('')).not.toThrow()
         expect(parseLocalDate(null)).toBeInstanceOf(Date)
+    })
+})
+
+describe('getHomeworkText utility', () => {
+    it('extracts real homework from weekly lessons rawData (homeWork field)', () => {
+        const item = {
+            description: 'עמוד 43 עד 47',
+            lessonSubject: 'המבנה העשרוני',
+            rawData: JSON.stringify({
+                descClass: 'המבנה העשרוני',
+                homeWork: '  עמוד 43 עד 47  '
+            })
+        }
+        expect(getHomeworkText(item)).toBe('עמוד 43 עד 47')
+    })
+
+    it('returns empty string when weekly lesson rawData has empty homeWork even if descClass exists', () => {
+        const item = {
+            description: 'המבנה העשרוני ופעולות החשבון',
+            lessonSubject: 'המבנה העשרוני ופעולות החשבון',
+            rawData: JSON.stringify({
+                descClass: 'המבנה העשרוני ופעולות החשבון',
+                homeWork: ''
+            })
+        }
+        expect(getHomeworkText(item)).toBe('')
+    })
+
+    it('returns empty string when weekly lesson rawData has null homeWork', () => {
+        const item = {
+            description: 'שיעור ספורט',
+            lessonSubject: 'שיעור ספורט',
+            rawData: JSON.stringify({
+                descClass: 'שיעור ספורט',
+                homeWork: null
+            })
+        }
+        expect(getHomeworkText(item)).toBe('')
+    })
+
+    it('extracts homework from dashboard rawData (homeworkData field)', () => {
+        const item = {
+            description: 'לסיים עבודה במחברת',
+            lessonSubject: 'Answer Questions About Texts',
+            rawData: JSON.stringify({
+                lessonSubject: 'Answer Questions About Texts',
+                homeworkData: 'לסיים עבודה במחברת'
+            })
+        }
+        expect(getHomeworkText(item)).toBe('לסיים עבודה במחברת')
+    })
+
+    it('returns empty string when dashboard rawData has empty homeworkData', () => {
+        const item = {
+            description: 'נושא השיעור',
+            lessonSubject: 'נושא השיעור',
+            rawData: JSON.stringify({
+                lessonSubject: 'נושא השיעור',
+                homeworkData: ''
+            })
+        }
+        expect(getHomeworkText(item)).toBe('')
+    })
+
+    it('falls back to empty string when rawData is missing but description equals lessonSubject', () => {
+        const item = {
+            description: 'חזרה על החומר',
+            lessonSubject: 'חזרה על החומר',
+            rawData: null
+        }
+        expect(getHomeworkText(item)).toBe('')
+    })
+
+    it('returns description when rawData is missing and description differs from lessonSubject', () => {
+        const item = {
+            description: 'עמוד 20 שאלות 1-5',
+            lessonSubject: 'היסטוריה של עם ישראל',
+            rawData: null
+        }
+        expect(getHomeworkText(item)).toBe('עמוד 20 שאלות 1-5')
+    })
+
+    it('handles empty, null or undefined objects gracefully', () => {
+        expect(getHomeworkText({})).toBe('')
+        expect(getHomeworkText({ description: null, lessonSubject: null, rawData: null })).toBe('')
+        expect(getHomeworkText({ rawData: 'invalid json', description: 'test', lessonSubject: 'test' })).toBe('')
     })
 })
