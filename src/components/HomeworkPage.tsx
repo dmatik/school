@@ -397,7 +397,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                   return (
                     <Card
                       key={hw.id}
-                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-1.5"
+                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-2.5 sm:gap-3"
                     >
                       {/* Top Row: Subject Icon as a badge spanning both rows, Subject Title & Teacher right below, Student Name badge */}
                       <div className="flex items-start justify-between gap-2.5">
@@ -447,8 +447,13 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
                       {/* Homework text below: only display actual homework, never lesson subject / class topic */}
                       {homeworkText ? (
-                        <p className="text-sm font-medium text-start leading-snug text-foreground whitespace-pre-line">
-                          {homeworkText}
+                        <p className="text-sm text-start leading-snug text-foreground whitespace-pre-line">
+                          <span className="font-bold me-1.5">
+                            {t("homework.homework_prefix")}
+                          </span>
+                          <span className="font-normal">
+                            {homeworkText}
+                          </span>
                         </p>
                       ) : null}
                     </Card>

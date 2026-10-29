@@ -1,5 +1,6 @@
 import { render, screen, fireEvent } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
+import { format } from 'date-fns'
 import { IncidentsPage } from '../components/IncidentsPage'
 import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
@@ -86,6 +87,59 @@ describe('Empty Page Views', () => {
     expect(screen.getByText('homework.empty_title')).toBeInTheDocument()
     expect(screen.getByText('homework.empty_desc')).toBeInTheDocument()
     expect(screen.getByText('homework.integration_badge')).toBeInTheDocument()
+  })
+
+  it('renders Homework item with homework prefix in bold weight and text in normal weight', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const mockHomework = [
+      {
+        id: 'hw-1',
+        subject: 'חשבון',
+        studentName: 'ילד ראשון',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        description: 'עמוד 20 תרגילים 1-5',
+        lessonSubject: 'שברים',
+        rawData: JSON.stringify({
+          descClass: 'שברים',
+          homeWork: 'עמוד 20 תרגילים 1-5'
+        })
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: mockHomework })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+
+      const prefix = await screen.findByText('homework.homework_prefix')
+      expect(prefix).toBeInTheDocument()
+      expect(prefix).toHaveClass('font-bold')
+
+      const hwText = screen.getByText('עמוד 20 תרגילים 1-5')
+      expect(hwText).toBeInTheDocument()
+      expect(hwText).toHaveClass('font-normal')
+    } finally {
+      global.fetch = originalFetch
+    }
   })
 })
 
