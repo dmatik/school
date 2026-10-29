@@ -25,7 +25,7 @@ import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { cn, parseLocalDate } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses } from "@/lib/child-colors"
+import { getChildBadgeClasses, getChildTextColor } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
 import type { HomeworkItem, WebtopConfig } from "@/types"
 
@@ -139,7 +139,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
   // Filtered homework
   const filteredHomework = useMemo(() => {
-    return homework.filter(hw => {
+    const list = homework.filter(hw => {
       // Date filter
       if (selectedDate) {
         const formattedFilter = format(selectedDate, "yyyy-MM-dd")
@@ -163,24 +163,51 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
       return true
     })
+
+    // Deduplicate in UI by studentName + dueDate + hourNum + subject to guarantee zero visual duplicates
+    const deduped: HomeworkItem[] = []
+    const seen = new Set<string>()
+    for (const hw of list) {
+      const key = `${(hw.studentName || '').trim()}::${hw.dueDate || ''}::${hw.hourNum || 0}::${(hw.subject || '').trim()}`
+      if (!seen.has(key)) {
+        seen.add(key)
+        deduped.push(hw)
+      }
+    }
+
+    return deduped
   }, [homework, selectedDate, searchQuery])
+
+  // Group filtered homework by date
+  const groupedHomework = useMemo(() => {
+    const groups: { date: string; items: HomeworkItem[] }[] = []
+    const map = new Map<string, HomeworkItem[]>()
+
+    for (const hw of filteredHomework) {
+      const key = hw.dueDate || "no-date"
+      let list = map.get(key)
+      if (!list) {
+        list = []
+        map.set(key, list)
+        groups.push({ date: key, items: list })
+      }
+      list.push(hw)
+    }
+
+    return groups
+  }, [filteredHomework])
 
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-2 border-b border-border">
-        <div className="space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
-              <BookOpen className="w-5 h-5" />
-            </div>
-            <h1 className="text-xl font-bold tracking-tight text-foreground">
-              {t("homework.title")}
-            </h1>
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <BookOpen className="w-5 h-5" />
           </div>
-          <p className="text-xs text-muted-foreground">
-            {t("homework.subtitle")}
-          </p>
+          <h1 className="text-xl font-bold tracking-tight text-foreground">
+            {t("homework.title")}
+          </h1>
         </div>
 
         {/* Header Actions */}
@@ -330,89 +357,82 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredHomework.map((hw) => {
-            const subjectConfig = getSubjectConfig(hw.subject)
-            const SubjectIcon = subjectConfig.icon
-            const matchedChild = webtopConfig?.linkedChildren?.find(
-              (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
-            )
-            const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
-            const hasContent = Boolean(hw.lessonSubject || (hw.description && hw.description !== hw.lessonSubject))
+        <div className="space-y-6">
+          {groupedHomework.map((group) => (
+            <div key={group.date} className="space-y-3">
+              {/* Day Section Header (outside cards) */}
+              <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
+                <div className="p-1 rounded-md bg-primary/10 text-primary">
+                  <Calendar className="w-4 h-4 shrink-0" />
+                </div>
+                <h2 className="text-sm font-bold text-foreground">
+                  {formatOneLineDate(group.date) || group.date}
+                </h2>
+                <span className="text-xs text-muted-foreground">
+                  ({group.items.length})
+                </span>
+              </div>
 
-            return (
-              <Card
-                key={hw.id}
-                className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col"
-              >
-                <CardHeader className={cn("p-4 sm:p-5 space-y-2", hasContent && "pb-2 sm:pb-2.5")}>
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Right side (Hebrew/RTL start): Lesson badge, Date (one line, no badge), Teacher */}
-                    <div className="space-y-1.5 min-w-0">
-                      {/* Lesson Name Badge */}
-                      <span className={cn(
-                        "inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-sm font-bold border",
-                        subjectConfig.badgeClass
-                      )}>
-                        <SubjectIcon className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{hw.subject}</span>
-                        {hw.hourNum && (
-                          <span className="font-normal text-xs opacity-85 shrink-0">
-                            ({t("homework.lesson_hour", { hour: hw.hourNum })})
+              {/* 2-column cards grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {group.items.map((hw) => {
+                  const subjectConfig = getSubjectConfig(hw.subject)
+                  const SubjectIcon = subjectConfig.icon
+                  const matchedChild = webtopConfig?.linkedChildren?.find(
+                    (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
+                  )
+                  const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const childAccentClass = getChildTextColor(matchedChild?.color)
+
+                  return (
+                    <Card
+                      key={hw.id}
+                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-1"
+                    >
+                      {/* Top Row: Subject (bigger, bolder text + icon) & Name badge (without icon) */}
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <SubjectIcon className={cn("w-4 h-4 shrink-0", childAccentClass)} />
+                          <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
+                          {hw.hourNum && (
+                            <span className="font-normal text-xs text-muted-foreground shrink-0">
+                              ({t("homework.lesson_hour", { hour: hw.hourNum })})
+                            </span>
+                          )}
+                        </div>
+
+                        {hw.studentName && (
+                          <span
+                            className={cn(
+                              "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
+                              childBadgeClass
+                            )}
+                          >
+                            <span className="truncate max-w-[130px] sm:max-w-none">{hw.studentName}</span>
                           </span>
                         )}
-                      </span>
+                      </div>
 
-                      {/* Date in one line, no badge, below lesson name */}
-                      {hw.dueDate && (
-                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                          <Calendar className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0" />
-                          <span>{formatOneLineDate(hw.dueDate)}</span>
-                        </div>
+                      {/* Homework text right below the subject */}
+                      {hw.description && (
+                        <p className="text-sm font-medium text-start leading-snug text-foreground">
+                          {hw.description}
+                        </p>
                       )}
 
-                      {/* Teacher name below date */}
+                      {/* Teacher name with person icon, without "teacher:" */}
                       {hw.teacher && (
-                        <div className="text-xs text-muted-foreground flex items-center gap-1">
-                          <span className="font-medium text-foreground/80">{t("homework.teacher_label")}</span>
+                        <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
+                          <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
                           <span className="truncate">{hw.teacher}</span>
                         </div>
                       )}
-                    </div>
-
-                    {/* Left side (Hebrew/RTL end): Kid name as badge */}
-                    {hw.studentName && (
-                      <span className={cn(
-                        "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors",
-                        childBadgeClass
-                      )}>
-                        <User className="w-3.5 h-3.5 opacity-70 shrink-0" />
-                        <span className="truncate max-w-[130px] sm:max-w-none">{hw.studentName}</span>
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-
-                {hasContent && (
-                  <CardContent className="p-4 sm:p-5 pt-2.5 sm:pt-2.5 space-y-3">
-                    {/* Lesson Topic */}
-                    {hw.lessonSubject && (
-                      <div className="text-xs font-medium text-primary bg-primary/5 px-2.5 py-1 rounded-md border border-primary/10 text-start">
-                        {hw.lessonSubject}
-                      </div>
-                    )}
-
-                    {/* Homework Description / Instructions */}
-                    {hw.description && hw.description !== hw.lessonSubject && (
-                      <p className="text-xs bg-muted/40 p-2.5 rounded-md border border-border/50 text-start leading-relaxed text-foreground/90">
-                        {hw.description}
-                      </p>
-                    )}
-                  </CardContent>
-                )}
-              </Card>
-            )
-          })}
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

@@ -244,12 +244,12 @@ describe('Webtop Database & Data Models', () => {
 
     // 3. Old homework marked completed + duplicate new homework uncompleted
     db.prepare(`
-      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, completed, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 1, ?)
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, hour_num, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 1, ?)
     `).run('webtop-hw-child-1-2026-10-28-1-math', 'user-1', 'child-1', 'Child One', 'Math', '2026-10-28', now);
     db.prepare(`
-      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, completed, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, hour_num, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 1, 0, ?)
     `).run('webtop-hw-user-1-child-1-2026-10-28-1-math', 'user-1', 'child-1', 'Child One', 'Math', '2026-10-28', now);
 
     // Run initDb migration on this database instance
@@ -266,7 +266,7 @@ describe('Webtop Database & Data Models', () => {
     // Check homework and completion state preservation
     const homework = db.prepare('SELECT id, completed FROM homework WHERE user_id = ?').all('user-1') as any[];
     expect(homework).toHaveLength(1);
-    expect(homework[0].id).toBe('webtop-hw-user-1-child-1-2026-10-28-1-math');
+    expect(homework[0].id).toBe('webtop-hw-user-1-Child_One-2026-10-28-1-Math');
     expect(homework[0].completed).toBe(1);
   });
 });

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CHILD_COLORS, getChildBadgeClasses, getChildColor } from '../lib/child-colors';
+import { CHILD_COLORS, getChildBadgeClasses, getChildColor, getChildTextColor } from '../lib/child-colors';
 
 describe('Child Colors Utility', () => {
   it('exports predefined list of vibrant colors', () => {
@@ -41,6 +41,15 @@ describe('Child Colors Utility', () => {
     expect(color?.bg).toBe('bg-purple-500');
 
     expect(getChildColor('unknown')).toBeUndefined();
+  });
+
+  it('retrieves child text/accent color class using getChildTextColor', () => {
+    expect(getChildTextColor()).toBe('text-primary');
+    expect(getChildTextColor(null)).toBe('text-primary');
+    expect(getChildTextColor('unknown')).toBe('text-primary');
+
+    expect(getChildTextColor('blue')).toContain('text-blue-700');
+    expect(getChildTextColor('emerald')).toContain('text-emerald-700');
   });
 });
 

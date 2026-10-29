@@ -366,16 +366,13 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-row justify-between items-center gap-3 border-b pb-3 sm:pb-4">
-        <div className="min-w-0 flex-1 space-y-1">
-          <div className="flex items-center gap-2">
-            <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500">
-              <Shield className="w-5 h-5 shrink-0" />
-            </div>
-            <h2 className="text-xl font-bold tracking-tight text-foreground truncate">
-              {t("admin.title")}
-            </h2>
+        <div className="flex items-center gap-2 min-w-0 flex-1">
+          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+            <Shield className="w-5 h-5 shrink-0" />
           </div>
-          <p className="text-muted-foreground text-xs truncate">{t("admin.subtitle")}</p>
+          <h2 className="text-xl font-bold tracking-tight text-foreground truncate">
+            {t("admin.title")}
+          </h2>
         </div>
         <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-9 px-3">
           <UserPlus className="w-4 h-4" />

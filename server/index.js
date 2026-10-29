@@ -927,6 +927,7 @@ async function syncWebtopData(userId) {
 
   for (const child of linkedChildren) {
     const childFullName = `${child.firstName} ${child.lastName}`.trim();
+    const sanitizedChild = childFullName.replace(/[^\w\u0590-\u05fe]/g, '_');
 
     // 1. Incidents
     try {
@@ -980,7 +981,7 @@ async function syncWebtopData(userId) {
 
                 const subject = (item.subject_name || item.subject || '').trim();
                 const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-                const hwId = `webtop-hw-${userId}-${child.id}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+                const hwId = `webtop-hw-${userId}-${sanitizedChild}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
                 allHomework.push({
                   id: hwId,
@@ -1016,7 +1017,7 @@ async function syncWebtopData(userId) {
         const hourNum = item.hourNum ? parseInt(item.hourNum, 10) : null;
         const subject = (item.lesson || '').trim();
         const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-        const hwId = `webtop-hw-${userId}-${child.id}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+        const hwId = `webtop-hw-${userId}-${sanitizedChild}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
         allHomework.push({
           id: hwId,
@@ -1051,6 +1052,7 @@ async function syncWebtopData(userId) {
       INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
+        student_id = excluded.student_id,
         student_name = excluded.student_name,
         date = excluded.date,
         type = excluded.type,
@@ -1076,6 +1078,7 @@ async function syncWebtopData(userId) {
       INSERT INTO homework (id, user_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, raw_data, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
+        student_id = excluded.student_id,
         student_name = excluded.student_name,
         subject = excluded.subject,
         teacher = excluded.teacher,
@@ -1374,8 +1377,17 @@ app.get('/api/incidents', authenticate, (req, res) => {
     const params = [req.user.id];
 
     if (childId && childId !== 'all') {
-      query += ` AND student_id = ?`;
-      params.push(childId);
+      const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+      const linked = JSON.parse(creds?.linked_children || '[]');
+      const child = linked.find(c => c.id === childId);
+      if (child) {
+        const childFullName = `${child.firstName} ${child.lastName}`.trim();
+        query += ` AND (student_id = ? OR student_name = ?)`;
+        params.push(childId, childFullName);
+      } else {
+        query += ` AND student_id = ?`;
+        params.push(childId);
+      }
     }
 
     query += ` ORDER BY date DESC, hour_num ASC`;
@@ -1400,8 +1412,17 @@ app.get('/api/homework', authenticate, (req, res) => {
     const params = [req.user.id];
 
     if (childId && childId !== 'all') {
-      query += ` AND student_id = ?`;
-      params.push(childId);
+      const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+      const linked = JSON.parse(creds?.linked_children || '[]');
+      const child = linked.find(c => c.id === childId);
+      if (child) {
+        const childFullName = `${child.firstName} ${child.lastName}`.trim();
+        query += ` AND (student_id = ? OR student_name = ?)`;
+        params.push(childId, childFullName);
+      } else {
+        query += ` AND student_id = ?`;
+        params.push(childId);
+      }
     }
 
     query += ` ORDER BY due_date DESC, hour_num ASC`;

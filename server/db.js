@@ -154,25 +154,71 @@ export function initDb(targetDb = db) {
         }
       }
 
-      // 2. Homework migration
-      const oldHw = targetDb.prepare(`
-        SELECT id, user_id, completed FROM homework
-        WHERE id LIKE 'webtop-hw-%'
+      // 2. Homework migration & permanent deduplication to stable canonical IDs
+      const allHw = targetDb.prepare(`
+        SELECT id, user_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, completed, raw_data, created_at
+        FROM homework
       `).all();
 
-      for (const hw of oldHw) {
-        if (!hw.id.startsWith(`webtop-hw-${hw.user_id}-`)) {
-          const newId = `webtop-hw-${hw.user_id}-${hw.id.slice('webtop-hw-'.length)}`;
-          const existing = targetDb.prepare('SELECT id, completed FROM homework WHERE id = ?').get(newId);
-          if (existing) {
-            if (hw.completed && !existing.completed) {
-              targetDb.prepare('UPDATE homework SET completed = 1 WHERE id = ?').run(newId);
-            }
-            targetDb.prepare('DELETE FROM homework WHERE id = ?').run(hw.id);
-          } else {
-            targetDb.prepare('UPDATE homework SET id = ? WHERE id = ?').run(newId, hw.id);
+      const groupedMap = new Map();
+      for (const hw of allHw) {
+        const sanitizedChild = (hw.student_name || '').trim().replace(/[^\w\u0590-\u05fe]/g, '_');
+        const subject = (hw.subject || 'כללי').trim();
+        const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
+        const hour = (hw.hour_num !== null && !isNaN(hw.hour_num)) ? hw.hour_num : '0';
+        const canonicalId = `webtop-hw-${hw.user_id}-${sanitizedChild}-${hw.due_date}-${hour}-${sanitizedSubject}`;
+
+        const groupKey = `${hw.user_id}::${(hw.student_name || '').trim()}::${hw.due_date}::${hour}::${subject}`;
+        let group = groupedMap.get(groupKey);
+        if (!group) {
+          group = { canonicalId, bestRow: { ...hw, id: canonicalId }, idsToDelete: [] };
+          groupedMap.set(groupKey, group);
+        } else {
+          // If any duplicate was completed, preserve completed status
+          if (hw.completed) {
+            group.bestRow.completed = 1;
+          }
+          if (!group.bestRow.description && hw.description) {
+            group.bestRow.description = hw.description;
           }
         }
+        if (hw.id !== canonicalId) {
+          group.idsToDelete.push(hw.id);
+        }
+      }
+
+      // Delete non-canonical IDs
+      const deleteStmt = targetDb.prepare('DELETE FROM homework WHERE id = ?');
+      for (const group of groupedMap.values()) {
+        for (const oldId of group.idsToDelete) {
+          deleteStmt.run(oldId);
+        }
+      }
+
+      // Upsert the canonical row for each unique item
+      const upsertCanonical = targetDb.prepare(`
+        INSERT INTO homework (id, user_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, completed, raw_data, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          completed = MAX(homework.completed, excluded.completed),
+          student_id = excluded.student_id,
+          student_name = excluded.student_name,
+          subject = excluded.subject,
+          teacher = excluded.teacher,
+          due_date = excluded.due_date,
+          description = excluded.description,
+          lesson_subject = excluded.lesson_subject,
+          hour_num = excluded.hour_num,
+          raw_data = excluded.raw_data
+      `);
+
+      for (const group of groupedMap.values()) {
+        const r = group.bestRow;
+        upsertCanonical.run(
+          r.id, r.user_id, r.student_id, r.student_name, r.subject,
+          r.teacher, r.due_date, r.description, r.lesson_subject, r.hour_num,
+          r.completed ? 1 : 0, r.raw_data, r.created_at || new Date().toISOString()
+        );
       }
     });
     migrateTx();
