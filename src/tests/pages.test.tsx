@@ -2,9 +2,10 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { AdminPage } from '../components/AdminPage'
 import { AccountPage } from '../components/AccountPage'
+import { SettingsPage } from '../components/SettingsPage'
 import type { User } from '../types'
 
-describe('AdminPage & AccountPage Component Tests (Isolated Test Users)', () => {
+describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test Users)', () => {
   let testAdminUser: User
   let testRegularUser: User
   let uniqueRunId: string
@@ -141,7 +142,7 @@ describe('AdminPage & AccountPage Component Tests (Isolated Test Users)', () => 
       await waitFor(() => {
         expect(screen.getByText('account.personal_info')).toBeInTheDocument()
       })
-      expect(screen.getByText('account.webtop_title')).toBeInTheDocument()
+      expect(screen.queryByText('account.webtop_title')).not.toBeInTheDocument()
       expect(screen.getByText('account.passkeys_title')).toBeInTheDocument()
 
       // Profile input values
@@ -172,6 +173,18 @@ describe('AdminPage & AccountPage Component Tests (Isolated Test Users)', () => 
       fireEvent.click(logoutBtn)
 
       expect(handleLogout).toHaveBeenCalledTimes(1)
+    })
+  })
+
+  describe('SettingsPage Component', () => {
+    it('renders settings page and webtop configuration section correctly', async () => {
+      render(<SettingsPage token="mock-test-jwt-token" />)
+
+      await waitFor(() => {
+        expect(screen.getByText('settings.title')).toBeInTheDocument()
+      })
+      expect(screen.getByText('account.webtop_title')).toBeInTheDocument()
+      expect(screen.getByText('account.webtop_desc')).toBeInTheDocument()
     })
   })
 })

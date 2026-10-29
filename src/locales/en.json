@@ -5,6 +5,8 @@
     "homework": "Homework",
     "admin": "Administration",
     "admin_short": "Admin",
+    "settings": "Settings",
+    "settings_short": "Settings",
     "account": "Account",
     "cancel": "Cancel",
     "confirm": "Confirm",
@@ -166,7 +168,7 @@
     "webtop_status_connected": "Connected & Synced",
     "webtop_status_not_connected": "Not Configured",
     "webtop_status_error": "Sync Error",
-    "webtop_sync_button": "Sync Now",
+    "webtop_sync_button": "Sync",
     "webtop_syncing": "Syncing...",
     "webtop_disconnect": "Disconnect",
     "webtop_disconnect_confirm": "Are you sure you want to disconnect Webtop and remove all synchronized school records?",
@@ -198,6 +200,9 @@
     "disconnect_failed": "Failed to disconnect Webtop",
     "sync_error": "Sync error",
     "sync_failed": "Sync failed"
+  },
+  "settings": {
+    "title": "Settings"
   },
   "admin": {
     "title": "System Administration",

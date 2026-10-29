@@ -4,6 +4,7 @@ import {
   AlertCircle,
   BookOpen,
   Shield,
+  Settings as SettingsIcon,
   User as UserIcon,
   Loader2,
   type LucideIcon
@@ -20,6 +21,7 @@ import { DirectionProvider } from "@radix-ui/react-direction"
 // Lazy load views
 const IncidentsPage = lazy(() => import("@/components/IncidentsPage").then(module => ({ default: module.IncidentsPage })))
 const HomeworkPage = lazy(() => import("@/components/HomeworkPage").then(module => ({ default: module.HomeworkPage })))
+const SettingsPage = lazy(() => import("@/components/SettingsPage").then(module => ({ default: module.SettingsPage })))
 const AccountPage = lazy(() => import("@/components/AccountPage").then(module => ({ default: module.AccountPage })))
 const AdminPage = lazy(() => import("@/components/AdminPage").then(module => ({ default: module.AdminPage })))
 
@@ -29,7 +31,7 @@ const LoadingSpinner = () => (
   </div>
 )
 
-type AppTab = 'homework' | 'incidents' | 'admin' | 'account'
+type AppTab = 'homework' | 'incidents' | 'settings' | 'admin' | 'account'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -189,6 +191,12 @@ function App() {
               icon={AlertCircle}
               label={t('common.incidents')}
             />
+            <MenuButton
+              active={activeTab === 'settings'}
+              onClick={() => setActiveTab('settings')}
+              icon={SettingsIcon}
+              label={t('common.settings')}
+            />
             {currentUser.role === 'admin' && (
               <MenuButton
                 active={activeTab === 'admin'}
@@ -268,6 +276,7 @@ function App() {
                   <Suspense fallback={<LoadingSpinner />}>
                     {activeTab === 'homework' && <HomeworkPage token={token} />}
                     {activeTab === 'incidents' && <IncidentsPage token={token} />}
+                    {activeTab === 'settings' && <SettingsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
                         currentUser={currentUser}
@@ -302,6 +311,12 @@ function App() {
                 onClick={() => setActiveTab('incidents')}
                 icon={AlertCircle}
                 label={t('common.incidents')}
+              />
+              <MobileNavButton
+                active={activeTab === 'settings'}
+                onClick={() => setActiveTab('settings')}
+                icon={SettingsIcon}
+                label={t('common.settings_short')}
               />
               {currentUser.role === 'admin' && (
                 <MobileNavButton
