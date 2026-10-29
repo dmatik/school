@@ -82,6 +82,7 @@
     "due_today": "היום",
     "lesson_hour": "שיעור {{hour}}",
     "teacher_label": "מורה:",
+    "homework_prefix": "שיעורי בית:",
     "back_to_today": "חזור להיום",
     "no_homework_for_date": "אין שיעורי בית שמורים לתאריך זה"
   },

@@ -82,6 +82,7 @@
     "due_today": "Today",
     "lesson_hour": "Lesson {{hour}}",
     "teacher_label": "Teacher:",
+    "homework_prefix": "Homework:",
     "back_to_today": "Back to Today",
     "no_homework_for_date": "No saved homework for this date"
   },
