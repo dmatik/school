@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest"
-import { getSubjectConfig, getSubjectIcon, SUBJECT_BADGE_CLASS } from "@/lib/subject-icons"
+import { getSubjectConfig, getSubjectIcon } from "@/lib/subject-icons"
 import {
   Calculator,
   Languages,
@@ -51,15 +51,14 @@ describe("Subject Icon Mapping", () => {
     expect(getSubjectIcon("נושא לא מוכר כללי")).toBe(BookOpen)
   })
 
-  it("returns the unified light grey color accent badge for all subjects", () => {
+  it("returns dedicated color accent badge for each subject", () => {
     const math = getSubjectConfig("מתמטיקה")
     const english = getSubjectConfig("אנגלית")
     const science = getSubjectConfig("מדעים")
 
-    expect(math.badgeClass).toBe(SUBJECT_BADGE_CLASS)
-    expect(english.badgeClass).toBe(SUBJECT_BADGE_CLASS)
-    expect(science.badgeClass).toBe(SUBJECT_BADGE_CLASS)
-    expect(math.badgeClass).toContain("zinc-500")
+    expect(math.badgeClass).toContain("blue-500")
+    expect(english.badgeClass).toContain("purple-500")
+    expect(science.badgeClass).toContain("emerald-500")
   })
 })
 
