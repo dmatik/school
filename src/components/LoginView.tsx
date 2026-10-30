@@ -86,36 +86,36 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         <ModeToggle />
       </div>
 
-      <Card className="w-full max-w-md shadow-xl border-border/60">
-        <CardHeader className="text-center space-y-2 pb-6">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mb-2 shadow-inner">
+      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-border/70 dark:border-border/60 bg-card/90 backdrop-blur-md">
+        <CardHeader className="text-center space-y-2 pb-5">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-2 shadow-xs">
             <UserIcon className="w-6 h-6" />
           </div>
-          <CardTitle className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+          <CardTitle className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
             {t("common.app_title")}
           </CardTitle>
-          <CardDescription>
+          <CardDescription className="text-xs text-muted-foreground font-medium">
             {t("auth.login_subtitle")}
           </CardDescription>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-3.5">
             {error && (
-              <div className="p-3 text-sm rounded-lg bg-destructive/15 text-destructive border border-destructive/20 text-center animate-in fade-in">
+              <div className="p-2.5 text-xs font-medium rounded-lg bg-destructive/15 text-destructive border border-destructive/20 text-center animate-in fade-in">
                 {error}
               </div>
             )}
 
-            <div className="space-y-2">
-              <Label htmlFor="username">{t("auth.username")}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="username" className="text-xs font-semibold">{t("auth.username")}</Label>
               <div className="relative">
-                <UserIcon className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" />
+                <UserIcon className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="username"
                   type="text"
                   autoComplete="username"
-                  className="ps-9"
+                  className="ps-9 h-9 text-sm rounded-lg border-border/80 focus-visible:ring-1 focus-visible:ring-primary/40"
                   placeholder={t("auth.username_placeholder")}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -124,15 +124,15 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="password">{t("auth.password")}</Label>
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-semibold">{t("auth.password")}</Label>
               <div className="relative">
-                <Lock className="absolute start-3 top-3 h-4 w-4 text-muted-foreground" />
+                <Lock className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className="ps-9"
+                  className="ps-9 h-9 text-sm rounded-lg border-border/80 focus-visible:ring-1 focus-visible:ring-primary/40"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -141,7 +141,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-6" disabled={loading || passkeyLoading}>
+            <Button type="submit" className="w-full mt-4 h-9 rounded-lg font-semibold shadow-xs hover:shadow-sm transition-all duration-200" disabled={loading || passkeyLoading}>
               {loading ? (
                 <>
                   <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -154,12 +154,12 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
             {hasPasskeySupport && (
               <>
-                <div className="relative my-4">
+                <div className="relative my-3">
                   <div className="absolute inset-0 flex items-center">
                     <span className="w-full border-t border-border/60" />
                   </div>
                   <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-card px-2 text-muted-foreground">{t("auth.or_use_password")}</span>
+                    <span className="bg-card px-2 text-[10px] font-semibold text-muted-foreground">{t("auth.or_use_password")}</span>
                   </div>
                 </div>
 
@@ -168,7 +168,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   variant="outline"
                   onClick={handlePasskeyLogin}
                   disabled={loading || passkeyLoading}
-                  className="w-full border-primary/30 hover:bg-primary/5 hover:border-primary/50 text-foreground font-medium flex items-center justify-center gap-2"
+                  className="w-full h-9 rounded-lg border-primary/25 hover:bg-primary/5 hover:border-primary/40 text-foreground text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all duration-200"
                 >
                   {passkeyLoading ? (
                     <>

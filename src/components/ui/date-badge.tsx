@@ -49,10 +49,10 @@ export function DateBadge({ date, className }: DateBadgeProps) {
     >
       <Calendar className="w-4 h-4 text-muted-foreground shrink-0" />
       <div className="flex flex-col text-start">
-        <span className="text-[11px] font-semibold text-foreground leading-tight">
+        <span className="text-xs sm:text-sm font-bold text-foreground leading-tight">
           {weekDay}
         </span>
-        <span className="text-[10px] sm:text-[11px] text-muted-foreground leading-tight">
+        <span className="text-xs text-muted-foreground leading-tight">
           {formattedDate}
         </span>
       </div>

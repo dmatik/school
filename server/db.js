@@ -379,6 +379,108 @@ export function initDb(targetDb = db) {
     console.warn('Failed to drop obsolete child_settings table:', dropErr.message);
   }
 
+  // Deduplicate children records caused by ID hashing changes (e.g. 16-hex to 32-hex)
+  try {
+    const dedupeTx = targetDb.transaction(() => {
+      const allChildren = targetDb.prepare('SELECT * FROM children').all();
+      // Group by user_id and normalized identity
+      const groups = new Map();
+      for (const ch of allChildren) {
+        const canonicalId = generateChildId(ch.first_name, ch.last_name);
+        const groupKey = `${ch.user_id}:${ch.external_source || 'webtop'}:${canonicalId}`;
+        if (!groups.has(groupKey)) {
+          groups.set(groupKey, { canonicalId, items: [] });
+        }
+        groups.get(groupKey).items.push(ch);
+      }
+
+      for (const { canonicalId, items } of groups.values()) {
+        if (items.length <= 1) continue;
+
+        // Find the canonical item (if present) or pick the newest/best one
+        let canonicalItem = items.find(i => i.id === canonicalId);
+        if (!canonicalItem) {
+          canonicalItem = items[0];
+        }
+
+        // Merge properties from other items into canonicalItem
+        for (const other of items) {
+          if (other.id === canonicalItem.id) continue;
+
+          // Merge color if canonicalItem has none
+          if (!canonicalItem.color && other.color) {
+            targetDb.prepare('UPDATE children SET color = ? WHERE user_id = ? AND id = ?').run(
+              other.color,
+              canonicalItem.user_id,
+              canonicalItem.id
+            );
+            canonicalItem.color = other.color;
+          }
+
+          // Merge other fields if missing
+          if (!canonicalItem.external_id && other.external_id) {
+            targetDb.prepare('UPDATE children SET external_id = ? WHERE user_id = ? AND id = ?').run(
+              other.external_id,
+              canonicalItem.user_id,
+              canonicalItem.id
+            );
+          }
+          if (!canonicalItem.cellphone && other.cellphone) {
+            targetDb.prepare('UPDATE children SET cellphone = ? WHERE user_id = ? AND id = ?').run(
+              other.cellphone,
+              canonicalItem.user_id,
+              canonicalItem.id
+            );
+          }
+          if (!canonicalItem.class_code && other.class_code) {
+            targetDb.prepare('UPDATE children SET class_code = ?, class_num = ? WHERE user_id = ? AND id = ?').run(
+              other.class_code,
+              other.class_num,
+              canonicalItem.user_id,
+              canonicalItem.id
+            );
+          }
+
+          // Update references in webtop_credentials
+          targetDb.prepare(`
+            UPDATE webtop_credentials
+            SET selected_child_id = ?
+            WHERE user_id = ? AND selected_child_id = ?
+          `).run(canonicalItem.id, canonicalItem.user_id, other.id);
+
+          // Update references in incidents
+          targetDb.prepare(`
+            UPDATE incidents
+            SET child_id = ?
+            WHERE user_id = ? AND child_id = ?
+          `).run(canonicalItem.id, canonicalItem.user_id, other.id);
+
+          // Update references in homework
+          targetDb.prepare(`
+            UPDATE homework
+            SET child_id = ?
+            WHERE user_id = ? AND child_id = ?
+          `).run(canonicalItem.id, canonicalItem.user_id, other.id);
+
+          // Delete obsolete duplicate child
+          targetDb.prepare('DELETE FROM children WHERE user_id = ? AND id = ?').run(
+            other.user_id,
+            other.id
+          );
+        }
+      }
+
+      // Add unique constraint on name per user & external_source so duplicates can never re-occur
+      targetDb.exec(`
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_children_name_unique
+        ON children(user_id, external_source, lower(trim(first_name)), lower(trim(last_name)));
+      `);
+    });
+    dedupeTx();
+  } catch (dedupeErr) {
+    console.warn('Failed to deduplicate children table:', dedupeErr.message);
+  }
+
   // Seed default admin if no users exist
   const countStmt = targetDb.prepare('SELECT COUNT(*) as count FROM users');
   const userCount = countStmt.get().count;

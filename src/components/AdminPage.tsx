@@ -365,17 +365,17 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   return (
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-row justify-between items-center gap-3 border-b pb-3 sm:pb-4">
-        <div className="flex items-center gap-2 min-w-0 flex-1">
-          <div className="p-2 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
-            <Shield className="w-5 h-5 shrink-0" />
+      <div className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-xs">
+            <Shield className="w-4 h-4 shrink-0" />
           </div>
-          <h2 className="text-xl font-bold tracking-tight text-foreground truncate">
+          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">
             {t("admin.title")}
           </h2>
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-9 px-3">
-          <UserPlus className="w-4 h-4" />
+        <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-8 px-2.5 text-xs font-semibold rounded-lg shadow-xs">
+          <UserPlus className="w-3.5 h-3.5" />
           <span>{t("admin.add_user_button")}</span>
         </Button>
       </div>
