@@ -86,19 +86,24 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
         setWebtopConfig(configData)
 
         // If a specific child was selected and Webtop rotated child IDs across days/sessions,
-        // remap selectedChildId to the child's new ID based on matching name
+        // remap selectedChildId to the child's new ID based on matching externalId or name
         if (selectedChildId !== "all" && configData.linkedChildren?.length) {
           const stillExists = configData.linkedChildren.some(c => c.id === selectedChildId)
           if (!stillExists) {
-            const prevChild = prevConfig?.linkedChildren?.find(c => c.id === selectedChildId)
-            const prevName = prevChild ? `${prevChild.firstName} ${prevChild.lastName}`.trim() : ""
-            const matchedNew = prevName
-              ? configData.linkedChildren.find(c => `${c.firstName} ${c.lastName}`.trim() === prevName)
-              : undefined
-            if (matchedNew) {
-              setSelectedChildId(matchedNew.id)
+            const matchedByExt = configData.linkedChildren.find(c => c.externalId && c.externalId === selectedChildId)
+            if (matchedByExt) {
+              setSelectedChildId(matchedByExt.id)
             } else {
-              setSelectedChildId("all")
+              const prevChild = prevConfig?.linkedChildren?.find(c => c.id === selectedChildId || (c.externalId && c.externalId === selectedChildId))
+              const prevName = prevChild ? `${prevChild.firstName} ${prevChild.lastName}`.trim() : ""
+              const matchedNew = prevName
+                ? configData.linkedChildren.find(c => `${c.firstName} ${c.lastName}`.trim() === prevName)
+                : undefined
+              if (matchedNew) {
+                setSelectedChildId(matchedNew.id)
+              } else {
+                setSelectedChildId("all")
+              }
             }
           }
         }
@@ -410,7 +415,10 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                   const SubjectIcon = subjectConfig.icon
                   const subjectBadgeClass = subjectConfig.badgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
-                    (c) => c.id === hw.studentId || `${c.firstName} ${c.lastName}`.trim() === hw.studentName?.trim()
+                    (c) =>
+                      (hw.childId && c.id === hw.childId) ||
+                      (hw.studentId && (c.id === hw.studentId || (c.externalId && c.externalId === hw.studentId))) ||
+                      (hw.studentName && `${c.firstName} ${c.lastName}`.trim() === hw.studentName.trim())
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
                   const homeworkText = getHomeworkText(hw)

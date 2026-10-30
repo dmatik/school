@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear, matchChildWithPrevious } from '../../server/webtop.js';
+import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear, matchChildWithPrevious, generateChildId } from '../../server/webtop.js';
 import { initDb } from '../../server/db.js';
 
 describe('Webtop Cryptographic & Academic Utilities', () => {
@@ -82,7 +82,6 @@ describe('Webtop Database & Data Models', () => {
         username TEXT NOT NULL,
         encrypted_password TEXT NOT NULL,
         selected_child_id TEXT,
-        linked_children TEXT DEFAULT '[]',
         last_synced_at TEXT,
         sync_status TEXT DEFAULT 'idle',
         sync_error TEXT,
@@ -123,14 +122,21 @@ describe('Webtop Database & Data Models', () => {
         created_at TEXT NOT NULL
       );
 
-      CREATE TABLE child_settings (
-        id TEXT PRIMARY KEY,
+      CREATE TABLE children (
+        id TEXT NOT NULL,
         user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        child_name TEXT NOT NULL,
+        first_name TEXT NOT NULL,
+        last_name TEXT NOT NULL,
+        class_code INTEGER,
+        class_num INTEGER,
+        cellphone TEXT,
         color TEXT,
+        external_id TEXT,
+        external_source TEXT NOT NULL DEFAULT 'webtop',
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
-        UNIQUE(user_id, child_name)
+        PRIMARY KEY (user_id, id),
+        UNIQUE(user_id, external_source, id)
       );
     `);
 
@@ -152,15 +158,14 @@ describe('Webtop Database & Data Models', () => {
     const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, linked_children, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
     `).run(
       'cred-1',
       'user-1',
       'webtop_user_test',
       encrypted,
       'child-1',
-      JSON.stringify([{ id: 'child-1', firstName: 'Kfir', lastName: 'Trosman' }]),
       now,
       now
     );
@@ -170,13 +175,10 @@ describe('Webtop Database & Data Models', () => {
     expect(row.username).toBe('webtop_user_test');
     expect(row.encrypted_password).not.toBe(plainPass);
     expect(decryptPassword(row.encrypted_password)).toBe(plainPass);
-
-    const children = JSON.parse(row.linked_children);
-    expect(children).toHaveLength(1);
-    expect(children[0].firstName).toBe('Kfir');
+    expect(row.selected_child_id).toBe('child-1');
   });
 
-  it('cascades deletion of webtop_credentials, child_settings, incidents, and homework when user is deleted', () => {
+  it('cascades deletion of webtop_credentials, children, incidents, and homework when user is deleted', () => {
     const now = new Date().toISOString();
     db.prepare(`
       INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, created_at, updated_at)
@@ -184,9 +186,9 @@ describe('Webtop Database & Data Models', () => {
     `).run('cred-1', 'user-1', 'test_user', 'enc', now, now);
 
     db.prepare(`
-      INSERT INTO child_settings (id, user_id, child_name, color, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run('setting-1', 'user-1', 'Kfir Trosman', 'blue', now, now);
+      INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, color, external_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('child_1', 'user-1', 'כפיר', 'טרוסמן', 4, 2, 'blue', 'ext-1', now, now);
 
     db.prepare(`
       INSERT INTO incidents (id, user_id, student_id, student_name, date, type, created_at)
@@ -202,7 +204,7 @@ describe('Webtop Database & Data Models', () => {
     db.prepare('DELETE FROM users WHERE id = ?').run('user-1');
 
     expect(db.prepare('SELECT COUNT(*) as count FROM webtop_credentials').get()).toEqual({ count: 0 });
-    expect(db.prepare('SELECT COUNT(*) as count FROM child_settings').get()).toEqual({ count: 0 });
+    expect(db.prepare('SELECT COUNT(*) as count FROM children').get()).toEqual({ count: 0 });
     expect(db.prepare('SELECT COUNT(*) as count FROM incidents').get()).toEqual({ count: 0 });
     expect(db.prepare('SELECT COUNT(*) as count FROM homework').get()).toEqual({ count: 0 });
   });
@@ -353,78 +355,87 @@ describe('Webtop Database & Data Models', () => {
 
     it('preserves child colors and selected child across simulated daily sync in database', () => {
       const now = new Date().toISOString();
-      const initialChildren = [
-        { id: 'day1-token-kfir', firstName: 'כפיר', lastName: 'טרוסמן', classCode: 4, classNum: 2, color: 'blue' },
-        { id: 'day1-token-ronen', firstName: 'רונן', lastName: 'טרוסמן', classCode: 6, classNum: 2, color: 'emerald' }
-      ];
+      const kfirId = generateChildId('כפיר', 'טרוסמן');
+      const ronenId = generateChildId('רונן', 'טרוסמן');
 
-      // User selects Ronen (day1-token-ronen) as active child
+      // Initialize children in relational table
+      const insertChild = db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, color, external_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+      insertChild.run(kfirId, 'user-1', 'כפיר', 'טרוסמן', 4, 2, 'blue', 'day1-token-kfir', now, now);
+      insertChild.run(ronenId, 'user-1', 'רונן', 'טרוסמן', 6, 2, 'emerald', 'day1-token-ronen', now, now);
+
+      // User selects Ronen (deterministic ID) as active child
       db.prepare(`
-        INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, linked_children, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `).run('cred-1', 'user-1', 'test_user', 'enc', 'day1-token-ronen', JSON.stringify(initialChildren), now, now);
+        INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('cred-1', 'user-1', 'test_user', 'enc', ronenId, now, now);
 
-      // Next morning: Webtop returns day 2 with brand new tokens
+      // Next morning: Webtop returns day 2 with brand new rotating tokens
       const rawChildrenDay2 = [
         { id: 'day2-token-kfir-new', firstName: 'כפיר', lastName: 'טרוסמן', classCode: 4, classNum: 2, cellphone: '0540000000' },
         { id: 'day2-token-ronen-new', firstName: 'רונן', lastName: 'טרוסמן', classCode: 6, classNum: 2, cellphone: null }
       ];
 
-      const creds = db.prepare('SELECT * FROM webtop_credentials WHERE user_id = ?').get('user-1') as any;
-      const existingLinked = JSON.parse(creds.linked_children || '[]');
+      // Simulate backend sync upsert into children table
+      const upsertChild = db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, color, external_id, external_source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
+        ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+          class_code = coalesce(excluded.class_code, children.class_code),
+          class_num = coalesce(excluded.class_num, children.class_num),
+          cellphone = coalesce(excluded.cellphone, children.cellphone),
+          color = coalesce(children.color, excluded.color),
+          external_id = coalesce(excluded.external_id, children.external_id),
+          updated_at = excluded.updated_at
+      `);
 
-      // Simulate the updated backend sync logic
-      const linkedChildrenDay2 = rawChildrenDay2.map((c, idx) => {
-        const prev = matchChildWithPrevious(c, existingLinked, idx);
-        return {
-          id: c.id,
-          firstName: c.firstName,
-          lastName: c.lastName,
-          classCode: c.classCode,
-          classNum: c.classNum,
-          cellphone: c.cellphone || null,
-          color: prev?.color || null
-        };
-      });
-
-      let selectedChildId = creds.selected_child_id;
-      if (selectedChildId === 'all') {
-        // keep all
-      } else if (!selectedChildId || !linkedChildrenDay2.some(c => c.id === selectedChildId)) {
-        const prevSelected = existingLinked.find((c: any) => c.id === selectedChildId);
-        const matchedNew = prevSelected ? matchChildWithPrevious(prevSelected, linkedChildrenDay2) : null;
-        selectedChildId = matchedNew ? matchedNew.id : (linkedChildrenDay2[0]?.id || null);
+      for (const c of rawChildrenDay2) {
+        const childId = generateChildId(c.firstName, c.lastName);
+        upsertChild.run(
+          childId,
+          'user-1',
+          c.firstName,
+          c.lastName,
+          c.classCode,
+          c.classNum,
+          c.cellphone,
+          null,
+          c.id,
+          now,
+          now
+        );
       }
 
-      db.prepare(`
-        UPDATE webtop_credentials
-        SET linked_children = ?, selected_child_id = ?, updated_at = ?
-        WHERE user_id = ?
-      `).run(JSON.stringify(linkedChildrenDay2), selectedChildId, new Date().toISOString(), 'user-1');
-
-      // Verify persistence in SQLite
-      const updatedCreds = db.prepare('SELECT * FROM webtop_credentials WHERE user_id = ?').get('user-1') as any;
-      const savedChildren = JSON.parse(updatedCreds.linked_children);
-
+      // Verify persistence in children table
+      const savedChildren = db.prepare('SELECT id, first_name, last_name, color, external_id FROM children WHERE user_id = ? ORDER BY first_name ASC').all('user-1') as any[];
       expect(savedChildren).toHaveLength(2);
-      // Kfir's color is still 'blue' even with new token
-      expect(savedChildren[0].id).toBe('day2-token-kfir-new');
+
+      // Kfir: color is still 'blue', external_id is updated to new token
+      expect(savedChildren[0].id).toBe(kfirId);
       expect(savedChildren[0].color).toBe('blue');
+      expect(savedChildren[0].external_id).toBe('day2-token-kfir-new');
 
-      // Ronen's color is still 'emerald' even with new token
-      expect(savedChildren[1].id).toBe('day2-token-ronen-new');
+      // Ronen: color is still 'emerald', external_id is updated to new token
+      expect(savedChildren[1].id).toBe(ronenId);
       expect(savedChildren[1].color).toBe('emerald');
+      expect(savedChildren[1].external_id).toBe('day2-token-ronen-new');
 
-      // Selected child is preserved as Ronen's new token, NOT reset to Kfir
-      expect(updatedCreds.selected_child_id).toBe('day2-token-ronen-new');
+      // Selected child is preserved as Ronen's deterministic ID
+      const creds = db.prepare('SELECT selected_child_id FROM webtop_credentials WHERE user_id = ?').get('user-1') as any;
+      expect(creds.selected_child_id).toBe(ronenId);
     });
 
-    it('migrates existing colors from webtop_credentials to child_settings via initDb()', () => {
+    it('migrates existing colors from legacy linked_children, drops child_settings and drops linked_children column via initDb()', () => {
       const now = new Date().toISOString();
       const legacyChildren = [
         { id: 'c1', firstName: 'נועה', lastName: 'לוי', color: 'purple' },
         { id: 'c2', firstName: 'אורי', lastName: 'לוי', color: 'rose' }
       ];
+
+      // Simulate legacy schema containing linked_children column
+      db.exec("ALTER TABLE webtop_credentials ADD COLUMN linked_children TEXT;");
 
       db.prepare(`
         INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, linked_children, created_at, updated_at)
@@ -434,29 +445,164 @@ describe('Webtop Database & Data Models', () => {
       // Run initDb migration
       initDb(db);
 
-      // Check child_settings table
-      const settings = db.prepare('SELECT child_name, color FROM child_settings WHERE user_id = ? ORDER BY child_name ASC').all('user-1') as any[];
-      expect(settings).toHaveLength(2);
-      expect(settings).toEqual([
-        { child_name: 'אורי לוי', color: 'rose' },
-        { child_name: 'נועה לוי', color: 'purple' }
+      // Check children table
+      const children = db.prepare('SELECT first_name, last_name, color FROM children WHERE user_id = ? ORDER BY first_name ASC').all('user-1') as any[];
+      expect(children).toHaveLength(2);
+      expect(children).toEqual([
+        { first_name: 'אורי', last_name: 'לוי', color: 'rose' },
+        { first_name: 'נועה', last_name: 'לוי', color: 'purple' }
       ]);
+
+      // Check obsolete child_settings table is dropped
+      const childSettingsTable = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='child_settings'").get();
+      expect(childSettingsTable).toBeUndefined();
+
+      // Check linked_children column is dropped
+      const cols = db.prepare("PRAGMA table_info(webtop_credentials)").all().map((c: any) => c.name);
+      expect(cols).not.toContain('linked_children');
     });
 
-    it('allows child_settings to persist even if webtop credentials are deleted', () => {
+    it('allows children table records and colors to persist even if webtop credentials are deleted', () => {
       const now = new Date().toISOString();
       db.prepare(`
-        INSERT INTO child_settings (id, user_id, child_name, color, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?)
-      `).run('cs-1', 'user-1', 'רונן טרוסמן', 'amber', now, now);
+        INSERT INTO children (id, user_id, first_name, last_name, color, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('child_custom', 'user-1', 'רונן', 'טרוסמן', 'amber', now, now);
 
       // Webtop credentials disconnected/deleted
       db.prepare('DELETE FROM webtop_credentials WHERE user_id = ?').run('user-1');
 
-      // child_settings table is untouched because it is an independent application settings table
-      const setting = db.prepare('SELECT color FROM child_settings WHERE user_id = ? AND child_name = ?').get('user-1', 'רונן טרוסמן') as any;
-      expect(setting).toBeDefined();
-      expect(setting.color).toBe('amber');
+      // children table is untouched because it is an independent relational table referencing users(id)
+      const child = db.prepare('SELECT color FROM children WHERE user_id = ? AND id = ?').get('user-1', 'child_custom') as any;
+      expect(child).toBeDefined();
+      expect(child.color).toBe('amber');
+    });
+
+    it('generates a deterministic hash child ID from first and last name with unicode and delimiter hardening', () => {
+      const id1 = generateChildId('כפיר', 'טרוסמן');
+      const id2 = generateChildId('  כפיר  ', 'טרוסמן ');
+      const id3 = generateChildId('רונן', 'טרוסמן');
+      const idRtl = generateChildId('\u200Fכפיר\u200E', 'טרוסמן');
+      const idNiqqud = generateChildId('כְּפִיר', 'טרוסמן');
+
+      expect(id1).toMatch(/^child_[0-9a-f]{32}$/);
+      expect(id1).toBe(id2);
+      expect(id1).toBe(idRtl);
+      expect(id1).toBe(idNiqqud);
+      expect(id1).not.toBe(id3);
+
+      // Delimiter collision prevention: "a:b" + "c" vs "a" + "b:c"
+      expect(generateChildId('a:b', 'c')).not.toBe(generateChildId('a', 'b:c'));
+    });
+
+    it('supports multi-tenant child isolation without primary key collision when two users have children with the same name', () => {
+      const now = new Date().toISOString();
+      // Insert user-2
+      db.prepare(`
+        INSERT INTO users (id, username, password_hash, role, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+      `).run('user-2', 'parent2', 'hash', 'user', now, now);
+
+      const kfirId = generateChildId('כפיר', 'טרוסמן');
+
+      const upsertChild = db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, color, external_id, external_source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
+        ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+          color = coalesce(children.color, excluded.color),
+          updated_at = excluded.updated_at
+      `);
+
+      // Both user-1 and user-2 insert child "כפיר טרוסמן" with identical hash ID
+      expect(() => {
+        upsertChild.run(kfirId, 'user-1', 'כפיר', 'טרוסמן', 4, 2, '054111', 'emerald', 'ext-1', now, now);
+        upsertChild.run(kfirId, 'user-2', 'כפיר', 'טרוסמן', 4, 2, '054222', 'blue', 'ext-2', now, now);
+      }).not.toThrow();
+
+      // Verify each tenant has independent records and independent colors
+      const user1Child = db.prepare('SELECT color, external_id FROM children WHERE user_id = ? AND id = ?').get('user-1', kfirId) as any;
+      const user2Child = db.prepare('SELECT color, external_id FROM children WHERE user_id = ? AND id = ?').get('user-2', kfirId) as any;
+
+      expect(user1Child.color).toBe('emerald');
+      expect(user1Child.external_id).toBe('ext-1');
+      expect(user2Child.color).toBe('blue');
+      expect(user2Child.external_id).toBe('ext-2');
+    });
+
+    it('backfills children table and links incidents/homework via child_id during initDb()', () => {
+      const now = new Date().toISOString();
+      const legacyChildren = [
+        { id: 'webtop-token-1', firstName: 'כפיר', lastName: 'טרוסמן', classCode: 4, classNum: 2, color: 'blue' },
+        { id: 'webtop-token-2', firstName: 'רונן', lastName: 'טרוסמן', classCode: 6, classNum: 2, color: 'emerald' }
+      ];
+
+      // Simulate legacy schema containing linked_children column
+      db.exec("ALTER TABLE webtop_credentials ADD COLUMN linked_children TEXT;");
+
+      db.prepare(`
+        INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, linked_children, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('cred-mig', 'user-1', 'parent_test', 'enc', JSON.stringify(legacyChildren), now, now);
+
+      db.prepare(`
+        INSERT INTO incidents (id, user_id, student_id, student_name, date, type, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('inc-mig-1', 'user-1', 'webtop-token-1', 'כפיר טרוסמן', '2026-10-29', 'Late', now);
+
+      db.prepare(`
+        INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, created_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+      `).run('hw-mig-1', 'user-1', 'webtop-token-1', 'כפיר טרוסמן', 'Math', '2026-10-30', now);
+
+      // Run initDb migration
+      initDb(db);
+
+      // Check children table
+      const kfirId = generateChildId('כפיר', 'טרוסמן');
+      const ronenId = generateChildId('רונן', 'טרוסמן');
+
+      const kfir = db.prepare('SELECT * FROM children WHERE id = ?').get(kfirId) as any;
+      expect(kfir).toBeDefined();
+      expect(kfir.first_name).toBe('כפיר');
+      expect(kfir.last_name).toBe('טרוסמן');
+      expect(kfir.class_code).toBe(4);
+      expect(kfir.class_num).toBe(2);
+      expect(kfir.color).toBe('blue');
+      expect(kfir.external_id).toBe('webtop-token-1');
+
+      const ronen = db.prepare('SELECT * FROM children WHERE id = ?').get(ronenId) as any;
+      expect(ronen).toBeDefined();
+      expect(ronen.color).toBe('emerald');
+
+      // Check incident & homework child_id
+      const inc = db.prepare('SELECT child_id FROM incidents WHERE id = ?').get('inc-mig-1') as any;
+      expect(inc.child_id).toBe(kfirId);
+
+      const hw = db.prepare('SELECT child_id FROM homework WHERE user_id = ? AND student_name = ?').get('user-1', 'כפיר טרוסמן') as any;
+      expect(hw).toBeDefined();
+      expect(hw.child_id).toBe(kfirId);
+
+      // Simulate a morning sync: Webtop rotates tokens to new values
+      const upsertChild = db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, external_id, external_source, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
+        ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+          class_code = excluded.class_code,
+          class_num = excluded.class_num,
+          cellphone = excluded.cellphone,
+          external_id = excluded.external_id,
+          updated_at = excluded.updated_at
+      `);
+
+      upsertChild.run(kfirId, 'user-1', 'כפיר', 'טרוסמן', 4, 2, '0547236269', 'webtop-token-morning-rotated', now, now);
+
+      const updatedKfir = db.prepare('SELECT * FROM children WHERE id = ?').get(kfirId) as any;
+      // Deterministic ID never changes
+      expect(updatedKfir.id).toBe(kfirId);
+      // Color remains preserved
+      expect(updatedKfir.color).toBe('blue');
+      // Token is updated
+      expect(updatedKfir.external_id).toBe('webtop-token-morning-rotated');
     });
   });
 });

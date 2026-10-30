@@ -86,19 +86,24 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
         setWebtopConfig(configData)
 
         // If a specific child was selected and Webtop rotated child IDs across days/sessions,
-        // remap selectedChildId to the child's new ID based on matching name
+        // remap selectedChildId to the child's new ID based on matching externalId or name
         if (selectedChildId !== "all" && configData.linkedChildren?.length) {
           const stillExists = configData.linkedChildren.some(c => c.id === selectedChildId)
           if (!stillExists) {
-            const prevChild = prevConfig?.linkedChildren?.find(c => c.id === selectedChildId)
-            const prevName = prevChild ? `${prevChild.firstName} ${prevChild.lastName}`.trim() : ""
-            const matchedNew = prevName
-              ? configData.linkedChildren.find(c => `${c.firstName} ${c.lastName}`.trim() === prevName)
-              : undefined
-            if (matchedNew) {
-              setSelectedChildId(matchedNew.id)
+            const matchedByExt = configData.linkedChildren.find(c => c.externalId && c.externalId === selectedChildId)
+            if (matchedByExt) {
+              setSelectedChildId(matchedByExt.id)
             } else {
-              setSelectedChildId("all")
+              const prevChild = prevConfig?.linkedChildren?.find(c => c.id === selectedChildId || (c.externalId && c.externalId === selectedChildId))
+              const prevName = prevChild ? `${prevChild.firstName} ${prevChild.lastName}`.trim() : ""
+              const matchedNew = prevName
+                ? configData.linkedChildren.find(c => `${c.firstName} ${c.lastName}`.trim() === prevName)
+                : undefined
+              if (matchedNew) {
+                setSelectedChildId(matchedNew.id)
+              } else {
+                setSelectedChildId("all")
+              }
             }
           }
         }
@@ -346,7 +351,10 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
           {filteredIncidents.map((inc) => {
             const SubjectIcon = getSubjectIcon(inc.subject)
             const matchedChild = webtopConfig?.linkedChildren?.find(
-              (c) => c.id === inc.studentId || `${c.firstName} ${c.lastName}`.trim() === inc.studentName?.trim()
+              (c) =>
+                (inc.childId && c.id === inc.childId) ||
+                (inc.studentId && (c.id === inc.studentId || (c.externalId && c.externalId === inc.studentId))) ||
+                (inc.studentName && `${c.firstName} ${c.lastName}`.trim() === inc.studentName.trim())
             )
             const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
 
