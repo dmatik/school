@@ -6,6 +6,7 @@ import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
 import { Calendar } from '../components/ui/calendar'
+import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 
 describe('Calendar Component', () => {
   it('renders today with distinct highlight class when unselected', () => {
@@ -270,6 +271,31 @@ describe('Empty Page Views', () => {
     } finally {
       global.fetch = originalFetch
     }
+  })
+})
+
+describe('Toast & ToastClose Component', () => {
+  it('renders Toast with visible close button in the corner', () => {
+    render(
+      <ToastProvider>
+        <Toast open={true}>
+          <ToastTitle>Notification</ToastTitle>
+          <ToastDescription>Task completed successfully</ToastDescription>
+          <ToastClose data-testid="toast-close" />
+        </Toast>
+        <ToastViewport />
+      </ToastProvider>
+    )
+
+    expect(screen.getByText('Notification')).toBeInTheDocument()
+    expect(screen.getByText('Task completed successfully')).toBeInTheDocument()
+
+    const closeBtn = screen.getByTestId('toast-close')
+    expect(closeBtn).toBeInTheDocument()
+    expect(closeBtn).toHaveAttribute('aria-label', 'Close')
+    // Should NOT have opacity-0 so it remains visible without hover
+    expect(closeBtn.className).not.toContain('opacity-0')
+    expect(closeBtn.className).toContain('opacity-80')
   })
 })
 
