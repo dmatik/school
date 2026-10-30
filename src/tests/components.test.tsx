@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect, vi } from 'vitest'
 import { format } from 'date-fns'
 import { IncidentsPage } from '../components/IncidentsPage'
@@ -137,6 +137,136 @@ describe('Empty Page Views', () => {
       const hwText = screen.getByText('עמוד 20 תרגילים 1-5')
       expect(hwText).toBeInTheDocument()
       expect(hwText).toHaveClass('font-normal')
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('consolidates duplicate lessons for same student, date, subject and identical homework text into one card', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const mockHomework = [
+      {
+        id: 'hw-math-1',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 2,
+        completed: false,
+        description: 'עמוד 45 שאלות 1-10',
+        rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 1-10' })
+      },
+      {
+        id: 'hw-math-2',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 4,
+        completed: false,
+        description: 'עמוד 45 שאלות 1-10',
+        rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 1-10' })
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: mockHomework })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+
+      // Only 1 card for "חשבון" should be rendered
+      await waitFor(() => {
+        expect(screen.getAllByText('חשבון')).toHaveLength(1)
+      })
+
+      // The consolidated hours indicator (homework.lesson_hours) should be rendered
+      expect(screen.getByText(/\(homework\.lesson_hours\)/)).toBeInTheDocument()
+      // The single hour indicator should NOT be rendered
+      expect(screen.queryByText(/\(homework\.lesson_hour\)/)).not.toBeInTheDocument()
+
+      // The homework text should appear only once
+      expect(screen.getAllByText('עמוד 45 שאלות 1-10')).toHaveLength(1)
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders separate cards when homework text differs between lessons', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const mockHomework = [
+      {
+        id: 'hw-math-1',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 2,
+        completed: false,
+        description: 'עמוד 45 שאלות 1-5',
+        rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 1-5' })
+      },
+      {
+        id: 'hw-math-2',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 4,
+        completed: false,
+        description: 'עמוד 45 שאלות 6-10',
+        rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 6-10' })
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: mockHomework })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+
+      // 2 cards for "חשבון" should be rendered
+      await waitFor(() => {
+        expect(screen.getAllByText('חשבון')).toHaveLength(2)
+      })
+
+      // Both should have single hour indicators
+      expect(screen.getAllByText(/\(homework\.lesson_hour\)/)).toHaveLength(2)
+      expect(screen.queryByText(/\(homework\.lesson_hours\)/)).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }

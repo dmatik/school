@@ -81,6 +81,7 @@
     "last_sync": "עודכן: {{date}}",
     "due_today": "היום",
     "lesson_hour": "שיעור {{hour}}",
+    "lesson_hours": "שיעורים {{hours}}",
     "teacher_label": "מורה:",
     "homework_prefix": "שיעורי בית:",
     "back_to_today": "חזור להיום",
