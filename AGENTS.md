@@ -63,6 +63,7 @@ To prevent hallucinated dependencies and architectural mismatches, adhere strict
 
 Specialized skills are available in `.agents/skills/`:
 * `feature-dev`: Step-by-step procedure for building full-stack features (schema $\rightarrow$ API $\rightarrow$ i18n $\rightarrow$ UI $\rightarrow$ tests).
+* `ui-ux-design`: Modern clean UI/UX standards, design tokens, compact typography hierarchy, micro-interactions, and bilingual RTL/LTR guidelines.
 * `code-review`: Security, architecture, and regression inspection checklist.
 * `test-writing`: Recipes for Vitest component tests and Playwright E2E tests.
 * `db-migration`: Safe SQLite schema migrations with WAL mode and foreign keys.
@@ -72,6 +73,7 @@ Specialized skills are available in `.agents/skills/`:
 ## 5. Available Subagents & Roles
 
 Whenever delegating specialized tasks, use these exact role names:
+* **`ui-ux-designer`**: UI/UX design expert specializing in modern clean aesthetics, design systems, visual hierarchy, polished typography, compact density, micro-interactions, and bilingual RTL/LTR ergonomics.
 * **`code-reviewer-architecture`**: Blue Team reviewer focused on architecture, stack compliance (React 19, Radix UI, Express 5, Better-SQLite3), type safety, lifecycle performance, and clean code.
 * **`code-reviewer-ui-testing`**: Blue Team reviewer focused on UI/UX, bilingual i18n completeness (`he.json` + `en.json`), RTL Tailwind compliance, and Vitest/Playwright test discipline and isolation.
 * **`red-team-reviewer`**: Adversarial security researcher that stress-tests architectures, probes for exploit vectors (DoS, XSS, auth bypasses, timing attacks, data loss), and audits edge-case resilience.

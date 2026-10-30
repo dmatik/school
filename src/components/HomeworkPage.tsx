@@ -222,12 +222,12 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-            <BookOpen className="w-5 h-5" />
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
+            <BookOpen className="w-4 h-4" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
+          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
             {t("homework.title")}
           </h1>
         </div>
@@ -239,9 +239,9 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             size="sm"
             onClick={handleSync}
             disabled={syncing}
-            className="flex items-center gap-2 text-sm h-9 shrink-0 px-3"
+            className="flex items-center gap-2 text-xs font-semibold h-8 shrink-0 px-2.5 rounded-lg border-border/80 shadow-xs hover:border-primary/30"
           >
-            <RefreshCw className={cn("w-4 h-4", syncing && "animate-spin")} />
+            <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
             <span>{syncing ? t("homework.syncing") : t("homework.sync_now")}</span>
           </Button>
         )}
@@ -249,10 +249,10 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
       {/* Search & Filters */}
       {(homework.length > 0 || webtopConfig?.configured) && (
-        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
           {/* Search Input */}
-          <div className="relative flex-1 md:max-w-xs lg:max-w-sm">
-            <Search className="w-4 h-4 absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+          <div className="relative w-full sm:w-72">
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -269,9 +269,9 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             {/* Child Selector */}
             {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
               <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-background border-border min-w-0">
+                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-border min-w-0">
                   <div className="flex items-center gap-2 truncate">
-                    <User className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
                     <SelectValue placeholder={t("homework.all_students")} />
                   </div>
                 </SelectTrigger>
@@ -386,21 +386,21 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
         <div className="space-y-6">
           {groupedHomework.map((group) => (
             <div key={group.date} className="space-y-3">
-              {/* Day Section Header (outside cards) */}
-              <div className="flex items-center gap-2 pb-1.5 border-b border-border/60">
-                <div className="p-1 rounded-md bg-primary/10 text-primary">
-                  <Calendar className="w-4 h-4 shrink-0" />
+              {/* Day Section Header */}
+              <div className="flex items-center gap-2 pb-1.5 border-b border-border/70 dark:border-border/60">
+                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
+                  <Calendar className="w-4 h-4" />
                 </div>
-                <h2 className="text-sm font-bold text-foreground">
+                <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
-                <span className="text-xs text-muted-foreground">
-                  ({group.items.length})
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60">
+                  {group.items.length}
                 </span>
               </div>
 
-              {/* 2-column cards grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* 2-column compact cards grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
                 {group.items.map((hw) => {
                   const subjectConfig = getSubjectConfig(hw.subject)
                   const SubjectIcon = subjectConfig.icon
@@ -417,37 +417,37 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                   return (
                     <Card
                       key={hw.id}
-                      className="shadow-sm border border-border hover:shadow-md transition-shadow duration-200 flex flex-col p-2.5 sm:p-3 gap-2.5 sm:gap-3"
+                      className="shadow-xs border border-border/70 dark:border-border/60 hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl"
                     >
-                      {/* Top Row: Subject Icon as a badge spanning both rows, Subject Title & Teacher right below, Student Name badge */}
+                      {/* Top Row: Subject Icon, Subject Title & Teacher, Student Name badge */}
                       <div className="flex items-start justify-between gap-2.5">
                         <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                          {/* Subject icon as a badge spanning the height of both subject & teacher rows */}
+                          {/* Subject icon badge */}
                           <div
                             className={cn(
-                              "w-11 h-11 rounded-lg border flex items-center justify-center shrink-0 shadow-xs",
+                              "w-11 h-11 rounded-xl border flex items-center justify-center shrink-0 shadow-xs",
                               subjectBadgeClass
                             )}
                           >
                             <SubjectIcon className="w-5 h-5 shrink-0" />
                           </div>
 
-                          {/* Subject Title & Teacher name right below it */}
+                          {/* Subject Title & Teacher name */}
                           <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[44px]">
-                            <div className="flex items-center gap-1.5 min-w-0">
-                              <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
+                            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                              <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight">{hw.subject}</span>
                               {hw.hourNums && hw.hourNums.length > 1 ? (
-                                <span className="font-normal text-xs text-muted-foreground shrink-0">
+                                <span className="font-normal text-sm text-muted-foreground shrink-0">
                                   ({t("homework.lesson_hours", { hours: hw.hourNums.join(", ") })})
                                 </span>
                               ) : (hw.hourNums && hw.hourNums.length === 1) || hw.hourNum ? (
-                                <span className="font-normal text-xs text-muted-foreground shrink-0">
+                                <span className="font-normal text-sm text-muted-foreground shrink-0">
                                   ({t("homework.lesson_hour", { hour: (hw.hourNums && hw.hourNums[0]) ?? hw.hourNum })})
                                 </span>
                               ) : null}
                             </div>
 
-                            {/* Teacher name right below subject title, plain text without badge and without icon */}
+                            {/* Teacher name */}
                             {hw.teacher && (
                               <div className="text-sm text-muted-foreground font-medium truncate mt-0.5">
                                 {hw.teacher}
@@ -456,11 +456,11 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                           </div>
                         </div>
 
-                        {/* Student Name badge without icon */}
+                        {/* Student Name badge */}
                         {hw.studentName && (
                           <span
                             className={cn(
-                              "inline-flex items-center px-2 py-0.5 rounded-md text-xs font-semibold border shrink-0 shadow-xs transition-colors mt-0.5",
+                              "inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}
                           >
@@ -469,16 +469,16 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                         )}
                       </div>
 
-                      {/* Homework text below: only display actual homework, never lesson subject / class topic */}
+                      {/* Homework text below: crisp typography in a clean subtle panel */}
                       {homeworkText ? (
-                        <p className="text-sm text-start leading-snug text-foreground whitespace-pre-line">
-                          <span className="font-bold me-1.5">
+                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-muted/20 p-2.5 rounded-lg border border-border/40 mt-0.5">
+                          <span className="font-bold me-1.5 text-foreground">
                             {t("homework.homework_prefix")}
                           </span>
                           <span className="font-normal">
                             {homeworkText}
                           </span>
-                        </p>
+                        </div>
                       ) : null}
                     </Card>
                   )

@@ -604,6 +604,63 @@ describe('Webtop Database & Data Models', () => {
       // Token is updated
       expect(updatedKfir.external_id).toBe('webtop-token-morning-rotated');
     });
+
+    it('deduplicates legacy children records and merges colors and references via initDb()', () => {
+      const db = new Database(':memory:');
+      initDb(db);
+
+      const now = new Date().toISOString();
+      const canonicalKfirId = generateChildId('כפיר', 'טרוסמן');
+      const legacyKfirId = 'child_legacy_kfir_hash';
+
+      // Insert user
+      db.prepare("INSERT INTO users (id, username, password_hash, role, created_at, updated_at) VALUES ('user-dedupe', 'dedupe_user', 'hash', 'user', ?, ?)").run(now, now);
+
+      // Temporarily insert two duplicate children for user-dedupe (before index or legacy data)
+      // Drop index temporarily to simulate pre-migration duplicate state
+      db.exec("DROP INDEX IF EXISTS idx_children_name_unique;");
+
+      // 1. Legacy record with color 'amber'
+      db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, color, external_id, created_at, updated_at)
+        VALUES (?, 'user-dedupe', 'כפיר', 'טרוסמן', 'amber', 'ext-1', ?, ?)
+      `).run(legacyKfirId, now, now);
+
+      // 2. Canonical record without color
+      db.prepare(`
+        INSERT INTO children (id, user_id, first_name, last_name, color, external_id, created_at, updated_at)
+        VALUES (?, 'user-dedupe', 'כפיר', 'טרוסמן', NULL, 'ext-2', ?, ?)
+      `).run(canonicalKfirId, now, now);
+
+      // Credentials and incident referencing legacy record
+      db.prepare(`
+        INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, created_at, updated_at)
+        VALUES ('cred-dedupe', 'user-dedupe', 'parent_user', 'enc', ?, ?, ?)
+      `).run(legacyKfirId, now, now);
+
+      db.prepare(`
+        INSERT INTO incidents (id, user_id, child_id, student_name, date, type, created_at)
+        VALUES ('inc-dedupe', 'user-dedupe', ?, 'כפיר טרוסמן', '2026-10-30', 'חיסור', ?)
+      `).run(legacyKfirId, now);
+
+      // Re-run initDb to trigger deduplication migration
+      initDb(db);
+
+      // Verify children table has exactly 1 row for this child
+      const children = db.prepare("SELECT * FROM children WHERE user_id = 'user-dedupe'").all() as any[];
+      expect(children).toHaveLength(1);
+      expect(children[0].id).toBe(canonicalKfirId);
+      // Color was merged from legacy record
+      expect(children[0].color).toBe('amber');
+
+      // Verify webtop_credentials selected_child_id was updated
+      const cred = db.prepare("SELECT selected_child_id FROM webtop_credentials WHERE user_id = 'user-dedupe'").get() as any;
+      expect(cred.selected_child_id).toBe(canonicalKfirId);
+
+      // Verify incidents child_id was updated
+      const inc = db.prepare("SELECT child_id FROM incidents WHERE id = 'inc-dedupe'").get() as any;
+      expect(inc.child_id).toBe(canonicalKfirId);
+    });
   });
 });
 

@@ -308,24 +308,27 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   return (
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-row justify-between items-center gap-3 border-b pb-3 sm:pb-4">
-        <div className="min-w-0 flex-1">
-          <h2 className="text-xl font-bold truncate">{t("account.title")}</h2>
+      <div className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
+            <User className="w-4 h-4" />
+          </div>
+          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{t("account.title")}</h2>
         </div>
         <Button
           variant="outline"
           size="sm"
           onClick={onLogout}
-          className="text-destructive hover:text-destructive flex items-center gap-1.5 shrink-0 h-9 px-3"
+          className="text-destructive hover:text-destructive flex items-center gap-1.5 shrink-0 h-8 px-2.5 text-xs font-semibold rounded-lg border-border/80 shadow-xs hover:border-destructive/30"
         >
-          <LogOut className="w-4 h-4" />
+          <LogOut className="w-3.5 h-3.5" />
           <span>{t("auth.logout")}</span>
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Profile Card */}
-        <Card className="shadow-sm">
+        <Card className="shadow-xs border border-border/70 dark:border-border/60 rounded-xl">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />

@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Background: Slate-50 (Soft Cool Grey) */
-    --background: 210 40% 98%;
+    /* Background: Slate-50 Canvas (Soft Warm/Cool Grey) */
+    --background: 215 28% 96.5%;
 
     /* Foreground: Slate-900 (Deep Text) */
     --foreground: 222.2 47.4% 11.2%;
@@ -18,71 +18,71 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
 
-    /* Primary Action */
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary Action: Vibrant Indigo-Blue */
+    --primary: 226 78% 57%;
+    --primary-foreground: 0 0% 100%;
 
     /* Secondary */
-    --secondary: 210 40% 96.1%;
+    --secondary: 215 35% 95%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     /* Muted */
-    --muted: 210 40% 96.1%;
+    --muted: 215 35% 95%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
     /* Accents (Hover states) */
-    --accent: 210 40% 96.1%;
+    --accent: 215 35% 94%;
     --accent-foreground: 222.2 47.4% 11.2%;
 
     /* Destructive: Soft Red */
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
 
-    /* Borders: Slate-200 */
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    /* Borders: Soft slate micro-border */
+    --border: 215 25% 91%;
+    --input: 215 25% 91%;
+    --ring: 226 78% 57%;
 
-    --radius: 0.5rem;
+    --radius: 0.75rem;
   }
 
   .dark {
-    /* Main Background: Slate-900 */
-    --background: 222.2 47.4% 11.2%;
+    /* Main Canvas Background: Deep rich midnight slate */
+    --background: 224 45% 6%;
     --foreground: 210 40% 98%;
 
-    /* Cards */
-    --card: 217.2 32.6% 17.5%;
+    /* Cards, Headers & Surfaces: Crisp elevated slate */
+    --card: 222 28% 13.5%;
     --card-foreground: 210 40% 98%;
 
     /* Popovers (Dropdowns, etc) */
-    --popover: 217.2 32.6% 17.5%;
+    --popover: 222 28% 14.5%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary */
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
+    /* Primary: Vibrant Indigo-Blue (high contrast in dark) */
+    --primary: 226 84% 64%;
+    --primary-foreground: 224 35% 8%;
 
     /* Secondary */
-    --secondary: 217.2 32.6% 22%;
+    --secondary: 222 26% 19%;
     --secondary-foreground: 210 40% 98%;
 
     /* Muted */
-    --muted: 217.2 32.6% 22%;
+    --muted: 222 26% 18%;
     --muted-foreground: 215 20.2% 65.1%;
 
     /* Accents */
-    --accent: 217.2 32.6% 22%;
+    --accent: 222 26% 20%;
     --accent-foreground: 210 40% 98%;
 
     /* Destructive */
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 210 40% 98%;
 
-    /* Borders */
-    --border: 217.2 32.6% 25%;
-    --input: 217.2 32.6% 25%;
-    --ring: 212.7 26.8% 83.9%;
+    /* Borders: Crisp visible micro-borders */
+    --border: 222 22% 23%;
+    --input: 222 22% 23%;
+    --ring: 226 84% 64%;
   }
 }
 

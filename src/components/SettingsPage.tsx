@@ -275,20 +275,20 @@ export function SettingsPage({ token }: SettingsPageProps) {
   return (
     <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
-            <Settings className="w-5 h-5" />
+      <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
+            <Settings className="w-4 h-4" />
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-foreground truncate">
+          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
             {t("settings.title")}
           </h1>
         </div>
       </div>
 
-      <div className="space-y-6">
+      <div className="space-y-4">
         {/* Webtop Integration Card */}
-        <Card className="shadow-sm">
+        <Card className="shadow-xs border border-border/70 dark:border-border/60 rounded-xl">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -376,7 +376,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
                         return (
                           <div
                             key={child.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-background border border-border/80 shadow-xs"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border shadow-xs"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span
