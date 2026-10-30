@@ -29,7 +29,8 @@
     "english": "English",
     "hebrew": "עברית",
     "all_dates": "כל התאריכים",
-    "today": "היום"
+    "today": "היום",
+    "yesterday": "אתמול"
   },
   "incidents": {
     "title": "אירועי משמעת ונוכחות",

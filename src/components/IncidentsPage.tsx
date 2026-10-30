@@ -7,8 +7,7 @@ import {
   User,
   GraduationCap,
   CheckCircle2,
-  Loader2,
-  Calendar
+  Loader2
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -22,7 +21,7 @@ import {
 } from "@/components/ui/select"
 import { cn, parseLocalDate } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-import { format } from "date-fns"
+import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { getSubjectIcon } from "@/lib/subject-icons"
@@ -39,14 +38,21 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   const dateLocale = isRtl ? he : enUS
 
   const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
-    if (!dateInput) return ""
+    if (!dateInput || dateInput === "no-date") return ""
     try {
       const d = parseLocalDate(dateInput)
+      if (isNaN(d.getTime())) return ""
+      if (isToday(d)) {
+        return t("common.today")
+      }
+      if (isYesterday(d)) {
+        return t("common.yesterday")
+      }
       return format(d, "EEEE, PPP", { locale: dateLocale })
     } catch {
       return ""
     }
-  }, [dateLocale])
+  }, [dateLocale, t])
 
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
@@ -205,6 +211,25 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
     return deduped
   }, [incidents, selectedDate, searchQuery])
 
+  // Group filtered incidents by date
+  const groupedIncidents = useMemo(() => {
+    const groups: { date: string; items: Incident[] }[] = []
+    const map = new Map<string, Incident[]>()
+
+    for (const inc of filteredIncidents) {
+      const key = inc.date || "no-date"
+      let list = map.get(key)
+      if (!list) {
+        list = []
+        map.set(key, list)
+        groups.push({ date: key, items: list })
+      }
+      list.push(inc)
+    }
+
+    return groups
+  }, [filteredIncidents])
+
   return (
     <div className="h-full flex flex-col p-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
@@ -347,84 +372,90 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
           </Card>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
-          {filteredIncidents.map((inc) => {
-            const SubjectIcon = getSubjectIcon(inc.subject)
-            const matchedChild = webtopConfig?.linkedChildren?.find(
-              (c) =>
-                (inc.childId && c.id === inc.childId) ||
-                (inc.studentId && (c.id === inc.studentId || (c.externalId && c.externalId === inc.studentId))) ||
-                (inc.studentName && `${c.firstName} ${c.lastName}`.trim() === inc.studentName.trim())
-            )
-            const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+        <div className="space-y-6">
+          {groupedIncidents.map((group) => (
+            <div key={group.date} className="space-y-3">
+              {/* Day Section Header */}
+              <div className="pb-1.5 border-b border-border/70 dark:border-border/60">
+                <h2 className="text-sm sm:text-base font-bold text-muted-foreground tracking-tight">
+                  {formatOneLineDate(group.date) || group.date}
+                </h2>
+              </div>
 
-            return (
-              <Card
-                key={inc.id}
-                className="shadow-xs border border-border/70 dark:border-border/60 hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl"
-              >
-                <CardHeader className={cn("p-3 sm:p-3.5 space-y-1.5", inc.description && "pb-1.5")}>
-                  <div className="flex items-start justify-between gap-2.5">
-                    {/* Right side (Hebrew/RTL start): Incident type, Date (one line, no badge), Subject & Teacher */}
-                    <div className="space-y-1 min-w-0 flex-1">
-                      {/* Incident Name / Type as text with color, no badge */}
-                      <span className="font-bold text-base sm:text-lg text-amber-700 dark:text-amber-400 block truncate tracking-tight">
-                        {inc.type}
-                      </span>
+              {/* 2-column compact cards grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+                {group.items.map((inc) => {
+                  const SubjectIcon = getSubjectIcon(inc.subject)
+                  const matchedChild = webtopConfig?.linkedChildren?.find(
+                    (c) =>
+                      (inc.childId && c.id === inc.childId) ||
+                      (inc.studentId && (c.id === inc.studentId || (c.externalId && c.externalId === inc.studentId))) ||
+                      (inc.studentName && `${c.firstName} ${c.lastName}`.trim() === inc.studentName.trim())
+                  )
+                  const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
 
-                      {/* Date in one line, no badge, below incident name */}
-                      {inc.date && (
-                        <div className="flex items-center gap-1.5 text-sm font-medium text-muted-foreground">
-                          <Calendar className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                          <span>{formatOneLineDate(inc.date)}</span>
-                        </div>
-                      )}
+                  return (
+                    <Card
+                      key={inc.id}
+                      className="shadow-xs border border-border/70 dark:border-border/60 hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl"
+                    >
+                      <CardHeader className={cn("p-3 sm:p-3.5 space-y-1.5", inc.description && "pb-1.5")}>
+                        <div className="flex items-start justify-between gap-2.5">
+                          {/* Right side (Hebrew/RTL start): Incident type, Subject & Teacher */}
+                          <div className="space-y-1 min-w-0 flex-1">
+                            {/* Incident Name / Type as black text (same as subject in homework card) */}
+                            <span className="font-bold text-base sm:text-lg text-foreground block truncate tracking-tight">
+                              {inc.type}
+                            </span>
 
-                      {/* Subject with lesson hour */}
-                      {inc.subject && (
-                        <div className="text-sm sm:text-base text-foreground font-medium flex items-center gap-1.5 flex-wrap">
-                          <SubjectIcon className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                          <span className="truncate">{inc.subject}</span>
-                          {inc.hourNum && (
-                            <span className="text-sm font-normal text-muted-foreground shrink-0">
-                              • {t("incidents.lesson_hour", { hour: inc.hourNum })}
+                            {/* Subject with lesson hour in brackets */}
+                            {inc.subject && (
+                              <div className="text-sm sm:text-base text-foreground font-medium flex items-center gap-1.5 flex-wrap">
+                                <SubjectIcon className="w-4 h-4 text-muted-foreground/80 shrink-0" />
+                                <span className="truncate">{inc.subject}</span>
+                                {inc.hourNum && (
+                                  <span className="text-sm font-normal text-muted-foreground shrink-0">
+                                    ({t("incidents.lesson_hour", { hour: inc.hourNum })})
+                                  </span>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Teacher name with user icon */}
+                            {inc.teacher && (
+                              <div className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
+                                <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
+                                <span className="truncate">{inc.teacher}</span>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Left side (Hebrew/RTL end): Kid name as badge without icon */}
+                          {inc.studentName && (
+                            <span className={cn(
+                              "inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
+                              childBadgeClass
+                            )}>
+                              <span className="truncate max-w-[130px] sm:max-w-none">{inc.studentName}</span>
                             </span>
                           )}
                         </div>
+                      </CardHeader>
+
+                      {inc.description && (
+                        <CardContent className="p-3 sm:p-3.5 pt-0">
+                          {/* Remark / Description */}
+                          <p className="text-sm text-foreground/90 bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 text-start leading-relaxed">
+                            {inc.description}
+                          </p>
+                        </CardContent>
                       )}
-
-                      {/* Teacher name with user icon */}
-                      {inc.teacher && (
-                        <div className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                          <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                          <span className="truncate">{inc.teacher}</span>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Left side (Hebrew/RTL end): Kid name as badge without icon */}
-                    {inc.studentName && (
-                      <span className={cn(
-                        "inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
-                        childBadgeClass
-                      )}>
-                        <span className="truncate max-w-[130px] sm:max-w-none">{inc.studentName}</span>
-                      </span>
-                    )}
-                  </div>
-                </CardHeader>
-
-                {inc.description && (
-                  <CardContent className="p-3 sm:p-3.5 pt-0">
-                    {/* Remark / Description */}
-                    <p className="text-sm text-foreground/90 bg-muted/40 dark:bg-muted/20 p-2.5 rounded-lg border border-border/40 text-start leading-relaxed">
-                      {inc.description}
-                    </p>
-                  </CardContent>
-                )}
-              </Card>
-            )
-          })}
+                    </Card>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
         </div>
       )}
     </div>

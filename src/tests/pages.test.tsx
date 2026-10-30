@@ -186,5 +186,50 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
       expect(screen.getByText('account.webtop_title')).toBeInTheDocument()
       expect(screen.getByText('account.webtop_desc')).toBeInTheDocument()
     })
+
+    it('renders webtop info and linked children boxes with elevated secondary background in dark theme', async () => {
+      const originalFetch = global.fetch
+      global.fetch = vi.fn().mockImplementation((url: string) => {
+        if (url.includes('/api/webtop/config')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              configured: true,
+              username: 'KQT460',
+              lastSyncedAt: '2026-10-30T12:00:00Z',
+              linkedChildren: [
+                { id: 'child-1', firstName: 'כפיר', lastName: 'טרוסמן', classCode: '4', classNum: '2', color: 'emerald' }
+              ]
+            })
+          })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({})
+        })
+      }) as unknown as typeof fetch
+
+      try {
+        render(<SettingsPage token="mock-test-jwt-token" />)
+
+        await waitFor(() => {
+          expect(screen.getByText('KQT460')).toBeInTheDocument()
+        })
+
+        // Top info box
+        const usernameEl = screen.getByText('KQT460')
+        const infoBox = usernameEl.closest('.grid')
+        expect(infoBox).toHaveClass('dark:bg-secondary/80')
+        expect(infoBox).toHaveClass('bg-muted/40')
+
+        // Child box
+        const childBadge = screen.getByText('כפיר טרוסמן')
+        const childBox = childBadge.closest('.rounded-xl')
+        expect(childBox).toHaveClass('dark:bg-secondary/80')
+        expect(childBox).toHaveClass('bg-muted/40')
+      } finally {
+        global.fetch = originalFetch
+      }
+    })
   })
 })

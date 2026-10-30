@@ -82,6 +82,68 @@ describe('Empty Page Views', () => {
     expect(screen.getByText('incidents.integration_badge')).toBeInTheDocument()
   })
 
+  it('renders IncidentsPage with date sections, black incident type, lesson number in brackets, and no date inside card', async () => {
+    const today = new Date()
+    const todayStr = format(today, 'yyyy-MM-dd')
+    const mockIncidents = [
+      {
+        id: 'inc-1',
+        type: 'הפרעה',
+        subject: 'מתמטיקה',
+        teacher: 'מורה דוד',
+        studentName: 'דניאל',
+        date: todayStr,
+        hourNum: 3,
+        description: 'דיבור בשיעור'
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/incidents')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ incidents: mockIncidents })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<IncidentsPage token="test-token" />)
+
+      // Incident type rendered in black (text-foreground)
+      const incType = await screen.findByText('הפרעה')
+      expect(incType).toBeInTheDocument()
+      expect(incType).toHaveClass('text-foreground')
+      expect(incType).not.toHaveClass('text-amber-700')
+
+      // Date section header rendered (e.g. Today) with lighter muted color
+      const dateHeading = screen.getByRole('heading', { level: 2, name: 'common.today' })
+      expect(dateHeading).toBeInTheDocument()
+      expect(dateHeading).toHaveClass('text-muted-foreground')
+
+      // Lesson hour in brackets next to subject
+      expect(screen.getByText(/\(incidents\.lesson_hour\)/)).toBeInTheDocument()
+      expect(screen.queryByText(/• incidents\.lesson_hour/)).not.toBeInTheDocument()
+
+      // No calendar icon inside the card
+      const card = incType.closest('.rounded-xl')
+      expect(card?.querySelector('svg[class*="lucide-calendar"]')).toBeNull()
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
   it('renders HomeworkPage with titles and placeholder card', () => {
     render(<HomeworkPage />)
     expect(screen.getByText('homework.title')).toBeInTheDocument()
@@ -138,6 +200,8 @@ describe('Empty Page Views', () => {
       const hwText = screen.getByText('עמוד 20 תרגילים 1-5')
       expect(hwText).toBeInTheDocument()
       expect(hwText).toHaveClass('font-normal')
+      expect(hwText.parentElement).toHaveClass('bg-muted/40')
+      expect(hwText.parentElement).toHaveClass('dark:bg-secondary/80')
     } finally {
       global.fetch = originalFetch
     }
@@ -268,6 +332,86 @@ describe('Empty Page Views', () => {
       // Both should have single hour indicators
       expect(screen.getAllByText(/\(homework\.lesson_hour\)/)).toHaveLength(2)
       expect(screen.queryByText(/\(homework\.lesson_hours\)/)).not.toBeInTheDocument()
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders date headers stating today and yesterday without badge icon or count badge, and shows all dates by default', async () => {
+    const today = new Date()
+    const yesterday = new Date()
+    yesterday.setDate(today.getDate() - 1)
+    const todayStr = format(today, 'yyyy-MM-dd')
+    const yesterdayStr = format(yesterday, 'yyyy-MM-dd')
+
+    const mockHomework = [
+      {
+        id: 'hw-today',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 1,
+        description: 'תרגיל היום',
+        rawData: JSON.stringify({ homeWork: 'תרגיל היום' })
+      },
+      {
+        id: 'hw-yesterday',
+        subject: 'אנגלית',
+        studentName: 'דניאל',
+        teacher: 'מורה שרה',
+        dueDate: yesterdayStr,
+        hourNum: 2,
+        description: 'תרגיל אתמול',
+        rawData: JSON.stringify({ homeWork: 'תרגיל אתמול' })
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: mockHomework })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+
+      // Both items rendered simultaneously (default is All Dates)
+      await waitFor(() => {
+        expect(screen.getByText('תרגיל היום')).toBeInTheDocument()
+        expect(screen.getByText('תרגיל אתמול')).toBeInTheDocument()
+      })
+
+      // Section titles for today and yesterday rendered with lighter muted color
+      const todayHeading = screen.getByRole('heading', { level: 2, name: 'common.today' })
+      expect(todayHeading).toBeInTheDocument()
+      expect(todayHeading).toHaveClass('text-muted-foreground')
+      const yesterdayHeading = screen.getByRole('heading', { level: 2, name: 'common.yesterday' })
+      expect(yesterdayHeading).toBeInTheDocument()
+      expect(yesterdayHeading).toHaveClass('text-muted-foreground')
+
+      // Ensure no count badge elements or calendar svg icons exist inside the day headers
+      const headings = screen.getAllByRole('heading', { level: 2 })
+      headings.forEach((heading) => {
+        const headerDiv = heading.parentElement
+        // Header container should contain only the heading (no calendar icon container, no count badge)
+        expect(headerDiv?.querySelectorAll('span')).toHaveLength(0)
+        expect(headerDiv?.querySelectorAll('svg')).toHaveLength(0)
+      })
     } finally {
       global.fetch = originalFetch
     }

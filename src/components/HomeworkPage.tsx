@@ -7,8 +7,7 @@ import {
   User,
   GraduationCap,
   Loader2,
-  FileText,
-  Calendar
+  FileText
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { format } from "date-fns"
+import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { cn, parseLocalDate, getHomeworkText, consolidateHomework } from "@/lib/utils"
@@ -39,14 +38,21 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   const dateLocale = isRtl ? he : enUS
 
   const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
-    if (!dateInput) return ""
+    if (!dateInput || dateInput === "no-date") return ""
     try {
       const d = parseLocalDate(dateInput)
+      if (isNaN(d.getTime())) return ""
+      if (isToday(d)) {
+        return t("common.today")
+      }
+      if (isYesterday(d)) {
+        return t("common.yesterday")
+      }
       return format(d, "EEEE, PPP", { locale: dateLocale })
     } catch {
       return ""
     }
-  }, [dateLocale])
+  }, [dateLocale, t])
 
   const [homework, setHomework] = useState<HomeworkItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
@@ -54,7 +60,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(() => new Date())
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
 
   const isFutureDate = (d: Date) => {
@@ -387,16 +393,10 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
           {groupedHomework.map((group) => (
             <div key={group.date} className="space-y-3">
               {/* Day Section Header */}
-              <div className="flex items-center gap-2 pb-1.5 border-b border-border/70 dark:border-border/60">
-                <div className="w-7 h-7 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0">
-                  <Calendar className="w-4 h-4" />
-                </div>
-                <h2 className="text-sm sm:text-base font-bold text-foreground tracking-tight">
+              <div className="pb-1.5 border-b border-border/70 dark:border-border/60">
+                <h2 className="text-sm sm:text-base font-bold text-muted-foreground tracking-tight">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
-                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-muted text-muted-foreground border border-border/60">
-                  {group.items.length}
-                </span>
               </div>
 
               {/* 2-column compact cards grid */}
@@ -471,7 +471,7 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
                       {/* Homework text below: crisp typography in a clean subtle panel */}
                       {homeworkText ? (
-                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-muted/20 p-2.5 rounded-lg border border-border/40 mt-0.5">
+                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 mt-0.5">
                           <span className="font-bold me-1.5 text-foreground">
                             {t("homework.homework_prefix")}
                           </span>

@@ -29,7 +29,8 @@
     "english": "English",
     "hebrew": "עברית",
     "all_dates": "All Dates",
-    "today": "Today"
+    "today": "Today",
+    "yesterday": "Yesterday"
   },
   "incidents": {
     "title": "School Incidents",
