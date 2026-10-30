@@ -303,4 +303,28 @@ export function matchChildWithPrevious(rawChild, previousChildren, index = -1) {
   return null;
 }
 
+/**
+ * Generate a deterministic, stable child identifier from firstName and lastName.
+ * Normalizes Unicode with NFKC, strips Hebrew niqqud and invisible direction marks,
+ * serializes as JSON array to prevent delimiter collision, and outputs 32 hex chars (128-bit).
+ * Example output: 'child_177cd5c698aba1ff...'
+ */
+export function generateChildId(firstName, lastName) {
+  const clean = (str) =>
+    (str || '')
+      .toString()
+      .normalize('NFKC')
+      .replace(/[\u0591-\u05C7\u200E\u200F\u200B-\u200D\uFEFF]/g, '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .toLowerCase();
+
+  const normFirst = clean(firstName);
+  const normLast = clean(lastName);
+  const serialized = JSON.stringify([normFirst, normLast]);
+  const digest = crypto.createHash('sha256').update(serialized).digest('hex').slice(0, 32);
+  return `child_${digest}`;
+}
+
+
 

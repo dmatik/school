@@ -13,6 +13,7 @@ export interface User {
 
 export interface WebtopChild {
   id: string;
+  externalId?: string;
   firstName: string;
   lastName: string;
   classCode: number;
@@ -33,6 +34,7 @@ export interface WebtopConfig {
 
 export interface Incident {
   id: string;
+  childId?: string;
   studentId?: string;
   studentName?: string;
   date: string;
@@ -49,6 +51,7 @@ export interface Incident {
 
 export interface HomeworkItem {
   id: string;
+  childId?: string;
   studentId?: string;
   studentName?: string;
   subject: string;
