@@ -123,7 +123,7 @@ function App() {
   // Initial auth checking state
   if (authChecking) {
     return (
-      <div className="fixed inset-0 w-full flex items-center justify-center bg-background">
+      <div className="h-dvh w-full flex items-center justify-center bg-background">
         <LoadingSpinner />
       </div>
     )
@@ -141,7 +141,7 @@ function App() {
 
   return (
     <DirectionProvider dir={i18n.dir()}>
-      <div className="fixed inset-0 flex w-full bg-background text-foreground overflow-hidden">
+      <div className="fixed inset-0 flex h-dvh w-full bg-background text-foreground overflow-hidden">
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex flex-col w-64 border-e border-border/80 bg-card/95 backdrop-blur-md shrink-0">
           {/* Header with App Title and User Profile shortcut */}
@@ -222,7 +222,7 @@ function App() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Mobile Header */}
-          <header className="md:hidden bg-card/95 backdrop-blur-md border-b border-border/80 z-20 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] pb-2.5 flex items-center justify-between shrink-0 shadow-xs">
+          <header className="md:hidden bg-card/95 backdrop-blur-md border-b border-border/80 z-20 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs">
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setActiveTab('account')}
@@ -298,7 +298,7 @@ function App() {
           </main>
 
           {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden bg-card/95 backdrop-blur-xl border-t border-border/80 pb-[calc(env(safe-area-inset-bottom,0px)+0.5rem)] pt-1 z-30 shadow-lg shrink-0">
+          <nav className="md:hidden bg-card/95 backdrop-blur-xl border-t border-border/80 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 shadow-lg shrink-0">
             <div className="flex justify-around items-center">
               <MobileNavButton
                 active={activeTab === 'homework'}
