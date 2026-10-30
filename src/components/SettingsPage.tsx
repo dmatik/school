@@ -326,7 +326,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
             ) : webtopConfig?.configured && !isEditingWebtop ? (
               <div className="space-y-5">
                 {/* Connected Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/30 border">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-border/60 dark:border-border/60">
                   <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">{t("account.webtop_username")}</span>
                     <span className="text-sm font-semibold text-foreground block">{webtopConfig.username}</span>
@@ -376,7 +376,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
                         return (
                           <div
                             key={child.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 rounded-xl bg-card border border-border shadow-xs"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-border/60 dark:border-border/60 shadow-xs"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span

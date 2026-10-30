@@ -43,19 +43,19 @@ function Calendar({
                     "absolute top-2 end-2 z-10"
                 ),
                 month_grid: "w-full border-collapse space-y-1",
-                weekdays: "flex",
+                weekdays: "flex justify-center",
                 weekday:
-                    "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem]",
-                week: "flex w-full mt-2",
-                day: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-e-md [&:has([aria-selected].day-outside)]:bg-accent/50 [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-s-md last:[&:has([aria-selected])]:rounded-e-md focus-within:relative focus-within:z-20",
+                    "text-muted-foreground rounded-md w-9 font-normal text-[0.8rem] text-center",
+                week: "flex w-full mt-1.5 justify-center",
+                day: "h-9 w-9 p-0 text-center text-sm relative flex items-center justify-center focus-within:relative focus-within:z-20",
                 day_button: cn(
                     buttonVariants({ variant: "ghost" }),
-                    "h-9 w-9 p-0 font-normal aria-selected:opacity-100"
+                    "h-8 w-8 p-0 font-normal aria-selected:opacity-100 rounded-md transition-colors"
                 ),
                 range_end: "day-range-end",
                 selected:
-                    "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground rounded-md",
-                today: "font-bold rounded-md [&:not([data-selected])]:border [&:not([data-selected])]:border-primary/60 [&:not([data-selected])]:text-primary [&:not([data-selected])]:bg-primary/10",
+                    "[&>button]:bg-primary [&>button]:text-primary-foreground [&>button]:hover:bg-primary [&>button]:hover:text-primary-foreground [&>button]:focus:bg-primary [&>button]:focus:text-primary-foreground [&>button]:rounded-md",
+                today: "font-bold [&>button]:rounded-md [&>button:not([aria-selected='true'])]:border [&>button:not([aria-selected='true'])]:border-primary/60 [&>button:not([aria-selected='true'])]:text-primary [&>button:not([aria-selected='true'])]:bg-primary/10",
                 outside:
                     "day-outside text-muted-foreground opacity-50 aria-selected:bg-accent/50 aria-selected:text-muted-foreground aria-selected:opacity-30",
                 disabled: "text-muted-foreground opacity-50",
