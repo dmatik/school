@@ -81,6 +81,7 @@
     "last_sync": "Updated: {{date}}",
     "due_today": "Today",
     "lesson_hour": "Lesson {{hour}}",
+    "lesson_hours": "Lessons {{hours}}",
     "teacher_label": "Teacher:",
     "homework_prefix": "Homework:",
     "back_to_today": "Back to Today",

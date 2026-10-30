@@ -64,3 +64,8 @@ export interface HomeworkItem {
   rawData?: string;
   createdAt?: string;
 }
+
+export interface ConsolidatedHomeworkItem extends HomeworkItem {
+  hourNums: number[];
+  ids: string[];
+}

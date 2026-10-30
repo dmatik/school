@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText, consolidateHomework } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -173,5 +173,307 @@ describe('getHomeworkText utility', () => {
         expect(getHomeworkText({})).toBe('')
         expect(getHomeworkText({ description: null, lessonSubject: null, rawData: null })).toBe('')
         expect(getHomeworkText({ rawData: 'invalid json', description: 'test', lessonSubject: 'test' })).toBe('')
+    })
+})
+
+describe('consolidateHomework utility', () => {
+    it('consolidates double period lessons for same student, date, subject and identical homework text', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'עמוד 45 שאלות 1-10',
+                rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 1-10' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 4,
+                completed: false,
+                description: 'עמוד 45 שאלות 1-10',
+                rawData: JSON.stringify({ homeWork: 'עמוד 45 שאלות 1-10' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].hourNums).toEqual([2, 4])
+        expect(consolidated[0].subject).toBe('מתמטיקה')
+        expect(consolidated[0].description).toBe('עמוד 45 שאלות 1-10')
+    })
+
+    it('sorts hour numbers ascending even if entered in reverse order', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'אנגלית',
+                hourNum: 5,
+                completed: false,
+                description: 'Read pages 12-14',
+                rawData: JSON.stringify({ homeWork: 'Read pages 12-14' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'אנגלית',
+                hourNum: 1,
+                completed: false,
+                description: 'Read pages 12-14',
+                rawData: JSON.stringify({ homeWork: 'Read pages 12-14' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].hourNums).toEqual([1, 5])
+    })
+
+    it('does not consolidate if homework text differs', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'תרגילים 1-5',
+                rawData: JSON.stringify({ homeWork: 'תרגילים 1-5' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 4,
+                completed: false,
+                description: 'תרגילים 6-10',
+                rawData: JSON.stringify({ homeWork: 'תרגילים 6-10' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(2)
+        expect(consolidated[0].hourNums).toEqual([2])
+        expect(consolidated[1].hourNums).toEqual([4])
+    })
+
+    it('does not consolidate if subjects differ', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'לקרוא פרק 3',
+                rawData: JSON.stringify({ homeWork: 'לקרוא פרק 3' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'היסטוריה',
+                hourNum: 4,
+                completed: false,
+                description: 'לקרוא פרק 3',
+                rawData: JSON.stringify({ homeWork: 'לקרוא פרק 3' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(2)
+    })
+
+    it('does not consolidate if students differ', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'מיכל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(2)
+    })
+
+    it('does not consolidate if dates differ', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-31',
+                subject: 'מתמטיקה',
+                hourNum: 2,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(2)
+    })
+
+    it('deduplicates identical hourNum if same slot is duplicated in sync', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 3,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            },
+            {
+                id: 'hw-1-dup',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מתמטיקה',
+                hourNum: 3,
+                completed: false,
+                description: 'עמוד 20',
+                rawData: JSON.stringify({ homeWork: 'עמוד 20' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].hourNums).toEqual([3])
+    })
+
+    it('gracefully handles missing or null hour numbers and preserves teacher info', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מדעים',
+                hourNum: null,
+                teacher: '',
+                completed: false,
+                description: 'ניסוי ביתי',
+                rawData: JSON.stringify({ homeWork: 'ניסוי ביתי' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מדעים',
+                hourNum: 3,
+                teacher: 'המורה שרה',
+                completed: false,
+                description: 'ניסוי ביתי',
+                rawData: JSON.stringify({ homeWork: 'ניסוי ביתי' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].hourNums).toEqual([3])
+        expect(consolidated[0].teacher).toBe('המורה שרה')
+    })
+
+    it('does not coerce empty string or whitespace hourNum to 0', () => {
+        const items = [
+            {
+                id: 'hw-1',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מדעים',
+                hourNum: '' as unknown as number,
+                completed: false,
+                description: 'ניסוי ביתי',
+                rawData: JSON.stringify({ homeWork: 'ניסוי ביתי' })
+            },
+            {
+                id: 'hw-2',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'מדעים',
+                hourNum: '   ' as unknown as number,
+                completed: false,
+                description: 'ניסוי ביתי',
+                rawData: JSON.stringify({ homeWork: 'ניסוי ביתי' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].hourNums).toEqual([])
+    })
+
+    it('retains all merged database IDs in ids array and combines completed flag', () => {
+        const items = [
+            {
+                id: 'hw-primary',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'אנגלית',
+                hourNum: 1,
+                completed: true,
+                description: 'Workbook p. 12',
+                rawData: JSON.stringify({ homeWork: 'Workbook p. 12' })
+            },
+            {
+                id: 'hw-secondary',
+                studentName: 'דניאל',
+                dueDate: '2026-10-30',
+                subject: 'אנגלית',
+                hourNum: 3,
+                completed: false,
+                description: 'Workbook p. 12',
+                rawData: JSON.stringify({ homeWork: 'Workbook p. 12' })
+            }
+        ]
+
+        const consolidated = consolidateHomework(items)
+        expect(consolidated).toHaveLength(1)
+        expect(consolidated[0].ids).toEqual(['hw-primary', 'hw-secondary'])
+        expect(consolidated[0].completed).toBe(false)
+    })
+
+    it('handles null, non-array or malformed inputs without throwing', () => {
+        expect(consolidateHomework(null as unknown as [])).toEqual([])
+        expect(consolidateHomework(undefined as unknown as [])).toEqual([])
+        expect(consolidateHomework([null as unknown as { id: string; subject: string; dueDate: string; completed: boolean; description: string }])).toEqual([])
     })
 })

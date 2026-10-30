@@ -23,11 +23,11 @@ import {
 import { format } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { cn, parseLocalDate, getHomeworkText } from "@/lib/utils"
+import { cn, parseLocalDate, getHomeworkText, consolidateHomework } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
-import type { HomeworkItem, WebtopConfig } from "@/types"
+import type { HomeworkItem, ConsolidatedHomeworkItem, WebtopConfig } from "@/types"
 
 interface HomeworkPageProps {
   token?: string | null
@@ -195,24 +195,15 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
       return true
     })
 
-    // Deduplicate in UI by studentName + dueDate + hourNum + subject to guarantee zero visual duplicates
-    const deduped: HomeworkItem[] = []
-    const seen = new Set<string>()
-    for (const hw of list) {
-      const key = `${(hw.studentName || '').trim()}::${hw.dueDate || ''}::${hw.hourNum || 0}::${(hw.subject || '').trim()}`
-      if (!seen.has(key)) {
-        seen.add(key)
-        deduped.push(hw)
-      }
-    }
-
-    return deduped
+    // Consolidate cards: same student, same day, same subject and exactly same homework text
+    // merge into a single card mentioning all lesson numbers
+    return consolidateHomework(list)
   }, [homework, selectedDate, searchQuery])
 
   // Group filtered homework by date
   const groupedHomework = useMemo(() => {
-    const groups: { date: string; items: HomeworkItem[] }[] = []
-    const map = new Map<string, HomeworkItem[]>()
+    const groups: { date: string; items: ConsolidatedHomeworkItem[] }[] = []
+    const map = new Map<string, ConsolidatedHomeworkItem[]>()
 
     for (const hw of filteredHomework) {
       const key = hw.dueDate || "no-date"
@@ -445,11 +436,15 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
                           <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[44px]">
                             <div className="flex items-center gap-1.5 min-w-0">
                               <span className="font-bold text-base text-foreground truncate">{hw.subject}</span>
-                              {hw.hourNum && (
+                              {hw.hourNums && hw.hourNums.length > 1 ? (
                                 <span className="font-normal text-xs text-muted-foreground shrink-0">
-                                  ({t("homework.lesson_hour", { hour: hw.hourNum })})
+                                  ({t("homework.lesson_hours", { hours: hw.hourNums.join(", ") })})
                                 </span>
-                              )}
+                              ) : (hw.hourNums && hw.hourNums.length === 1) || hw.hourNum ? (
+                                <span className="font-normal text-xs text-muted-foreground shrink-0">
+                                  ({t("homework.lesson_hour", { hour: (hw.hourNums && hw.hourNums[0]) ?? hw.hourNum })})
+                                </span>
+                              ) : null}
                             </div>
 
                             {/* Teacher name right below subject title, plain text without badge and without icon */}
