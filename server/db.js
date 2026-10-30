@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
+import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { fileURLToPath } from 'url';
 
@@ -112,7 +113,56 @@ export function initDb(targetDb = db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_webtop_credentials_user ON webtop_credentials(user_id);
+
+    CREATE TABLE IF NOT EXISTS child_settings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      child_name TEXT NOT NULL,
+      color TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(user_id, child_name)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_child_settings_user ON child_settings(user_id);
   `);
+
+  // Backfill existing child colors from webtop_credentials into child_settings
+  try {
+    const credRows = targetDb.prepare('SELECT user_id, linked_children FROM webtop_credentials').all();
+    const upsertChildSetting = targetDb.prepare(`
+      INSERT INTO child_settings (id, user_id, child_name, color, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+      ON CONFLICT(user_id, child_name) DO UPDATE SET
+        color = coalesce(child_settings.color, excluded.color),
+        updated_at = excluded.updated_at
+    `);
+
+    for (const cred of credRows) {
+      if (!cred.linked_children) continue;
+      try {
+        const children = JSON.parse(cred.linked_children);
+        const now = new Date().toISOString();
+        for (const child of children) {
+          const childFullName = `${child.firstName || ''} ${child.lastName || ''}`.trim();
+          if (childFullName && child.color) {
+            upsertChildSetting.run(
+              crypto.randomUUID(),
+              cred.user_id,
+              childFullName,
+              child.color,
+              now,
+              now
+            );
+          }
+        }
+      } catch {
+        // Ignore parse error
+      }
+    }
+  } catch {
+    // Ignore migration error if table does not exist yet
+  }
 
   // Migrate existing tables if they lack new columns
   const incidentsCols = targetDb.prepare("PRAGMA table_info(incidents)").all().map(c => c.name);

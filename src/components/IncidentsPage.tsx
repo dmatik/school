@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from "react"
+import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
   AlertCircle,
@@ -50,6 +50,7 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
+  const webtopConfigRef = useRef<WebtopConfig | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
@@ -80,7 +81,27 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
       if (configRes.ok) {
         const configData: WebtopConfig = await configRes.json()
+        const prevConfig = webtopConfigRef.current
+        webtopConfigRef.current = configData
         setWebtopConfig(configData)
+
+        // If a specific child was selected and Webtop rotated child IDs across days/sessions,
+        // remap selectedChildId to the child's new ID based on matching name
+        if (selectedChildId !== "all" && configData.linkedChildren?.length) {
+          const stillExists = configData.linkedChildren.some(c => c.id === selectedChildId)
+          if (!stillExists) {
+            const prevChild = prevConfig?.linkedChildren?.find(c => c.id === selectedChildId)
+            const prevName = prevChild ? `${prevChild.firstName} ${prevChild.lastName}`.trim() : ""
+            const matchedNew = prevName
+              ? configData.linkedChildren.find(c => `${c.firstName} ${c.lastName}`.trim() === prevName)
+              : undefined
+            if (matchedNew) {
+              setSelectedChildId(matchedNew.id)
+            } else {
+              setSelectedChildId("all")
+            }
+          }
+        }
       }
 
       if (incRes.ok) {
