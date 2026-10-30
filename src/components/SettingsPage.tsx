@@ -219,7 +219,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
         if (!prev) return prev
         return {
           ...prev,
-          linkedChildren: prev.linkedChildren.map(c =>
+          linkedChildren: data.linkedChildren || prev.linkedChildren.map(c =>
             c.id === childId ? { ...c, color } : c
           )
         }

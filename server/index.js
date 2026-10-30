@@ -12,7 +12,7 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
-import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret } from './webtop.js';
+import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious } from './webtop.js';
 import { getWebAuthnConfig } from './webauthn-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -854,21 +854,34 @@ async function syncWebtopData(userId) {
   const dash = await client.initDashboard();
   const rawChildren = dash.childrens || [];
   const existingLinked = JSON.parse(creds.linked_children || '[]');
-  const colorMap = new Map(existingLinked.map(c => [c.id, c.color]));
 
-  const linkedChildren = rawChildren.map(c => ({
-    id: c.id,
-    firstName: c.firstName,
-    lastName: c.lastName,
-    classCode: c.classCode,
-    classNum: c.classNum,
-    cellphone: c.cellphone || null,
-    color: colorMap.get(c.id) || null
-  }));
+  // Load child settings (badge colors, etc.) from dedicated child_settings table
+  const childSettings = db.prepare('SELECT child_name, color FROM child_settings WHERE user_id = ?').all(userId);
+  const colorByName = new Map(childSettings.map(s => [s.child_name.trim().toLowerCase(), s.color]));
+
+  const linkedChildren = rawChildren.map((c, idx) => {
+    const childFullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+    const prev = matchChildWithPrevious(c, existingLinked, idx);
+    const colorFromSettings = colorByName.get(childFullName.toLowerCase());
+    return {
+      id: c.id,
+      firstName: c.firstName,
+      lastName: c.lastName,
+      classCode: c.classCode,
+      classNum: c.classNum,
+      cellphone: c.cellphone || null,
+      color: colorFromSettings !== undefined ? colorFromSettings : (prev?.color || null)
+    };
+  });
 
   let selectedChildId = creds.selected_child_id;
-  if (!selectedChildId || !linkedChildren.some(c => c.id === selectedChildId)) {
-    selectedChildId = linkedChildren[0]?.id || null;
+  if (selectedChildId === 'all') {
+    // Retain 'all' view
+  } else if (!selectedChildId || !linkedChildren.some(c => c.id === selectedChildId)) {
+    // If prior selection was an ephemeral token that rotated, resolve matching child
+    const prevSelected = existingLinked.find(c => c.id === selectedChildId);
+    const matchedNew = prevSelected ? matchChildWithPrevious(prevSelected, linkedChildren) : null;
+    selectedChildId = matchedNew ? matchedNew.id : (linkedChildren[0]?.id || null);
   }
 
   // Update credentials row with fresh children list & syncing status
@@ -1003,6 +1016,24 @@ async function syncWebtopData(userId) {
 
   // Atomically update DB records for this user
   const syncTx = db.transaction(() => {
+    // Keep historical student_id in incidents & homework synchronized with child's latest ID
+    const updateIncidentStudentId = db.prepare(`
+      UPDATE incidents
+      SET student_id = ?
+      WHERE user_id = ? AND student_name = ?
+    `);
+    const updateHomeworkStudentId = db.prepare(`
+      UPDATE homework
+      SET student_id = ?
+      WHERE user_id = ? AND student_name = ?
+    `);
+
+    for (const child of linkedChildren) {
+      const childFullName = `${child.firstName} ${child.lastName}`.trim();
+      updateIncidentStudentId.run(child.id, userId, childFullName);
+      updateHomeworkStudentId.run(child.id, userId, childFullName);
+    }
+
     // Upsert incidents
     const upsertIncident = db.prepare(`
       INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
@@ -1098,6 +1129,17 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
       linkedChildren = [];
     }
 
+    // Merge child preferences from child_settings table
+    const childSettings = db.prepare('SELECT child_name, color FROM child_settings WHERE user_id = ?').all(req.user.id);
+    const colorByName = new Map(childSettings.map(s => [s.child_name.trim().toLowerCase(), s.color]));
+    linkedChildren = linkedChildren.map(c => {
+      const childFullName = `${c.firstName || ''} ${c.lastName || ''}`.trim().toLowerCase();
+      return {
+        ...c,
+        color: colorByName.has(childFullName) ? colorByName.get(childFullName) : (c.color || null)
+      };
+    });
+
     res.json({
       configured: true,
       username: creds.username,
@@ -1161,31 +1203,40 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
     await client.login(username, password);
     const dash = await client.initDashboard();
     const rawChildren = dash.childrens || [];
-    const linkedChildren = rawChildren.map(c => ({
-      id: c.id,
-      firstName: c.firstName,
-      lastName: c.lastName,
-      classCode: c.classCode,
-      classNum: c.classNum,
-      cellphone: c.cellphone || null
-    }));
+    const existing = db.prepare('SELECT id, linked_children, selected_child_id FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    const prevLinked = existing ? JSON.parse(existing.linked_children || '[]') : [];
+
+    const childSettings = db.prepare('SELECT child_name, color FROM child_settings WHERE user_id = ?').all(req.user.id);
+    const colorByName = new Map(childSettings.map(s => [s.child_name.trim().toLowerCase(), s.color]));
+
+    const linkedChildren = rawChildren.map((c, idx) => {
+      const childFullName = `${c.firstName || ''} ${c.lastName || ''}`.trim();
+      const prev = matchChildWithPrevious(c, prevLinked, idx);
+      const colorFromSettings = colorByName.get(childFullName.toLowerCase());
+      return {
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        classCode: c.classCode,
+        classNum: c.classNum,
+        cellphone: c.cellphone || null,
+        color: colorFromSettings !== undefined ? colorFromSettings : (prev?.color || null)
+      };
+    });
 
     let effectiveChildId = selectedChildId;
-    if (!effectiveChildId || !linkedChildren.some(c => c.id === effectiveChildId)) {
-      effectiveChildId = linkedChildren[0]?.id || null;
+    if (effectiveChildId === 'all') {
+      // Retain 'all' view
+    } else if (!effectiveChildId || !linkedChildren.some(c => c.id === effectiveChildId)) {
+      const prevSelected = prevLinked.find(c => c.id === (effectiveChildId || existing?.selected_child_id));
+      const matchedNew = prevSelected ? matchChildWithPrevious(prevSelected, linkedChildren) : null;
+      effectiveChildId = matchedNew ? matchedNew.id : (linkedChildren[0]?.id || null);
     }
 
     const encryptedPass = encryptPassword(password);
     const now = new Date().toISOString();
 
-    const existing = db.prepare('SELECT id, linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
     if (existing) {
-      const prevLinked = JSON.parse(existing.linked_children || '[]');
-      const colorMap = new Map(prevLinked.map(c => [c.id, c.color]));
-      for (const c of linkedChildren) {
-        if (colorMap.has(c.id)) c.color = colorMap.get(c.id);
-      }
-
       db.prepare(`
         UPDATE webtop_credentials
         SET username = ?, encrypted_password = ?, selected_child_id = ?, linked_children = ?, updated_at = ?
@@ -1231,17 +1282,25 @@ app.patch('/api/webtop/child', authenticate, (req, res) => {
     }
 
     const linked = JSON.parse(creds.linked_children || '[]');
-    if (childId !== 'all' && !linked.some(c => c.id === childId)) {
-      return res.status(400).json({ error: 'Child not found in linked children' });
+    let targetChildId = childId;
+    if (childId !== 'all') {
+      const match = linked.find(c =>
+        c.id === childId ||
+        `${c.firstName || ''} ${c.lastName || ''}`.trim().toLowerCase() === childId.trim().toLowerCase()
+      );
+      if (!match) {
+        return res.status(400).json({ error: 'Child not found in linked children' });
+      }
+      targetChildId = match.id;
     }
 
     db.prepare(`
       UPDATE webtop_credentials
       SET selected_child_id = ?, updated_at = ?
       WHERE user_id = ?
-    `).run(childId, new Date().toISOString(), req.user.id);
+    `).run(targetChildId, new Date().toISOString(), req.user.id);
 
-    res.json({ success: true, selectedChildId: childId });
+    res.json({ success: true, selectedChildId: targetChildId });
   } catch (err) {
     console.error('Failed to switch child:', err);
     res.status(500).json({ error: 'Failed to switch child' });
@@ -1262,18 +1321,39 @@ app.patch('/api/webtop/child-color', authenticate, (req, res) => {
     }
 
     const linked = JSON.parse(creds.linked_children || '[]');
-    const childIndex = linked.findIndex(c => c.id === childId);
+    let childIndex = linked.findIndex(c => c.id === childId);
+    if (childIndex === -1) {
+      childIndex = linked.findIndex(c =>
+        `${c.firstName || ''} ${c.lastName || ''}`.trim().toLowerCase() === childId.trim().toLowerCase()
+      );
+    }
     if (childIndex === -1) {
       return res.status(404).json({ error: 'Child not found in linked children' });
     }
 
-    linked[childIndex].color = typeof color === 'string' && color.trim() ? color.trim() : null;
+    const cleanColor = typeof color === 'string' && color.trim() ? color.trim() : null;
+    linked[childIndex].color = cleanColor;
+    const targetChild = linked[childIndex];
+    const childFullName = `${targetChild.firstName || ''} ${targetChild.lastName || ''}`.trim();
+    const now = new Date().toISOString();
 
+    // 1. Persist directly in dedicated child_settings table
+    if (childFullName) {
+      db.prepare(`
+        INSERT INTO child_settings (id, user_id, child_name, color, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?)
+        ON CONFLICT(user_id, child_name) DO UPDATE SET
+          color = excluded.color,
+          updated_at = excluded.updated_at
+      `).run(crypto.randomUUID(), req.user.id, childFullName, cleanColor, now, now);
+    }
+
+    // 2. Also keep webtop_credentials.linked_children in sync
     db.prepare(`
       UPDATE webtop_credentials
       SET linked_children = ?, updated_at = ?
       WHERE user_id = ?
-    `).run(JSON.stringify(linked), new Date().toISOString(), req.user.id);
+    `).run(JSON.stringify(linked), now, req.user.id);
 
     res.json({ success: true, linkedChildren: linked });
   } catch (err) {
@@ -1335,11 +1415,14 @@ app.get('/api/incidents', authenticate, (req, res) => {
     if (childId && childId !== 'all') {
       const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
       const linked = JSON.parse(creds?.linked_children || '[]');
-      const child = linked.find(c => c.id === childId);
+      let child = linked.find(c => c.id === childId);
+      if (!child) {
+        child = linked.find(c => `${c.firstName || ''} ${c.lastName || ''}`.trim().toLowerCase() === childId.trim().toLowerCase());
+      }
       if (child) {
         const childFullName = `${child.firstName} ${child.lastName}`.trim();
-        query += ` AND (student_id = ? OR student_name = ?)`;
-        params.push(childId, childFullName);
+        query += ` AND (student_id = ? OR student_id = ? OR student_name = ?)`;
+        params.push(child.id, childId, childFullName);
       } else {
         query += ` AND student_id = ?`;
         params.push(childId);
@@ -1370,11 +1453,14 @@ app.get('/api/homework', authenticate, (req, res) => {
     if (childId && childId !== 'all') {
       const creds = db.prepare('SELECT linked_children FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
       const linked = JSON.parse(creds?.linked_children || '[]');
-      const child = linked.find(c => c.id === childId);
+      let child = linked.find(c => c.id === childId);
+      if (!child) {
+        child = linked.find(c => `${c.firstName || ''} ${c.lastName || ''}`.trim().toLowerCase() === childId.trim().toLowerCase());
+      }
       if (child) {
         const childFullName = `${child.firstName} ${child.lastName}`.trim();
-        query += ` AND (student_id = ? OR student_name = ?)`;
-        params.push(childId, childFullName);
+        query += ` AND (student_id = ? OR student_id = ? OR student_name = ?)`;
+        params.push(child.id, childId, childFullName);
       } else {
         query += ` AND student_id = ?`;
         params.push(childId);

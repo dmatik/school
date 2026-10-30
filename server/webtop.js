@@ -242,3 +242,65 @@ export class WebtopClient {
   }
 }
 
+/**
+ * Match a freshly synced child object (from Webtop API) against previously stored
+ * linked children to preserve user configuration (badge color, selections, etc.),
+ * even when Webtop generates new encrypted ephemeral tokens for student IDs across sessions or days.
+ *
+ * Matching strategy (in priority order):
+ * 1. Exact ID match (if tokens have not rotated)
+ * 2. Full Name match (firstName + lastName, normalized for whitespace & case)
+ * 3. First Name + classCode match
+ * 4. Index-based fallback if child count matches and names are compatible
+ */
+export function matchChildWithPrevious(rawChild, previousChildren, index = -1) {
+  if (!rawChild || !Array.isArray(previousChildren) || previousChildren.length === 0) {
+    return null;
+  }
+
+  // 1. Direct ID match
+  if (rawChild.id) {
+    const idMatch = previousChildren.find(p => p && p.id === rawChild.id);
+    if (idMatch) return idMatch;
+  }
+
+  const norm = s => (s || '').toString().trim().replace(/\s+/g, ' ').toLowerCase();
+  const rawFirst = norm(rawChild.firstName);
+  const rawLast = norm(rawChild.lastName);
+  const rawFull = `${rawFirst} ${rawLast}`.trim();
+
+  // 2. Full name match (first + last)
+  if (rawFull) {
+    const nameMatch = previousChildren.find(p => {
+      if (!p) return false;
+      const prevFull = `${norm(p.firstName)} ${norm(p.lastName)}`.trim();
+      return prevFull === rawFull;
+    });
+    if (nameMatch) return nameMatch;
+  }
+
+  // 3. First name + classCode match
+  if (rawFirst && rawChild.classCode !== undefined && rawChild.classCode !== null) {
+    const classMatch = previousChildren.find(p =>
+      p &&
+      norm(p.firstName) === rawFirst &&
+      p.classCode === rawChild.classCode
+    );
+    if (classMatch) return classMatch;
+  }
+
+  // 4. Stable position / index fallback if the number of children matches
+  if (typeof index === 'number' && index >= 0 && index < previousChildren.length) {
+    const candidate = previousChildren[index];
+    if (candidate) {
+      const candFirst = norm(candidate.firstName);
+      if (!candFirst || !rawFirst || candFirst === rawFirst) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
+}
+
+
