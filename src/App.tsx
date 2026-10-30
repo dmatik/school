@@ -222,7 +222,7 @@ function App() {
         {/* Main Content Area */}
         <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
           {/* Mobile Header */}
-          <header className="md:hidden bg-card/95 backdrop-blur-md border-b border-border/80 z-20 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs">
+          <header className="md:hidden bg-card/95 backdrop-blur-md border-b border-border/80 z-20 px-4 pt-[calc(env(safe-area-inset-top,0px)+0.625rem)] pb-2.5 flex items-center justify-between shrink-0 shadow-xs">
             <div className="flex items-center gap-2.5">
               <button
                 onClick={() => setActiveTab('account')}
