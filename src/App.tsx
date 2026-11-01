@@ -436,16 +436,12 @@ function App() {
             </div>
           </main>
 
-          {/* Mobile Bottom Navigation */}
+          {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}
           <nav
-            className={cn(
-              "md:hidden fixed bottom-0 inset-x-0 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 transition-all duration-300",
-              (isScrolled || isScrolling)
-                ? "apple-glass border-t border-border/50 shadow-lg"
-                : "apple-glass border-t border-border/50 shadow-md"
-            )}
+            aria-label="Mobile Navigation"
+            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-5 max-w-[352px] mx-auto z-30 p-1 rounded-full apple-liquid-dock transition-all duration-300"
           >
-            <div className="flex justify-around items-center">
+            <div className="flex justify-around items-center relative">
               <MobileNavButton
                 active={activeTab === 'homework'}
                 onClick={() => handleTabChange('homework')}
@@ -511,25 +507,27 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center justify-center w-full py-1 relative transition-colors",
+        "flex-1 relative flex flex-col items-center justify-center py-1.5 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
-      <div className={cn(
-        "p-1.5 rounded-xl transition-all duration-200",
-        active ? "bg-primary/10 shadow-xs" : "bg-transparent"
-      )}>
-        <Icon className={cn("w-5 h-5", active ? "stroke-[2.5px]" : "stroke-[2px]")} />
-      </div>
-      <span className={cn("text-[11px] leading-none mt-1 font-medium truncate max-w-[70px]", active && "font-bold")}>
-        {label}
-      </span>
       {active && (
         <motion.div
-          layoutId="activeTabMobile"
-          className="absolute -top-1 w-1.5 h-1.5 bg-primary rounded-full shadow-xs"
+          layoutId="liquidGlassPill"
+          transition={{
+            type: "spring",
+            stiffness: 450,
+            damping: 35,
+          }}
+          className="absolute inset-0 rounded-full apple-liquid-pill"
         />
       )}
+      <div className="relative z-10 flex flex-col items-center justify-center">
+        <Icon className={cn("w-5 h-5 transition-transform duration-200 dock-icon-filled", active ? "scale-105" : "opacity-80 hover:opacity-100")} />
+        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[68px] transition-all", active ? "font-bold text-primary" : "font-medium")}>
+          {label}
+        </span>
+      </div>
     </motion.button>
   )
 }

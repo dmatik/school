@@ -148,4 +148,100 @@
       background-color: hsl(var(--background) / 0.95);
     }
   }
+  .apple-liquid-dock {
+    background-color: hsl(var(--background) / 0.18);
+    background-image: linear-gradient(
+      165deg,
+      rgba(255, 255, 255, 0.22) 0%,
+      rgba(255, 255, 255, 0.03) 50%,
+      rgba(255, 255, 255, 0.12) 100%
+    );
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    backdrop-filter: blur(14px) saturate(180%);
+    /* Distinct refractive outer border so the capsule edge clearly defines over white background & cards */
+    border: 1px solid rgba(15, 23, 42, 0.16);
+    box-shadow:
+      /* Outer crisp hairline for high-definition edge contour */
+      0 0 0 1px rgba(15, 23, 42, 0.08),
+      /* Floating ambient & contact elevation shadows */
+      0 12px 32px -4px rgba(15, 23, 42, 0.18),
+      0 4px 12px -1px rgba(15, 23, 42, 0.10),
+      /* Bright inner caustic rim right inside the dark outer contour */
+      inset 0 0 0 1px rgba(255, 255, 255, 0.85),
+      /* Top specular rim highlight (overhead light catching the curved glass lip) */
+      inset 0 2px 1.5px 0 rgba(255, 255, 255, 1),
+      /* Bottom internal optical refraction depth */
+      inset 0 -2px 3px 0 rgba(15, 23, 42, 0.08);
+  }
+  .dark .apple-liquid-dock {
+    background-color: hsl(var(--background) / 0.22);
+    background-image: linear-gradient(
+      145deg,
+      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.01) 45%,
+      rgba(255, 255, 255, 0.03) 100%
+    );
+    -webkit-backdrop-filter: blur(16px) saturate(180%);
+    backdrop-filter: blur(16px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    box-shadow:
+      /* Outer dark contrast ring */
+      0 0 0 0.5px rgba(0, 0, 0, 0.55),
+      /* Floating ambient drop shadow */
+      0 12px 34px -4px rgba(0, 0, 0, 0.55),
+      0 4px 12px 0 rgba(0, 0, 0, 0.35),
+      /* Top specular rim highlight */
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.38),
+      /* Bottom internal counter-refraction */
+      inset 0 -1px 1px 0 rgba(255, 255, 255, 0.12),
+      /* Inner edge thickness glow */
+      inset 0 0 8px 0 rgba(255, 255, 255, 0.06);
+  }
+  @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+    .apple-liquid-dock {
+      background-color: hsl(var(--background) / 0.96);
+    }
+  }
+  .apple-liquid-pill {
+    background-color: hsl(var(--primary) / 0.14);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.6) 0%,
+      rgba(255, 255, 255, 0.05) 100%
+    );
+    border: 1px solid hsl(var(--primary) / 0.30);
+    box-shadow:
+      0 2px 8px -1px hsl(var(--primary) / 0.20),
+      inset 0 1.5px 1px 0 rgba(255, 255, 255, 0.95),
+      inset 0 -1.5px 2px 0 hsl(var(--primary) / 0.12);
+  }
+  .dark .apple-liquid-pill {
+    background-color: hsl(var(--primary) / 0.22);
+    background-image: linear-gradient(
+      180deg,
+      rgba(255, 255, 255, 0.14) 0%,
+      rgba(255, 255, 255, 0.02) 100%
+    );
+    border: 1px solid hsl(var(--primary) / 0.35);
+    box-shadow:
+      0 2px 10px -1px rgba(0, 0, 0, 0.35),
+      inset 0 1px 0.5px 0 rgba(255, 255, 255, 0.28),
+      inset 0 -1px 1px 0 rgba(0, 0, 0, 0.2);
+  }
+  /* Filled Apple-style Dock Icons with high-contrast cutouts */
+  .dock-icon-filled {
+    fill: currentColor !important;
+  }
+  .dock-icon-filled line {
+    stroke: hsl(var(--background)) !important;
+    stroke-width: 2.5px !important;
+  }
+  .dock-icon-filled circle[r="3"] {
+    fill: hsl(var(--background)) !important;
+    stroke: hsl(var(--background)) !important;
+  }
+  .dock-icon-filled path[d^="M12 7"] {
+    stroke: hsl(var(--background)) !important;
+    stroke-width: 2px !important;
+  }
 }
