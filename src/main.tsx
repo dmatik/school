@@ -6,6 +6,12 @@ import './i18n'
 import { ErrorBoundary } from './components/ErrorBoundary.tsx'
 
 import { ThemeProvider } from "./components/theme-provider"
+import { installAppHeightSync } from './lib/viewport'
+
+// Fix the iOS standalone PWA viewport height (black-translucent status bar)
+if (typeof window !== 'undefined') {
+  installAppHeightSync()
+}
 
 // Clean up any stale service workers and caches that intercept navigations
 if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {

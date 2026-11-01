@@ -229,7 +229,7 @@ function App() {
   // Initial auth checking state
   if (authChecking) {
     return (
-      <div className="h-dvh w-full flex items-center justify-center bg-background">
+      <div className="h-app w-full flex items-center justify-center bg-background">
         <LoadingSpinner />
       </div>
     )
@@ -247,7 +247,7 @@ function App() {
 
   return (
     <DirectionProvider dir={i18n.dir()}>
-      <div className="fixed inset-0 flex h-dvh w-full bg-background text-foreground overflow-hidden">
+      <div className="fixed top-0 inset-x-0 flex h-app w-full bg-background text-foreground overflow-hidden">
         {/* Desktop Sidebar Navigation */}
         <aside className="hidden md:flex flex-col w-64 border-e border-border/80 bg-card/95 backdrop-blur-md shrink-0">
           {/* Header with App Title and User Profile shortcut */}
@@ -343,7 +343,7 @@ function App() {
           {/* Mobile Header */}
           <header
             className={cn(
-              "md:hidden fixed top-0 inset-x-0 z-20 px-4 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] pb-2.5 flex items-center justify-between transition-all duration-300",
+              "md:hidden absolute top-0 inset-x-0 z-20 px-4 pt-[calc(0.625rem+env(safe-area-inset-top,0px))] pb-2.5 flex items-center justify-between transition-all duration-300",
               (isScrolled || isScrolling)
                 ? "apple-glass border-b border-border/50 shadow-xs"
                 : "bg-background/95 border-b border-transparent shadow-none"
@@ -439,7 +439,7 @@ function App() {
           {/* Mobile Bottom Navigation */}
           <nav
             className={cn(
-              "md:hidden fixed bottom-0 inset-x-0 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 transition-all duration-300",
+              "md:hidden absolute bottom-0 inset-x-0 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 transition-all duration-300",
               (isScrolled || isScrolling)
                 ? "apple-glass border-t border-border/50 shadow-lg"
                 : "apple-glass border-t border-border/50 shadow-md"
