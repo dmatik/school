@@ -345,7 +345,7 @@ function App() {
             className={cn(
               "md:hidden fixed top-0 inset-x-0 z-20 px-4 py-2.5 flex items-center justify-between transition-all duration-300",
               (isScrolled || isScrolling)
-                ? "apple-glass border-b border-border/80 shadow-xs"
+                ? "apple-glass border-b border-border/50 shadow-xs"
                 : "bg-background/95 border-b border-transparent shadow-none"
             )}
           >
@@ -441,7 +441,7 @@ function App() {
             className={cn(
               "md:hidden fixed bottom-0 inset-x-0 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 transition-all duration-300",
               (isScrolled || isScrolling)
-                ? "apple-glass border-t border-border/80 shadow-lg"
+                ? "apple-glass border-t border-border/50 shadow-lg"
                 : "apple-glass border-t border-border/50 shadow-md"
             )}
           >
