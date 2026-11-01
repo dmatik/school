@@ -30,7 +30,10 @@
     "hebrew": "עברית",
     "all_dates": "All Dates",
     "today": "Today",
-    "yesterday": "Yesterday"
+    "yesterday": "Yesterday",
+    "sync": "Sync",
+    "sync_now": "Sync",
+    "syncing": "Syncing..."
   },
   "incidents": {
     "title": "School Incidents",

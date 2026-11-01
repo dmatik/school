@@ -147,6 +147,9 @@ export function SettingsPage({ token }: SettingsPageProps) {
       setWebtopPassword("")
       await loadWebtopConfig()
 
+      window.dispatchEvent(new CustomEvent("webtop:configured"))
+      window.dispatchEvent(new CustomEvent("webtop:synced"))
+
       toast({
         variant: "success",
         title: t("account.webtop_saved_success"),
@@ -180,6 +183,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
       }
 
       await loadWebtopConfig()
+      window.dispatchEvent(new CustomEvent("webtop:synced"))
       toast({
         variant: "success",
         title: t("common.confirm"),
@@ -255,6 +259,9 @@ export function SettingsPage({ token }: SettingsPageProps) {
       setWebtopUsername("")
       setWebtopPassword("")
       await loadWebtopConfig()
+
+      window.dispatchEvent(new CustomEvent("webtop:configured"))
+      window.dispatchEvent(new CustomEvent("webtop:synced"))
 
       toast({
         variant: "success",
