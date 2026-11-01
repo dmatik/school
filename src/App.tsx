@@ -1,4 +1,4 @@
-import { useState, useEffect, Suspense, lazy } from "react"
+import { useState, useEffect, useRef, Suspense, lazy } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertCircle,
@@ -120,6 +120,43 @@ function App() {
     document.title = t('common.app_title')
   }, [t, i18n.language])
 
+  // Track scroll state on mobile for dynamic Apple glass header/footer effects
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isScrolling, setIsScrolling] = useState(false)
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    const handleScroll = (e: Event) => {
+      const target = e.target as HTMLElement | null
+      if (!target || typeof target.scrollTop !== 'number') return
+
+      const scrolled = target.scrollTop > 8
+      setIsScrolled(scrolled)
+      setIsScrolling(true)
+
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+      scrollTimeoutRef.current = setTimeout(() => {
+        setIsScrolling(false)
+      }, 300)
+    }
+
+    window.addEventListener('scroll', handleScroll, { capture: true, passive: true })
+    return () => {
+      window.removeEventListener('scroll', handleScroll, { capture: true })
+      if (scrollTimeoutRef.current) {
+        clearTimeout(scrollTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const handleTabChange = (tab: AppTab) => {
+    setActiveTab(tab)
+    setIsScrolled(false)
+    setIsScrolling(false)
+  }
+
   // Initial auth checking state
   if (authChecking) {
     return (
@@ -147,7 +184,7 @@ function App() {
           {/* Header with App Title and User Profile shortcut */}
           <div className="p-4 border-b border-border/80 flex items-center gap-3">
             <button
-              onClick={() => setActiveTab('account')}
+              onClick={() => handleTabChange('account')}
               className={cn(
                 "relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
                 activeTab === 'account' ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:opacity-85"
@@ -181,26 +218,26 @@ function App() {
           <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
             <MenuButton
               active={activeTab === 'homework'}
-              onClick={() => setActiveTab('homework')}
+              onClick={() => handleTabChange('homework')}
               icon={BookOpen}
               label={t('common.homework')}
             />
             <MenuButton
               active={activeTab === 'incidents'}
-              onClick={() => setActiveTab('incidents')}
+              onClick={() => handleTabChange('incidents')}
               icon={AlertCircle}
               label={t('common.incidents')}
             />
             <MenuButton
               active={activeTab === 'settings'}
-              onClick={() => setActiveTab('settings')}
+              onClick={() => handleTabChange('settings')}
               icon={SettingsIcon}
               label={t('common.settings')}
             />
             {currentUser.role === 'admin' && (
               <MenuButton
                 active={activeTab === 'admin'}
-                onClick={() => setActiveTab('admin')}
+                onClick={() => handleTabChange('admin')}
                 icon={Shield}
                 label={t('common.admin')}
               />
@@ -220,12 +257,19 @@ function App() {
         </aside>
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
           {/* Mobile Header */}
-          <header className="md:hidden bg-card/95 backdrop-blur-md border-b border-border/80 z-20 px-4 py-2.5 flex items-center justify-between shrink-0 shadow-xs">
+          <header
+            className={cn(
+              "md:hidden fixed top-0 inset-x-0 z-20 px-4 py-2.5 flex items-center justify-between transition-all duration-300",
+              (isScrolled || isScrolling)
+                ? "apple-glass border-b border-border/80 shadow-xs"
+                : "bg-background/95 border-b border-transparent shadow-none"
+            )}
+          >
             <div className="flex items-center gap-2.5">
               <button
-                onClick={() => setActiveTab('account')}
+                onClick={() => handleTabChange('account')}
                 className={cn(
                   "relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
                   activeTab === 'account' ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:opacity-85"
@@ -262,8 +306,8 @@ function App() {
           </header>
 
           {/* Main Body */}
-          <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col">
-            <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto">
+          <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full">
+            <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto h-full">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -298,30 +342,37 @@ function App() {
           </main>
 
           {/* Mobile Bottom Navigation */}
-          <nav className="md:hidden bg-card/95 backdrop-blur-xl border-t border-border/80 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 shadow-lg shrink-0">
+          <nav
+            className={cn(
+              "md:hidden fixed bottom-0 inset-x-0 pb-[max(0.65rem,env(safe-area-inset-bottom))] pt-1 z-30 transition-all duration-300",
+              (isScrolled || isScrolling)
+                ? "apple-glass border-t border-border/80 shadow-lg"
+                : "apple-glass border-t border-border/50 shadow-md"
+            )}
+          >
             <div className="flex justify-around items-center">
               <MobileNavButton
                 active={activeTab === 'homework'}
-                onClick={() => setActiveTab('homework')}
+                onClick={() => handleTabChange('homework')}
                 icon={BookOpen}
                 label={t('common.homework')}
               />
               <MobileNavButton
                 active={activeTab === 'incidents'}
-                onClick={() => setActiveTab('incidents')}
+                onClick={() => handleTabChange('incidents')}
                 icon={AlertCircle}
                 label={t('common.incidents')}
               />
               <MobileNavButton
                 active={activeTab === 'settings'}
-                onClick={() => setActiveTab('settings')}
+                onClick={() => handleTabChange('settings')}
                 icon={SettingsIcon}
                 label={t('common.settings_short')}
               />
               {currentUser.role === 'admin' && (
                 <MobileNavButton
                   active={activeTab === 'admin'}
-                  onClick={() => setActiveTab('admin')}
+                  onClick={() => handleTabChange('admin')}
                   icon={Shield}
                   label={t('common.admin_short')}
                 />

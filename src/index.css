@@ -135,4 +135,17 @@
   .pb-safe {
     padding-bottom: 16px;
   }
+  .apple-glass {
+    background-color: hsl(var(--background) / 0.72);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    backdrop-filter: blur(20px) saturate(180%);
+  }
+  .dark .apple-glass {
+    background-color: hsl(var(--background) / 0.75);
+  }
+  @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
+    .apple-glass {
+      background-color: hsl(var(--background) / 0.95);
+    }
+  }
 }

@@ -273,7 +273,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain p-4 md:p-8 pb-8 max-w-4xl mx-auto space-y-6">
+    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <div className="flex items-center gap-2.5 min-w-0">
