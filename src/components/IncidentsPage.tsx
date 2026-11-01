@@ -357,7 +357,7 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
                   return (
                     <Card
                       key={inc.id}
-                      className="shadow-xs border border-border/70 dark:border-border/60 hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl"
+                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl"
                     >
                       <CardHeader className={cn("p-3 sm:p-3.5 space-y-1.5", inc.description && "pb-1.5")}>
                         <div className="flex items-start justify-between gap-2.5">

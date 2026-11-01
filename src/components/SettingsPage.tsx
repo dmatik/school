@@ -295,7 +295,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
 
       <div className="space-y-4">
         {/* Webtop Integration Card */}
-        <Card className="shadow-xs border border-border/70 dark:border-border/60 rounded-xl">
+        <Card className="shadow-xs border border-border dark:border-border/60 rounded-xl">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
