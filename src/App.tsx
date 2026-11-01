@@ -439,7 +439,7 @@ function App() {
           {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}
           <nav
             aria-label="Mobile Navigation"
-            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-5 max-w-[352px] mx-auto z-30 p-1 rounded-full apple-liquid-dock transition-all duration-300"
+            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-5 max-w-[352px] mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300"
           >
             <div className="flex justify-around items-center relative">
               <MobileNavButton
@@ -507,7 +507,7 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "flex-1 relative flex flex-col items-center justify-center py-1.5 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "flex-1 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         active ? "text-primary" : "text-muted-foreground hover:text-foreground"
       )}
     >
