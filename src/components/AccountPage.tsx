@@ -328,7 +328,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Profile Card */}
-        <Card className="shadow-xs border border-border/70 dark:border-border/60 rounded-xl">
+        <Card className="shadow-xs border border-border dark:border-border/60 rounded-xl">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />

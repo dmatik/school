@@ -378,7 +378,7 @@ export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
                   return (
                     <Card
                       key={hw.id}
-                      className="shadow-xs border border-border/70 dark:border-border/60 hover:border-primary/30 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl"
+                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl"
                     >
                       {/* Top Row: Subject Icon, Subject Title & Teacher, Student Name badge */}
                       <div className="flex items-start justify-between gap-2.5">
