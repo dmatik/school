@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
   AlertCircle,
-  RefreshCw,
   Search,
   User,
   GraduationCap,
@@ -10,7 +9,6 @@ import {
   Loader2
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
   Select,
@@ -30,9 +28,10 @@ import type { Incident, WebtopConfig } from "@/types"
 
 interface IncidentsPageProps {
   token?: string | null
+  syncTrigger?: number
 }
 
-export function IncidentsPage({ token }: IncidentsPageProps) {
+export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
   const { t, i18n } = useTranslation()
   const isRtl = i18n.dir() === "rtl"
   const dateLocale = isRtl ? he : enUS
@@ -58,7 +57,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const webtopConfigRef = useRef<WebtopConfig | null>(null)
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
@@ -133,41 +131,17 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, syncTrigger])
 
-  const handleSync = async () => {
-    if (!token) return
-    setSyncing(true)
-    try {
-      const res = await fetch("/api/webtop/sync", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || t("account.sync_failed"))
-      }
-
-      await loadData()
-      toast({
-        variant: "success",
-        title: t("common.confirm"),
-        description: t("account.webtop_sync_success", {
-          incidents: data.result?.incidentsCount || 0,
-          homework: data.result?.homeworkCount || 0
-        })
-      })
-    } catch (err: unknown) {
-      toast({
-        variant: "destructive",
-        title: t("common.error"),
-        description: err instanceof Error ? err.message : t("account.sync_error")
-      })
-    } finally {
-      setSyncing(false)
+  useEffect(() => {
+    const handleWebtopSync = () => {
+      loadData()
     }
-  }
+    window.addEventListener("webtop:synced", handleWebtopSync)
+    return () => {
+      window.removeEventListener("webtop:synced", handleWebtopSync)
+    }
+  }, [loadData])
 
   // Unique types list for filtering
   // Filtered incidents
@@ -242,20 +216,6 @@ export function IncidentsPage({ token }: IncidentsPageProps) {
             {t("incidents.title")}
           </h1>
         </div>
-
-        {/* Sync Button */}
-        {webtopConfig?.configured && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 text-xs font-semibold h-8 shrink-0 px-2.5 rounded-lg border-border/80 shadow-xs hover:border-primary/30"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
-            <span>{syncing ? t("incidents.syncing") : t("incidents.sync_now")}</span>
-          </Button>
-        )}
       </div>
 
       {/* Search & Filters */}

@@ -30,7 +30,10 @@
     "hebrew": "עברית",
     "all_dates": "כל התאריכים",
     "today": "היום",
-    "yesterday": "אתמול"
+    "yesterday": "אתמול",
+    "sync": "סנכרון",
+    "sync_now": "סנכרן",
+    "syncing": "מסנכרן..."
   },
   "incidents": {
     "title": "אירועי משמעת ונוכחות",

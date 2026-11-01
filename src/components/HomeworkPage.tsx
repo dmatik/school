@@ -2,7 +2,6 @@ import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
   BookOpen,
-  RefreshCw,
   Search,
   User,
   GraduationCap,
@@ -30,9 +29,10 @@ import type { HomeworkItem, ConsolidatedHomeworkItem, WebtopConfig } from "@/typ
 
 interface HomeworkPageProps {
   token?: string | null
+  syncTrigger?: number
 }
 
-export function HomeworkPage({ token }: HomeworkPageProps) {
+export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
   const { t, i18n } = useTranslation()
   const isRtl = i18n.dir() === "rtl"
   const dateLocale = isRtl ? he : enUS
@@ -58,7 +58,6 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const webtopConfigRef = useRef<WebtopConfig | null>(null)
   const [loading, setLoading] = useState(true)
-  const [syncing, setSyncing] = useState(false)
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
@@ -133,41 +132,17 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
 
   useEffect(() => {
     loadData()
-  }, [loadData])
+  }, [loadData, syncTrigger])
 
-  const handleSync = async () => {
-    if (!token) return
-    setSyncing(true)
-    try {
-      const res = await fetch("/api/webtop/sync", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || t("account.sync_failed"))
-      }
-
-      await loadData()
-      toast({
-        variant: "success",
-        title: t("common.confirm"),
-        description: t("account.webtop_sync_success", {
-          incidents: data.result?.incidentsCount || 0,
-          homework: data.result?.homeworkCount || 0
-        })
-      })
-    } catch (err: unknown) {
-      toast({
-        variant: "destructive",
-        title: t("common.error"),
-        description: err instanceof Error ? err.message : t("account.sync_error")
-      })
-    } finally {
-      setSyncing(false)
+  useEffect(() => {
+    const handleWebtopSync = () => {
+      loadData()
     }
-  }
+    window.addEventListener("webtop:synced", handleWebtopSync)
+    return () => {
+      window.removeEventListener("webtop:synced", handleWebtopSync)
+    }
+  }, [loadData])
 
   // Filtered homework: display only cards where we actually have homework
   const filteredHomework = useMemo(() => {
@@ -237,20 +212,6 @@ export function HomeworkPage({ token }: HomeworkPageProps) {
             {t("homework.title")}
           </h1>
         </div>
-
-        {/* Sync Button */}
-        {webtopConfig?.configured && (
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleSync}
-            disabled={syncing}
-            className="flex items-center gap-2 text-xs font-semibold h-8 shrink-0 px-2.5 rounded-lg border-border/80 shadow-xs hover:border-primary/30"
-          >
-            <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
-            <span>{syncing ? t("homework.syncing") : t("homework.sync_now")}</span>
-          </Button>
-        )}
       </div>
 
       {/* Search & Filters */}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, Suspense, lazy } from "react"
+import { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertCircle,
@@ -7,9 +7,12 @@ import {
   Settings as SettingsIcon,
   User as UserIcon,
   Loader2,
+  RefreshCw,
   type LucideIcon
 } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
+import { Button } from "@/components/ui/button"
+import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { User } from "@/types"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -157,6 +160,72 @@ function App() {
     setIsScrolling(false)
   }
 
+  // Webtop sync state & triggers
+  const [webtopConfigured, setWebtopConfigured] = useState(false)
+  const [syncing, setSyncing] = useState(false)
+  const [syncTrigger, setSyncTrigger] = useState(0)
+
+  const checkWebtopConfig = useCallback(async () => {
+    if (!token) return
+    try {
+      const res = await fetch("/api/webtop/config", {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setWebtopConfigured(Boolean(data.configured))
+      }
+    } catch {
+      // ignore
+    }
+  }, [token])
+
+  useEffect(() => {
+    checkWebtopConfig()
+    const handleConfigChange = () => {
+      checkWebtopConfig()
+    }
+    window.addEventListener("webtop:configured", handleConfigChange)
+    return () => {
+      window.removeEventListener("webtop:configured", handleConfigChange)
+    }
+  }, [checkWebtopConfig])
+
+  const handleSync = async () => {
+    if (!token || syncing) return
+    setSyncing(true)
+    try {
+      const res = await fetch("/api/webtop/sync", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || t("account.sync_failed"))
+      }
+
+      setSyncTrigger(prev => prev + 1)
+      window.dispatchEvent(new CustomEvent("webtop:synced"))
+      toast({
+        variant: "success",
+        title: t("common.confirm"),
+        description: t("account.webtop_sync_success", {
+          incidents: data.result?.incidentsCount || 0,
+          homework: data.result?.homeworkCount || 0
+        })
+      })
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : t("account.sync_error")
+      })
+    } finally {
+      setSyncing(false)
+    }
+  }
+
   // Initial auth checking state
   if (authChecking) {
     return (
@@ -247,6 +316,19 @@ function App() {
           {/* Desktop Footer Controls */}
           <div className="p-3 border-t border-border/80 flex items-center justify-between bg-card/60">
             <div className="flex items-center gap-1.5">
+              {webtopConfigured && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="disabled:opacity-100 disabled:bg-transparent"
+                  title={syncing ? t("common.syncing") : t("common.sync_now")}
+                >
+                  <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", syncing && "animate-spin")} />
+                  <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
+                </Button>
+              )}
               <LanguageSwitcher />
               <ModeToggle />
             </div>
@@ -300,6 +382,19 @@ function App() {
             </div>
 
             <div className="flex items-center gap-1.5">
+              {webtopConfigured && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSync}
+                  disabled={syncing}
+                  className="disabled:opacity-100 disabled:bg-transparent"
+                  title={syncing ? t("common.syncing") : t("common.sync_now")}
+                >
+                  <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", syncing && "animate-spin")} />
+                  <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
+                </Button>
+              )}
               <LanguageSwitcher />
               <ModeToggle />
             </div>
@@ -318,8 +413,8 @@ function App() {
                   className="h-full"
                 >
                   <Suspense fallback={<LoadingSpinner />}>
-                    {activeTab === 'homework' && <HomeworkPage token={token} />}
-                    {activeTab === 'incidents' && <IncidentsPage token={token} />}
+                    {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} />}
+                    {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} />}
                     {activeTab === 'settings' && <SettingsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
