@@ -201,7 +201,7 @@ export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
   }, [filteredHomework])
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6">
+    <div className="h-full flex flex-col pt-[calc(4rem+env(safe-area-inset-top,0px))] pb-[calc(6rem+env(safe-area-inset-bottom,0px))] px-4 md:p-6 overflow-y-auto space-y-6">
       {/* Page Header */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <div className="flex items-center gap-2.5 min-w-0">
