@@ -1,6 +1,7 @@
 import db from '../../server/db.js';
 import bcrypt from 'bcryptjs';
 import { Page, expect } from '@playwright/test';
+import { randomBytes } from 'crypto';
 
 export interface TestUser {
   id: string;
@@ -13,8 +14,8 @@ export interface TestUser {
  * Creates a unique dedicated test user directly in the database.
  */
 export function createTestUser(role: 'admin' | 'user' = 'admin'): TestUser {
-  const uniqueId = `e2e_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const username = `e2e_user_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`;
+  const uniqueId = `e2e_${Date.now()}_${randomBytes(3).toString('hex')}`;
+  const username = `e2e_user_${Date.now()}_${randomBytes(2).toString('hex')}`;
   const password = `Pass_${Date.now()}!`;
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
