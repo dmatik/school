@@ -149,39 +149,39 @@
     }
   }
   .apple-liquid-dock {
-    background-color: hsl(var(--background) / 0.18);
+    background-color: hsl(var(--background) / 0.08);
     background-image: linear-gradient(
       165deg,
-      rgba(255, 255, 255, 0.22) 0%,
-      rgba(255, 255, 255, 0.03) 50%,
-      rgba(255, 255, 255, 0.12) 100%
+      rgba(255, 255, 255, 0.12) 0%,
+      rgba(255, 255, 255, 0.01) 50%,
+      rgba(255, 255, 255, 0.06) 100%
     );
     -webkit-backdrop-filter: blur(14px) saturate(180%);
     backdrop-filter: blur(14px) saturate(180%);
     /* Thin, delicate glass hairline border */
-    border: 1px solid rgba(15, 23, 42, 0.09);
+    border: 1px solid rgba(15, 23, 42, 0.08);
     box-shadow:
       /* Floating ambient drop shadow */
-      0 10px 25px -4px rgba(15, 23, 42, 0.12),
-      0 2px 8px -1px rgba(15, 23, 42, 0.05),
+      0 10px 25px -4px rgba(15, 23, 42, 0.10),
+      0 2px 8px -1px rgba(15, 23, 42, 0.04),
       /* Delicate 1px top specular hairline */
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.85);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
   }
   .dark .apple-liquid-dock {
-    background-color: hsl(var(--background) / 0.22);
+    background-color: hsl(var(--background) / 0.15);
     background-image: linear-gradient(
       145deg,
-      rgba(255, 255, 255, 0.06) 0%,
+      rgba(255, 255, 255, 0.04) 0%,
       rgba(255, 255, 255, 0.01) 45%,
-      rgba(255, 255, 255, 0.03) 100%
+      rgba(255, 255, 255, 0.02) 100%
     );
     -webkit-backdrop-filter: blur(16px) saturate(180%);
     backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.10);
     box-shadow:
       0 10px 30px -4px rgba(0, 0, 0, 0.45),
       0 2px 8px 0 rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
+      inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
   }
   @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
     .apple-liquid-dock {
@@ -189,43 +189,15 @@
     }
   }
   .apple-liquid-pill {
-    background-color: hsl(var(--primary) / 0.14);
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.4) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
-    border: 1px solid hsl(var(--primary) / 0.20);
-    box-shadow:
-      0 2px 6px -1px hsl(var(--primary) / 0.15),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.7);
+    background-color: rgba(15, 23, 42, 0.075);
+    background-image: none;
+    border: none;
+    box-shadow: none;
   }
   .dark .apple-liquid-pill {
-    background-color: hsl(var(--primary) / 0.22);
-    background-image: linear-gradient(
-      180deg,
-      rgba(255, 255, 255, 0.14) 0%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
-    border: 1px solid hsl(var(--primary) / 0.28);
-    box-shadow:
-      0 2px 8px -1px rgba(0, 0, 0, 0.35),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.25);
-  }
-  /* Filled Apple-style Dock Icons with high-contrast cutouts */
-  .dock-icon-filled {
-    fill: currentColor !important;
-  }
-  .dock-icon-filled line {
-    stroke: hsl(var(--background)) !important;
-    stroke-width: 2.5px !important;
-  }
-  .dock-icon-filled circle[r="3"] {
-    fill: hsl(var(--background)) !important;
-    stroke: hsl(var(--background)) !important;
-  }
-  .dock-icon-filled path[d^="M12 7"] {
-    stroke: hsl(var(--background)) !important;
-    stroke-width: 2px !important;
+    background-color: rgba(255, 255, 255, 0.13);
+    background-image: none;
+    border: none;
+    box-shadow: none;
   }
 }
