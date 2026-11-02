@@ -17,7 +17,7 @@ export function ModeToggle() {
     return (
         <DropdownMenu dir={i18n.dir()}>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon">
+                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full shadow-xs">
                     {theme === 'system' ? (
                         <SunMoon className="h-[1.2rem] w-[1.2rem]" />
                     ) : (

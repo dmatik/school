@@ -309,17 +309,12 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
     <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-4xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-            <User className="w-4 h-4" />
-          </div>
-          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">{t("account.title")}</h2>
-        </div>
+        <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">{t("account.title")}</h2>
         <Button
           variant="outline"
           size="sm"
           onClick={onLogout}
-          className="text-destructive hover:text-destructive flex items-center gap-1.5 shrink-0 h-8 px-2.5 text-xs font-semibold rounded-lg border-border/80 shadow-xs hover:border-destructive/30"
+          className="text-destructive hover:text-destructive flex items-center gap-1.5 shrink-0 h-8 px-3 text-xs font-semibold rounded-full border-border/80 shadow-xs hover:border-destructive/30"
         >
           <LogOut className="w-3.5 h-3.5" />
           <span>{t("auth.logout")}</span>

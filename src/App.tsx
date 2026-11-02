@@ -315,17 +315,17 @@ function App() {
 
           {/* Desktop Footer Controls */}
           <div className="p-3 border-t border-border/80 flex items-center justify-between bg-card/60">
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {webtopConfigured && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSync}
                   disabled={syncing}
-                  className="disabled:opacity-100 disabled:bg-transparent"
+                  className="h-9 w-9 rounded-full disabled:opacity-100 disabled:bg-transparent"
                   title={syncing ? t("common.syncing") : t("common.sync_now")}
                 >
-                  <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", syncing && "animate-spin")} />
+                  <RefreshCw className={cn("w-6 h-6 stroke-[2px]", syncing && "animate-spin")} />
                   <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
                 </Button>
               )}
@@ -362,11 +362,11 @@ function App() {
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.username}
-                    className="w-8 h-8 rounded-full object-cover border border-border/80 shadow-xs"
+                    className="w-9 h-9 rounded-full object-cover border border-border/80 shadow-xs"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs border border-primary/20 shadow-xs">
-                    {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-3.5 h-3.5" />}
+                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border border-primary/20 shadow-xs">
+                    {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
                   </div>
                 )}
               </button>
@@ -381,17 +381,17 @@ function App() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-2">
               {webtopConfigured && (
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={handleSync}
                   disabled={syncing}
-                  className="disabled:opacity-100 disabled:bg-transparent"
+                  className="h-9 w-9 rounded-full disabled:opacity-100 disabled:bg-transparent"
                   title={syncing ? t("common.syncing") : t("common.sync_now")}
                 >
-                  <RefreshCw className={cn("h-[1.2rem] w-[1.2rem]", syncing && "animate-spin")} />
+                  <RefreshCw className={cn("w-6 h-6 stroke-[2px]", syncing && "animate-spin")} />
                   <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
                 </Button>
               )}
@@ -483,20 +483,14 @@ function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; o
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 w-full px-3 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200 relative",
+        "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border",
         active
-          ? "bg-primary/10 text-primary font-bold shadow-xs border border-primary/25 dark:border-primary/35"
-          : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
+          ? "bg-primary/10 text-primary border-primary/25 dark:border-primary/35 shadow-xs"
+          : "border-transparent text-muted-foreground hover:bg-accent/70 hover:text-foreground"
       )}
     >
       <Icon className={cn("w-4 h-4 shrink-0", active ? "stroke-[2.5px] text-primary" : "text-muted-foreground")} />
       <span className="truncate">{label}</span>
-      {active && (
-        <motion.div
-          layoutId="activeDesk"
-          className="absolute start-1 w-1 h-5 bg-primary rounded-full"
-        />
-      )}
     </motion.button>
   )
 }
@@ -519,7 +513,7 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
             stiffness: 450,
             damping: 35,
           }}
-          className="absolute inset-0 rounded-full apple-liquid-pill"
+          className="absolute -inset-0.5 rounded-full apple-liquid-pill"
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
