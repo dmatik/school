@@ -439,9 +439,9 @@ function App() {
           {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}
           <nav
             aria-label="Mobile Navigation"
-            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-5 max-w-[352px] mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300"
+            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 w-fit max-w-[calc(100vw-1.5rem)] mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300"
           >
-            <div className="flex justify-around items-center relative">
+            <div className="flex items-center relative">
               <MobileNavButton
                 active={activeTab === 'homework'}
                 onClick={() => handleTabChange('homework')}
@@ -507,8 +507,8 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "flex-1 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        active ? "text-primary" : "text-muted-foreground hover:text-foreground"
+        "w-[85px] shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        active ? "text-primary" : "text-foreground"
       )}
     >
       {active && (
@@ -523,8 +523,8 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
-        <Icon className={cn("w-5 h-5 transition-transform duration-200 dock-icon-filled", active ? "scale-105" : "opacity-80 hover:opacity-100")} />
-        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[68px] transition-all", active ? "font-bold text-primary" : "font-medium")}>
+        <Icon className={cn("w-6 h-6 transition-transform duration-200", active ? "stroke-[2.5px] scale-105" : "stroke-[2px]")} />
+        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[76px] transition-all", active ? "font-bold text-primary" : "font-medium text-foreground")}>
           {label}
         </span>
       </div>
