@@ -5,7 +5,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
-import { rateLimit } from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -25,44 +25,23 @@ if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
 }
 const PORT = process.env.PORT || 3001;
 
-// In-memory rate limiting map: key -> { count, resetAt }
-const authRateLimits = new Map();
-function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 60), windowMs = 60 * 1000) {
-  return (req, res, next) => {
-    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
-    const userPart = req.body?.username ? `:${String(req.body.username).toLowerCase().trim()}` : '';
-    const key = `${ip}${userPart}`;
-    const now = Date.now();
-    const record = authRateLimits.get(key) || { count: 0, resetAt: now + windowMs };
-
-    if (now > record.resetAt) {
-      record.count = 0;
-      record.resetAt = now + windowMs;
+// Rate limiter for sensitive authentication endpoints (CodeQL js/missing-rate-limiting & CWE-307)
+function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 20), windowMs = 60 * 1000) {
+  return rateLimit({
+    windowMs,
+    limit: maxAttempts,
+    standardHeaders: 'draft-8',
+    legacyHeaders: false,
+    keyGenerator: (req) => {
+      const userPart = req.body?.username ? `:${String(req.body.username).toLowerCase().trim()}` : '';
+      return `${ipKeyGenerator(req)}${userPart}`;
+    },
+    message: {
+      error: 'too_many_requests',
+      message: 'Too many authentication attempts. Please try again in a minute.'
     }
-
-    record.count++;
-    authRateLimits.set(key, record);
-
-    if (record.count > maxAttempts) {
-      return res.status(429).json({
-        error: 'too_many_requests',
-        message: 'Too many authentication attempts. Please try again in a minute.'
-      });
-    }
-
-    next();
-  };
+  });
 }
-
-// Periodic cleanup of rate limits every 10 minutes
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, rec] of authRateLimits.entries()) {
-    if (rec.resetAt < now) {
-      authRateLimits.delete(key);
-    }
-  }
-}, 10 * 60 * 1000).unref();
 
 // In-memory WebAuthn challenges: challengeId -> { challenge, userId, username, expiresAt }
 const webauthnChallenges = new Map();
@@ -170,6 +149,19 @@ function safeJsonParse(value, fallback = []) {
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
+
+// Global rate limiter to protect all database, filesystem, and backend operations (CodeQL js/missing-rate-limiting)
+const globalRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: process.env.NODE_ENV === 'test' ? 10000 : 1000,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: {
+    error: 'too_many_requests',
+    message: 'Too many requests, please try again later.'
+  }
+});
+app.use(globalRateLimiter);
 
 // Cache-Control headers for all API requests
 app.use('/api', (req, res, next) => {
