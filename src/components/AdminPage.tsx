@@ -366,15 +366,10 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
       <div className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-        <div className="flex items-center gap-2.5 min-w-0 flex-1">
-          <div className="w-8 h-8 rounded-lg bg-amber-500/10 text-amber-500 border border-amber-500/20 flex items-center justify-center shrink-0 shadow-xs">
-            <Shield className="w-4 h-4 shrink-0" />
-          </div>
-          <h2 className="text-lg font-bold tracking-tight text-foreground truncate">
-            {t("admin.title")}
-          </h2>
-        </div>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-8 px-2.5 text-xs font-semibold rounded-lg shadow-xs">
+        <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
+          {t("admin.title")}
+        </h2>
+        <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-8 px-3 text-xs font-semibold rounded-full shadow-xs">
           <UserPlus className="w-3.5 h-3.5" />
           <span>{t("admin.add_user_button")}</span>
         </Button>
@@ -383,12 +378,13 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-72">
-          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
+            type="search"
             placeholder={t("admin.search_placeholder")}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-9 h-9 text-sm"
+            className="ps-9 h-9 text-sm rounded-full"
           />
         </div>
         <div className="text-sm text-muted-foreground self-end sm:self-center">

@@ -205,17 +205,12 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
   }, [filteredIncidents])
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6">
+    <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
       {/* Page Header */}
       <div className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 text-primary border border-primary/20 flex items-center justify-center shrink-0 shadow-xs">
-            <AlertCircle className="w-4 h-4" />
-          </div>
-          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-            {t("incidents.title")}
-          </h1>
-        </div>
+        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
+          {t("incidents.title")}
+        </h1>
       </div>
 
       {/* Search & Filters */}
@@ -223,12 +218,13 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
         <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
           {/* Search Input */}
           <div className="relative w-full sm:w-72">
-            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
+              type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("incidents.search_placeholder")}
-              className="ps-9 h-9 text-sm"
+              className="ps-9 h-9 text-sm rounded-full"
             />
           </div>
 
@@ -335,15 +331,15 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
         <div className="space-y-6">
           {groupedIncidents.map((group) => (
             <div key={group.date} className="space-y-3">
-              {/* Day Section Header */}
-              <div className="pb-1.5 border-b border-border/70 dark:border-border/60">
-                <h2 className="text-sm sm:text-base font-bold text-muted-foreground tracking-tight">
+              {/* Floating Chat Date Pill */}
+              <div className="flex justify-center sticky top-0 z-10 py-1.5 pointer-events-none">
+                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-background/95 dark:bg-card/95 border border-border/80 dark:border-border/60 shadow-xs backdrop-blur-md select-none">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
               </div>
 
-              {/* 2-column compact cards grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 sm:gap-3">
+              {/* Chat-style Continuing Feed */}
+              <div className="flex flex-col gap-2.5 sm:gap-3">
                 {group.items.map((inc) => {
                   const SubjectIcon = getSubjectIcon(inc.subject)
                   const matchedChild = webtopConfig?.linkedChildren?.find(
@@ -357,7 +353,7 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
                   return (
                     <Card
                       key={inc.id}
-                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl"
+                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl sm:rounded-2xl bg-card"
                     >
                       <CardHeader className={cn("p-3 sm:p-3.5 space-y-1.5", inc.description && "pb-1.5")}>
                         <div className="flex items-start justify-between gap-2.5">
@@ -393,7 +389,7 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
                           {/* Left side (Hebrew/RTL end): Kid name as badge without icon */}
                           {inc.studentName && (
                             <span className={cn(
-                              "inline-flex items-center px-2.5 py-0.5 rounded-md text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
+                              "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}>
                               <span className="truncate max-w-[130px] sm:max-w-none">{inc.studentName}</span>

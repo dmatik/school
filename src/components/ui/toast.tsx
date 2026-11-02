@@ -62,7 +62,7 @@ const ToastAction = React.forwardRef<
     <ToastPrimitives.Action
         ref={ref}
         className={cn(
-            "inline-flex h-8 shrink-0 items-center justify-center rounded-md border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
+            "inline-flex h-8 shrink-0 items-center justify-center rounded-full border bg-transparent px-3 text-sm font-medium ring-offset-background transition-colors hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 group-[.destructive]:border-muted/40 group-[.destructive]:hover:border-destructive/30 group-[.destructive]:hover:bg-destructive group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:focus:ring-destructive",
             className
         )}
         {...props}
@@ -77,7 +77,7 @@ const ToastClose = React.forwardRef<
     <ToastPrimitives.Close
         ref={ref}
         className={cn(
-            "absolute end-2 top-2 rounded-md p-1 text-foreground/60 opacity-80 transition-all hover:opacity-100 hover:text-foreground hover:bg-muted/60 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring group-[.destructive]:text-destructive-foreground/80 group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:hover:bg-white/10 group-[.success]:text-emerald-800 dark:group-[.success]:text-emerald-200 group-[.success]:hover:bg-emerald-100 dark:group-[.success]:hover:bg-emerald-900/40",
+            "absolute end-2 top-2 rounded-full p-1 text-foreground/60 opacity-80 transition-all hover:opacity-100 hover:text-foreground hover:bg-muted/60 focus:opacity-100 focus:outline-none focus:ring-1 focus:ring-ring group-[.destructive]:text-destructive-foreground/80 group-[.destructive]:hover:text-destructive-foreground group-[.destructive]:hover:bg-white/10 group-[.success]:text-emerald-800 dark:group-[.success]:text-emerald-200 group-[.success]:hover:bg-emerald-100 dark:group-[.success]:hover:bg-emerald-900/40",
             className
         )}
         toast-close=""

@@ -141,7 +141,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
               </div>
             </div>
 
-            <Button type="submit" className="w-full mt-4 h-9 rounded-lg font-semibold shadow-xs hover:shadow-sm transition-all duration-200" disabled={loading || passkeyLoading}>
+            <Button type="submit" className="w-full mt-4 h-10 rounded-full font-semibold shadow-xs hover:shadow-sm transition-all duration-200" disabled={loading || passkeyLoading}>
               {loading ? (
                 <>
                   <Loader2 className="me-2 h-4 w-4 animate-spin" />
@@ -168,7 +168,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   variant="outline"
                   onClick={handlePasskeyLogin}
                   disabled={loading || passkeyLoading}
-                  className="w-full h-9 rounded-lg border-primary/25 hover:bg-primary/5 hover:border-primary/40 text-foreground text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all duration-200"
+                  className="w-full h-10 rounded-full border-primary/25 hover:bg-primary/5 hover:border-primary/40 text-foreground text-xs font-semibold flex items-center justify-center gap-2 shadow-xs transition-all duration-200"
                 >
                   {passkeyLoading ? (
                     <>
