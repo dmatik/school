@@ -5,6 +5,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
+import { rateLimit } from 'express-rate-limit';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -1508,8 +1509,17 @@ app.use((err, req, res, next) => {
   next(err);
 });
 
+// SPA fallback rate limiter to protect against file system DoS (CodeQL js/missing-rate-limiting)
+const spaRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: process.env.NODE_ENV === 'test' ? 10000 : 300,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: 'Too many requests, please try again later.'
+});
+
 // SPA fallback
-app.get(/.*/, (req, res) => {
+app.get(/.*/, spaRateLimiter, (req, res) => {
   res.sendFile(path.join(__dirname, '../dist/index.html'));
 });
 
