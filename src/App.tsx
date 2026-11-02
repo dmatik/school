@@ -126,7 +126,12 @@ function App() {
   // Track scroll state on mobile for dynamic Apple glass header/footer effects
   const [isScrolled, setIsScrolled] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
+  const [isTitleScrolled, setIsTitleScrolled] = useState(false)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => {
+    setIsTitleScrolled(false)
+  }, [activeTab])
 
   useEffect(() => {
     const handleScroll = (e: Event) => {
@@ -136,6 +141,15 @@ function App() {
       const scrolled = target.scrollTop > 8
       setIsScrolled(scrolled)
       setIsScrolling(true)
+
+      const titleEl = document.querySelector('[data-page-title]')
+      if (titleEl) {
+        const rect = titleEl.getBoundingClientRect()
+        // Header height is 56px (h-14). When bottom of the page title scrolls to or behind 56px, it is hidden
+        setIsTitleScrolled(rect.bottom <= 56)
+      } else {
+        setIsTitleScrolled(target.scrollTop > 50)
+      }
 
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current)
@@ -158,6 +172,7 @@ function App() {
     setActiveTab(tab)
     setIsScrolled(false)
     setIsScrolling(false)
+    setIsTitleScrolled(false)
   }
 
   // Webtop sync state & triggers
@@ -349,7 +364,7 @@ function App() {
                 : "border-b border-transparent shadow-none"
             )}
           >
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-2.5 min-w-0 flex-1 me-2">
               <button
                 onClick={() => handleTabChange('account')}
                 className={cn(
@@ -371,17 +386,41 @@ function App() {
                 )}
               </button>
 
-              <div className="flex flex-row items-baseline gap-2">
-                <h1 className="text-lg font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
-                  {t('common.app_title')}
-                </h1>
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  v{__APP_VERSION__}
-                </span>
+              <div className="flex flex-row items-baseline gap-2 min-w-0 overflow-hidden">
+                <AnimatePresence mode="wait" initial={false}>
+                  {isTitleScrolled ? (
+                    <motion.h1
+                      key={`scrolled-title-${activeTab}`}
+                      initial={{ opacity: 0, y: 6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: -6 }}
+                      transition={{ duration: 0.15 }}
+                      className="text-lg font-bold tracking-tight text-foreground truncate"
+                    >
+                      {t(`${activeTab}.title`)}
+                    </motion.h1>
+                  ) : (
+                    <motion.div
+                      key="app-title"
+                      initial={{ opacity: 0, y: -6 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 6 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex flex-row items-baseline gap-2 min-w-0"
+                    >
+                      <h1 className="text-lg font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight truncate">
+                        {t('common.app_title')}
+                      </h1>
+                      <span className="text-[10px] font-mono text-muted-foreground shrink-0">
+                        v{__APP_VERSION__}
+                      </span>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 shrink-0">
               {webtopConfigured && (
                 <Button
                   variant="ghost"

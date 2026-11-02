@@ -365,7 +365,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   return (
     <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-5xl mx-auto space-y-6">
       {/* Page Header */}
-      <div className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
+      <div data-page-title className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
         <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
           {t("admin.title")}
         </h2>
