@@ -8,6 +8,7 @@ import {
   User as UserIcon,
   Loader2,
   RefreshCw,
+  Check,
   type LucideIcon
 } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
@@ -178,6 +179,9 @@ function App() {
   // Webtop sync state & triggers
   const [webtopConfigured, setWebtopConfigured] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [syncSuccess, setSyncSuccess] = useState(false)
+  const [syncSummary, setSyncSummary] = useState<string | null>(null)
+  const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
 
   const checkWebtopConfig = useCallback(async () => {
@@ -206,9 +210,34 @@ function App() {
     }
   }, [checkWebtopConfig])
 
+  // Listen to external sync events (e.g. from SettingsPage) to show green checkmark
+  useEffect(() => {
+    const handleSyncedEvent = (e: Event) => {
+      const customEvent = e as CustomEvent
+      if (customEvent.detail?.incidentsCount !== undefined || customEvent.detail?.homeworkCount !== undefined) {
+        setSyncSummary(t("account.webtop_sync_success", {
+          incidents: customEvent.detail?.incidentsCount || 0,
+          homework: customEvent.detail?.homeworkCount || 0
+        }))
+      }
+      setSyncSuccess(true)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+      syncSuccessTimerRef.current = setTimeout(() => {
+        setSyncSuccess(false)
+      }, 3000)
+    }
+
+    window.addEventListener("webtop:synced", handleSyncedEvent)
+    return () => {
+      window.removeEventListener("webtop:synced", handleSyncedEvent)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+    }
+  }, [t])
+
   const handleSync = async () => {
     if (!token || syncing) return
     setSyncing(true)
+    setSyncSuccess(false)
     try {
       const res = await fetch("/api/webtop/sync", {
         method: "POST",
@@ -221,15 +250,23 @@ function App() {
       }
 
       setSyncTrigger(prev => prev + 1)
-      window.dispatchEvent(new CustomEvent("webtop:synced"))
-      toast({
-        variant: "success",
-        title: t("common.confirm"),
-        description: t("account.webtop_sync_success", {
-          incidents: data.result?.incidentsCount || 0,
-          homework: data.result?.homeworkCount || 0
-        })
+      const summary = t("account.webtop_sync_success", {
+        incidents: data.result?.incidentsCount || 0,
+        homework: data.result?.homeworkCount || 0
       })
+      setSyncSummary(summary)
+      setSyncSuccess(true)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+      syncSuccessTimerRef.current = setTimeout(() => {
+        setSyncSuccess(false)
+      }, 3000)
+
+      window.dispatchEvent(new CustomEvent("webtop:synced", {
+        detail: {
+          incidentsCount: data.result?.incidentsCount || 0,
+          homeworkCount: data.result?.homeworkCount || 0
+        }
+      }))
     } catch (err: unknown) {
       toast({
         variant: "destructive",
@@ -239,6 +276,64 @@ function App() {
     } finally {
       setSyncing(false)
     }
+  }
+
+  const renderWebtopSyncButton = () => {
+    if (!webtopConfigured) return null
+    return (
+      <Button
+        variant="ghost"
+        size="icon"
+        onClick={handleSync}
+        disabled={syncing}
+        className={cn(
+          "h-9 w-9 rounded-full transition-colors disabled:opacity-100 disabled:bg-transparent",
+          syncSuccess
+            ? "text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20"
+            : "hover:bg-accent"
+        )}
+        title={
+          syncSuccess
+            ? (syncSummary || t("common.sync_success"))
+            : syncing
+              ? t("common.syncing")
+              : t("common.sync_now")
+        }
+      >
+        <AnimatePresence mode="wait" initial={false}>
+          {syncSuccess ? (
+            <motion.div
+              key="check"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center justify-center text-emerald-600 dark:text-emerald-400"
+            >
+              <Check className="w-6 h-6 stroke-[2.5px]" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="refresh"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.5, opacity: 0 }}
+              transition={{ duration: 0.15 }}
+              className="flex items-center justify-center"
+            >
+              <RefreshCw className={cn("w-6 h-6 stroke-[2px]", syncing && "animate-spin")} />
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <span className="sr-only">
+          {syncSuccess
+            ? t("common.sync_success")
+            : syncing
+              ? t("common.syncing")
+              : t("common.sync_now")}
+        </span>
+      </Button>
+    )
   }
 
   // Initial auth checking state
@@ -331,19 +426,7 @@ function App() {
           {/* Desktop Footer Controls */}
           <div className="p-3 border-t border-border/80 flex items-center justify-between bg-card/60">
             <div className="flex items-center gap-2">
-              {webtopConfigured && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSync}
-                  disabled={syncing}
-                  className="h-9 w-9 rounded-full disabled:opacity-100 disabled:bg-transparent"
-                  title={syncing ? t("common.syncing") : t("common.sync_now")}
-                >
-                  <RefreshCw className={cn("w-6 h-6 stroke-[2px]", syncing && "animate-spin")} />
-                  <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
-                </Button>
-              )}
+              {renderWebtopSyncButton()}
               <LanguageSwitcher />
               <ModeToggle />
             </div>
@@ -421,19 +504,7 @@ function App() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              {webtopConfigured && (
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSync}
-                  disabled={syncing}
-                  className="h-9 w-9 rounded-full disabled:opacity-100 disabled:bg-transparent"
-                  title={syncing ? t("common.syncing") : t("common.sync_now")}
-                >
-                  <RefreshCw className={cn("w-6 h-6 stroke-[2px]", syncing && "animate-spin")} />
-                  <span className="sr-only">{syncing ? t("common.syncing") : t("common.sync_now")}</span>
-                </Button>
-              )}
+              {renderWebtopSyncButton()}
               <LanguageSwitcher />
               <ModeToggle />
             </div>

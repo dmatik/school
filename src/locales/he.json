@@ -33,7 +33,8 @@
     "yesterday": "אתמול",
     "sync": "סנכרון",
     "sync_now": "סנכרן",
-    "syncing": "מסנכרן..."
+    "syncing": "מסנכרן...",
+    "sync_success": "סונכרן בהצלחה"
   },
   "incidents": {
     "title": "אירועי משמעת",
@@ -176,6 +177,7 @@
     "webtop_status_error": "שגיאת סנכרון",
     "webtop_sync_button": "סנכרן",
     "webtop_syncing": "מסנכרן...",
+    "webtop_synced": "סונכרן",
     "webtop_disconnect": "נתק חיבור",
     "webtop_disconnect_confirm": "האם אתה בטוח שברצונך לנתק את החיבור ל-Webtop ולמחוק את כל הנתונים המסונכרנים?",
     "webtop_active_child": "תלמיד פעיל",

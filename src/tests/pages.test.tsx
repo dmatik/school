@@ -231,5 +231,52 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
         global.fetch = originalFetch
       }
     })
+
+    it('shows visual synced feedback on sync button without success toast when sync completes', async () => {
+      const originalFetch = global.fetch
+      global.fetch = vi.fn().mockImplementation((url: string, opts?: { method?: string }) => {
+        if (url.includes('/api/webtop/config')) {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              configured: true,
+              username: 'TEST_SYNC_USER',
+              lastSyncedAt: '2026-10-30T12:00:00Z',
+              linkedChildren: []
+            })
+          })
+        }
+        if (url.includes('/api/webtop/sync') && opts?.method === 'POST') {
+          return Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve({
+              success: true,
+              result: { incidentsCount: 2, homeworkCount: 3 }
+            })
+          })
+        }
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({})
+        })
+      }) as unknown as typeof fetch
+
+      try {
+        render(<SettingsPage token="mock-test-jwt-token" />)
+
+        await waitFor(() => {
+          expect(screen.getByText('TEST_SYNC_USER')).toBeInTheDocument()
+        })
+
+        const syncButton = screen.getByText('account.webtop_sync_button')
+        fireEvent.click(syncButton)
+
+        await waitFor(() => {
+          expect(screen.getByText('account.webtop_synced')).toBeInTheDocument()
+        })
+      } finally {
+        global.fetch = originalFetch
+      }
+    })
   })
 })
