@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import {
   GraduationCap,
@@ -45,6 +45,8 @@ export function SettingsPage({ token }: SettingsPageProps) {
   const [testingWebtop, setTestingWebtop] = useState(false)
   const [savingWebtop, setSavingWebtop] = useState(false)
   const [syncingWebtop, setSyncingWebtop] = useState(false)
+  const [syncSuccessWebtop, setSyncSuccessWebtop] = useState(false)
+  const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [showDisconnectDialog, setShowDisconnectDialog] = useState(false)
   const [disconnectingWebtop, setDisconnectingWebtop] = useState(false)
   const [isEditingWebtop, setIsEditingWebtop] = useState(false)
@@ -71,6 +73,22 @@ export function SettingsPage({ token }: SettingsPageProps) {
 
   useEffect(() => {
     loadWebtopConfig()
+  }, [loadWebtopConfig])
+
+  useEffect(() => {
+    const handleWebtopSynced = () => {
+      loadWebtopConfig()
+      setSyncSuccessWebtop(true)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+      syncSuccessTimerRef.current = setTimeout(() => {
+        setSyncSuccessWebtop(false)
+      }, 3000)
+    }
+    window.addEventListener("webtop:synced", handleWebtopSynced)
+    return () => {
+      window.removeEventListener("webtop:synced", handleWebtopSynced)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+    }
   }, [loadWebtopConfig])
 
   const handleTestWebtop = async () => {
@@ -170,6 +188,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
 
   const handleSyncWebtop = async () => {
     setSyncingWebtop(true)
+    setSyncSuccessWebtop(false)
     try {
       const res = await fetch("/api/webtop/sync", {
         method: "POST",
@@ -182,15 +201,18 @@ export function SettingsPage({ token }: SettingsPageProps) {
       }
 
       await loadWebtopConfig()
-      window.dispatchEvent(new CustomEvent("webtop:synced"))
-      toast({
-        variant: "success",
-        title: t("common.confirm"),
-        description: t("account.webtop_sync_success", {
-          incidents: data.result?.incidentsCount || 0,
-          homework: data.result?.homeworkCount || 0
-        })
-      })
+      setSyncSuccessWebtop(true)
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
+      syncSuccessTimerRef.current = setTimeout(() => {
+        setSyncSuccessWebtop(false)
+      }, 3000)
+
+      window.dispatchEvent(new CustomEvent("webtop:synced", {
+        detail: {
+          incidentsCount: data.result?.incidentsCount || 0,
+          homeworkCount: data.result?.homeworkCount || 0
+        }
+      }))
     } catch (err: unknown) {
       toast({
         variant: "destructive",
@@ -450,10 +472,22 @@ export function SettingsPage({ token }: SettingsPageProps) {
                       size="sm"
                       onClick={handleSyncWebtop}
                       disabled={syncingWebtop}
-                      className="text-xs flex items-center gap-1.5"
+                      className={cn(
+                        "text-xs flex items-center gap-1.5 transition-colors",
+                        syncSuccessWebtop && "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                      )}
                     >
-                      <RefreshCw className={cn("w-3.5 h-3.5", syncingWebtop && "animate-spin")} />
-                      <span>{syncingWebtop ? t("account.webtop_syncing") : t("account.webtop_sync_button")}</span>
+                      {syncSuccessWebtop ? (
+                        <>
+                          <Check className="w-3.5 h-3.5 stroke-[2.5px] text-emerald-600 dark:text-emerald-400 animate-in zoom-in-75 duration-200" />
+                          <span>{t("account.webtop_synced")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <RefreshCw className={cn("w-3.5 h-3.5", syncingWebtop && "animate-spin")} />
+                          <span>{syncingWebtop ? t("account.webtop_syncing") : t("account.webtop_sync_button")}</span>
+                        </>
+                      )}
                     </Button>
 
                     <Button

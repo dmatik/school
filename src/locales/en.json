@@ -33,7 +33,8 @@
     "yesterday": "Yesterday",
     "sync": "Sync",
     "sync_now": "Sync",
-    "syncing": "Syncing..."
+    "syncing": "Syncing...",
+    "sync_success": "Synced successfully"
   },
   "incidents": {
     "title": "School Incidents",
@@ -176,6 +177,7 @@
     "webtop_status_error": "Sync Error",
     "webtop_sync_button": "Sync",
     "webtop_syncing": "Syncing...",
+    "webtop_synced": "Synced",
     "webtop_disconnect": "Disconnect",
     "webtop_disconnect_confirm": "Are you sure you want to disconnect Webtop and remove all synchronized school records?",
     "webtop_active_child": "Active Student",
