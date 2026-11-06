@@ -288,6 +288,58 @@ describe('Webtop Database & Data Models', () => {
     expect(homework[0].completed).toBe(1);
   });
 
+  it('deduplicates cross-user legacy admin-default and family incidents and homework via initDb()', () => {
+    const now = new Date().toISOString();
+
+    // Ensure 'admin-default' user exists for foreign key constraints before initDb drops user FKs
+    db.prepare(`
+      INSERT OR IGNORE INTO users (id, username, password_hash, role, created_at, updated_at)
+      VALUES ('admin-default', 'admin', 'hash', 'admin', ?, ?),
+             ('family', 'family_placeholder', 'hash', 'user', ?, ?)
+    `).run(now, now, now, now);
+
+    // 1. Same incident stored under both 'admin-default' and 'family'
+    const rawEv = JSON.stringify({ eventID: 14504350, eventType: 'אי הכנת ש``ב', subjectName: 'עברית' });
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-admin-default-14504350', 'admin-default', 'child-1', 'כפיר טרוסמן', '2026-10-19', 'אי הכנת ש``ב', 'עברית', 3, 781543, rawEv, now);
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-family-14504350', 'family', 'child-1', 'כפיר טרוסמן', '2026-10-19', 'אי הכנת ש``ב', 'עברית', 3, 781543, rawEv, now);
+
+    // 2. Older incident stored only under 'admin-default' when family incidents exist
+    const rawOldEv = JSON.stringify({ eventID: 5798619, eventType: 'אי הבאת ציוד', subjectName: 'חנ``ג' });
+    db.prepare(`
+      INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('webtop-inc-admin-default-5798619', 'admin-default', 'child-1', 'כפיר טרוסמן', '2026-09-18', 'אי הבאת ציוד', 'חנ``ג', 4, 781546, rawOldEv, now);
+
+    // 3. Same homework stored under both 'admin-default' (completed=1) and 'family' (completed=0)
+    db.prepare(`
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, hour_num, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 2, 1, ?)
+    `).run('webtop-hw-admin-default-כפיר_טרוסמן-2026-10-30-2-אנגלית', 'admin-default', 'child-1', 'כפיר טרוסמן', 'אנגלית', '2026-10-30', now);
+    db.prepare(`
+      INSERT INTO homework (id, user_id, student_id, student_name, subject, due_date, hour_num, completed, created_at)
+      VALUES (?, ?, ?, ?, ?, ?, 2, 0, ?)
+    `).run('webtop-hw-family-כפיר_טרוסמן-2026-10-30-2-אנגלית', 'family', 'child-1', 'כפיר טרוסמן', 'אנגלית', '2026-10-30', now);
+
+    initDb(db);
+
+    const allIncidents = db.prepare('SELECT id, user_id FROM incidents ORDER BY id ASC').all() as any[];
+    expect(allIncidents).toEqual([
+      { id: 'webtop-inc-family-14504350', user_id: 'family' },
+      { id: 'webtop-inc-family-5798619', user_id: 'family' }
+    ]);
+
+    const allHw = db.prepare('SELECT id, user_id, completed FROM homework').all() as any[];
+    expect(allHw).toEqual([
+      { id: 'webtop-hw-family-כפיר_טרוסמן-2026-10-30-2-אנגלית', user_id: 'family', completed: 1 }
+    ]);
+  });
+
   describe('Child Identity & Color Preservation across Ephemeral ID Rotations', () => {
     it('matches by exact ID if tokens have not rotated', () => {
       const prevChildren = [

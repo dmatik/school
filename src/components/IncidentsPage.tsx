@@ -173,11 +173,23 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
       return true
     })
 
-    // Deduplicate in UI by ID or eventCode + date + studentName
+    // Deduplicate in UI by canonical eventID (or eventCode + date + student + hourNum)
     const deduped: Incident[] = []
     const seen = new Set<string>()
     for (const inc of list) {
-      const key = inc.id || `${inc.studentName}::${inc.date}::${inc.type}::${inc.hourNum || 0}`
+      let eventIdKey = ""
+      if (inc.rawData) {
+        try {
+          const parsed = typeof inc.rawData === "string" ? JSON.parse(inc.rawData) : inc.rawData
+          if (parsed && parsed.eventID) {
+            eventIdKey = `eventID::${parsed.eventID}`
+          }
+        } catch {
+          // ignore
+        }
+      }
+      const studentKey = (inc.childId?.trim() || inc.studentId?.trim() || inc.studentName?.trim() || "").toLowerCase()
+      const key = eventIdKey || `${studentKey}::${inc.date}::${inc.type}::${inc.subject || ""}::${inc.hourNum || 0}::${inc.eventCode || ""}`
       if (!seen.has(key)) {
         seen.add(key)
         deduped.push(inc)

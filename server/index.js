@@ -964,7 +964,7 @@ async function syncWebtopData() {
       const incidents = await client.getIncidents(externalChildId, child.classCode);
       for (const ev of incidents) {
         allIncidents.push({
-          id: `webtop-inc-${userId}-${ev.eventID || crypto.randomUUID()}`,
+          id: `webtop-inc-family-${ev.eventID || crypto.randomUUID()}`,
           userId: 'family',
           childId,
           studentId: externalChildId,
@@ -1012,7 +1012,7 @@ async function syncWebtopData() {
 
                 const subject = (item.subject_name || item.subject || '').trim();
                 const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-                const hwId = `webtop-hw-${userId}-${sanitizedChild}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+                const hwId = `webtop-hw-family-${sanitizedChild}-${dayDate}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
                 allHomework.push({
                   id: hwId,
@@ -1049,7 +1049,7 @@ async function syncWebtopData() {
         const hourNum = item.hourNum ? parseInt(item.hourNum, 10) : null;
         const subject = (item.lesson || '').trim();
         const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
-        const hwId = `webtop-hw-${userId}-${sanitizedChild}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
+        const hwId = `webtop-hw-family-${sanitizedChild}-${today}-${hourNum !== null && !isNaN(hourNum) ? hourNum : '0'}-${sanitizedSubject}`;
 
         allHomework.push({
           id: hwId,
@@ -1098,6 +1098,35 @@ async function syncWebtopData() {
       updateHomeworkStudentId.run(child.id, child.externalId, childFullName, child.id, child.externalId);
     }
 
+    // Deduplicate existing incidents by eventID (or canonical attributes) and remove legacy user-scoped duplicates
+    const existingIncidents = db.prepare(`
+      SELECT id, user_id, child_id, student_name, date, type, subject, hour_num, event_code, raw_data
+      FROM incidents
+      WHERE user_id != 'family' AND id LIKE 'webtop-inc-%'
+    `).all();
+    for (const oldInc of existingIncidents) {
+      let evId = null;
+      if (oldInc.raw_data) {
+        try {
+          const parsed = JSON.parse(oldInc.raw_data);
+          if (parsed && parsed.eventID) evId = String(parsed.eventID);
+        } catch {}
+      }
+      if (!evId && oldInc.id.startsWith(`webtop-inc-${oldInc.user_id}-`)) {
+        evId = oldInc.id.slice(`webtop-inc-${oldInc.user_id}-`.length);
+      }
+      if (evId) {
+        const canonicalFamilyId = `webtop-inc-family-${evId}`;
+        const hasCanonical = allIncidents.some(i => i.id === canonicalFamilyId) ||
+          db.prepare('SELECT 1 FROM incidents WHERE id = ?').get(canonicalFamilyId);
+        if (hasCanonical) {
+          db.prepare('DELETE FROM incidents WHERE id = ?').run(oldInc.id);
+        } else {
+          db.prepare('UPDATE incidents SET id = ?, user_id = ? WHERE id = ?').run(canonicalFamilyId, 'family', oldInc.id);
+        }
+      }
+    }
+
     // Upsert incidents
     const upsertIncident = db.prepare(`
       INSERT INTO incidents (id, user_id, child_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
@@ -1123,6 +1152,29 @@ async function syncWebtopData() {
         inc.subject, inc.teacher, inc.description, inc.hourNum, inc.isJustified,
         inc.eventCode, inc.rawData, new Date().toISOString()
       );
+    }
+
+    // Deduplicate existing homework and remove legacy user-scoped duplicates
+    const existingLegacyHw = db.prepare(`
+      SELECT id, user_id, student_name, subject, due_date, hour_num, completed
+      FROM homework
+      WHERE user_id != 'family' AND id LIKE 'webtop-hw-%'
+    `).all();
+    for (const oldHw of existingLegacyHw) {
+      const sanitizedChild = (oldHw.student_name || '').trim().replace(/[^\w\u0590-\u05fe]/g, '_');
+      const subject = (oldHw.subject || 'כללי').trim();
+      const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
+      const hour = (oldHw.hour_num !== null && !isNaN(oldHw.hour_num)) ? oldHw.hour_num : '0';
+      const canonicalFamilyHwId = `webtop-hw-family-${sanitizedChild}-${oldHw.due_date}-${hour}-${sanitizedSubject}`;
+      const existingFam = db.prepare('SELECT id, completed FROM homework WHERE id = ?').get(canonicalFamilyHwId);
+      if (existingFam || dedupedHomework.some(h => h.id === canonicalFamilyHwId)) {
+        if (oldHw.completed && existingFam && !existingFam.completed) {
+          db.prepare('UPDATE homework SET completed = 1 WHERE id = ?').run(canonicalFamilyHwId);
+        }
+        db.prepare('DELETE FROM homework WHERE id = ?').run(oldHw.id);
+      } else {
+        db.prepare('UPDATE homework SET id = ?, user_id = ? WHERE id = ?').run(canonicalFamilyHwId, 'family', oldHw.id);
+      }
     }
 
     // Upsert homework

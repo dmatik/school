@@ -214,6 +214,65 @@ describe('Empty Page Views', () => {
     }
   })
 
+  it('deduplicates incidents in UI when legacy and family records have different IDs for the same Webtop event', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const rawEvent = JSON.stringify({ eventID: 998877, eventType: 'אי הכנת ש``ב', subjectName: 'עברית' })
+    const mockIncidents = [
+      {
+        id: 'webtop-inc-admin-default-998877',
+        type: 'אי הכנת ש``ב',
+        subject: 'עברית',
+        teacher: 'בוקובזה סוזי',
+        studentName: 'כפיר טרוסמן',
+        date: todayStr,
+        hourNum: 3,
+        eventCode: 781543,
+        rawData: rawEvent
+      },
+      {
+        id: 'webtop-inc-family-998877',
+        type: 'אי הכנת ש``ב',
+        subject: 'עברית',
+        teacher: 'בוקובזה סוזי',
+        studentName: 'כפיר טרוסמן',
+        date: todayStr,
+        hourNum: 3,
+        eventCode: 781543,
+        rawData: rawEvent
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/incidents')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ incidents: mockIncidents })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<IncidentsPage token="test-token" />)
+      await waitFor(() => {
+        expect(screen.getAllByText('עברית')).toHaveLength(1)
+      })
+      expect(screen.getAllByText('אי הכנת ש``ב')).toHaveLength(1)
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
   it('renders HomeworkPage with titles and placeholder card', () => {
     render(<HomeworkPage />)
     expect(screen.getByText('homework.title')).toBeInTheDocument()
