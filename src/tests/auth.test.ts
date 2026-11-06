@@ -112,33 +112,65 @@ describe('SQLite Database & Auth System (Isolated In-Memory)', () => {
     expect(user2Incidents[0].type).toBe('Absence')
   })
 
-  it('cascades deletion of incidents and homework when user is deleted', () => {
+  it('preserves shared family incidents and homework when a user is deleted', () => {
     const tempUserId = 'temp-user'
     const now = new Date().toISOString()
 
     db.prepare(`
-      INSERT OR REPLACE INTO users (id, username, password_hash, role, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(tempUserId, 'tempuser', 'hash', 'user', now, now)
+      INSERT OR REPLACE INTO users (id, username, password_hash, role, family_role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(tempUserId, 'tempuser', 'hash', 'user', 'parent', now, now)
 
     db.prepare(`
       INSERT OR REPLACE INTO incidents (id, user_id, student_name, date, type, description, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('temp-inc', tempUserId, 'Temp Student', '2026-03-01', 'Discipline', 'Behavior', now)
+    `).run('temp-inc', 'family', 'Temp Student', '2026-03-01', 'Discipline', 'Behavior', now)
 
     db.prepare(`
       INSERT OR REPLACE INTO homework (id, user_id, student_name, subject, due_date, description, created_at)
       VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run('temp-hw', tempUserId, 'Temp Student', 'Math', '2026-03-05', 'Exercises', now)
+    `).run('temp-hw', 'family', 'Temp Student', 'Math', '2026-03-05', 'Exercises', now)
 
     // Delete user
     db.prepare('DELETE FROM users WHERE id = ?').run(tempUserId)
 
-    // Verify incidents and homework are deleted
-    const incidents = db.prepare('SELECT * FROM incidents WHERE user_id = ?').all(tempUserId)
-    const homework = db.prepare('SELECT * FROM homework WHERE user_id = ?').all(tempUserId)
-    expect(incidents).toHaveLength(0)
-    expect(homework).toHaveLength(0)
+    // Verify incidents and homework are preserved as shared family data
+    const incidents = db.prepare('SELECT * FROM incidents WHERE id = ?').all('temp-inc')
+    const homework = db.prepare('SELECT * FROM homework WHERE id = ?').all('temp-hw')
+    expect(incidents).toHaveLength(1)
+    expect(homework).toHaveLength(1)
+  })
+
+  it('enforces family_role constraint (parent or child) and defaults to parent', () => {
+    const now = new Date().toISOString()
+
+    // Default family_role is parent
+    db.prepare(`
+      INSERT INTO users (id, username, password_hash, role, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?)
+    `).run('user-default-family', 'defaultfam', 'hash', 'user', now, now)
+
+    const user = db.prepare('SELECT family_role, linked_child_id FROM users WHERE id = ?').get('user-default-family') as { family_role: string; linked_child_id: string | null }
+    expect(user.family_role).toBe('parent')
+    expect(user.linked_child_id).toBeNull()
+
+    // Allows child role with linked_child_id
+    db.prepare(`
+      INSERT INTO users (id, username, password_hash, role, family_role, linked_child_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+    `).run('child-user-1', 'childuser1', 'hash', 'user', 'child', 'child-123', now, now)
+
+    const childUser = db.prepare('SELECT family_role, linked_child_id FROM users WHERE id = ?').get('child-user-1') as { family_role: string; linked_child_id: string | null }
+    expect(childUser.family_role).toBe('child')
+    expect(childUser.linked_child_id).toBe('child-123')
+
+    // Rejects invalid family_role
+    expect(() => {
+      db.prepare(`
+        INSERT INTO users (id, username, password_hash, role, family_role, linked_child_id, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+      `).run('invalid-role', 'invalid', 'hash', 'user', 'grandparent', null, now, now)
+    }).toThrow()
   })
 
   it('stores, retrieves, and cascades WebAuthn passkey authenticators', () => {

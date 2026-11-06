@@ -7,6 +7,7 @@ import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
+import type { User } from '../types'
 
 describe('Calendar Component', () => {
   it('renders today with distinct highlight class when unselected', () => {
@@ -140,6 +141,74 @@ describe('Empty Page Views', () => {
       // No calendar icon inside the card
       const card = incType.closest('.rounded-xl')
       expect(card?.querySelector('svg[class*="lucide-calendar"]')).toBeNull()
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders student name badge on incident cards for parent user and hides it for child user', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const mockIncidents = [
+      {
+        id: 'inc-badge-test',
+        type: 'הפרעה',
+        subject: 'מתמטיקה',
+        teacher: 'מורה דוד',
+        studentName: 'דניאל',
+        date: todayStr,
+        hourNum: 3
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/incidents')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ incidents: mockIncidents })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    const parentUser: User = {
+      id: 'p1',
+      username: 'parent',
+      role: 'user',
+      familyRole: 'parent',
+      firstName: 'P',
+      lastName: 'U'
+    }
+
+    const childUser: User = {
+      id: 'c1',
+      username: 'child',
+      role: 'user',
+      familyRole: 'child',
+      linkedChildId: 'k1',
+      firstName: 'C',
+      lastName: 'U'
+    }
+
+    try {
+      // 1. Render as Parent: student name badge is visible
+      const { unmount } = render(<IncidentsPage token="test-token" currentUser={parentUser} />)
+      expect(await screen.findByText('דניאל')).toBeInTheDocument()
+      unmount()
+
+      // 2. Render as Child: student name badge is hidden
+      render(<IncidentsPage token="test-token" currentUser={childUser} />)
+      await screen.findByText('הפרעה')
+      expect(screen.queryByText('דניאל')).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }
@@ -413,6 +482,76 @@ describe('Empty Page Views', () => {
         expect(headerDiv?.querySelectorAll('span')).toHaveLength(0)
         expect(headerDiv?.querySelectorAll('svg')).toHaveLength(0)
       })
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders student name badge on homework cards for parent user and hides it for child user', async () => {
+    const todayStr = format(new Date(), 'yyyy-MM-dd')
+    const mockHomework = [
+      {
+        id: 'hw-badge-test',
+        subject: 'חשבון',
+        studentName: 'דניאל',
+        teacher: 'מורה ישראל',
+        dueDate: todayStr,
+        hourNum: 2,
+        completed: false,
+        description: 'תרגיל 1',
+        rawData: JSON.stringify({ homeWork: 'תרגיל 1' })
+      }
+    ]
+
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: mockHomework })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      })
+    }) as unknown as typeof fetch
+
+    const parentUser: User = {
+      id: 'p1',
+      username: 'parent',
+      role: 'user',
+      familyRole: 'parent',
+      firstName: 'P',
+      lastName: 'U'
+    }
+
+    const childUser: User = {
+      id: 'c1',
+      username: 'child',
+      role: 'user',
+      familyRole: 'child',
+      linkedChildId: 'k1',
+      firstName: 'C',
+      lastName: 'U'
+    }
+
+    try {
+      // 1. Render as Parent: student name badge is visible
+      const { unmount } = render(<HomeworkPage token="test-token" currentUser={parentUser} />)
+      expect(await screen.findByText('דניאל')).toBeInTheDocument()
+      unmount()
+
+      // 2. Render as Child: student name badge is hidden
+      render(<HomeworkPage token="test-token" currentUser={childUser} />)
+      await screen.findByText('חשבון')
+      expect(screen.queryByText('דניאל')).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }

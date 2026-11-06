@@ -68,5 +68,22 @@ test.describe('Navigation Flow', () => {
     await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
   });
+
+  test('child user sees Homework and Incidents, but neither Settings nor Admin tab, and has Sync button', async ({ page }) => {
+    regularUser = createTestUser('user', 'child');
+    await loginWithUser(page, regularUser);
+
+    // Nav items count in aside nav should be 2 (Homework, Incidents)
+    const navButtons = page.locator('aside nav button');
+    await expect(navButtons).toHaveCount(2);
+
+    // Settings and Admin should not be present
+    await expect(page.locator('aside nav').getByText(/הגדרות|Settings/)).not.toBeVisible();
+    await expect(page.locator('aside nav').getByText(/ניהול מערכת|Administration/)).not.toBeVisible();
+
+    // Webtop Sync button remains available in aside footer
+    const syncBtn = page.locator('aside').getByRole('button', { name: /סנכרון|Sync/ });
+    await expect(syncBtn).toBeVisible();
+  });
 });
 

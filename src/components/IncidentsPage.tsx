@@ -24,15 +24,17 @@ import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { getSubjectIcon } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
-import type { Incident, WebtopConfig } from "@/types"
+import type { Incident, WebtopConfig, User as UserType } from "@/types"
 
 interface IncidentsPageProps {
   token?: string | null
   syncTrigger?: number
+  currentUser?: UserType | null
 }
 
-export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
+export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPageProps) {
   const { t, i18n } = useTranslation()
+  const isChild = currentUser?.familyRole === "child"
   const isRtl = i18n.dir() === "rtl"
   const dateLocale = isRtl ? he : enUS
 
@@ -231,10 +233,10 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
           {/* Kids Dropdown & Date Filter in the same row */}
           <div className={cn(
             "gap-2 w-full md:flex md:w-auto md:items-center",
-            webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
+            !isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
           )}>
             {/* Child Selector */}
-            {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+            {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
               <Select value={selectedChildId} onValueChange={setSelectedChildId}>
                 <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-border min-w-0">
                   <div className="flex items-center gap-2 truncate">
@@ -323,7 +325,9 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               {searchQuery || selectedDate
                 ? t("incidents.search_placeholder")
-                : t("incidents.empty_desc")}
+                : (isChild && !currentUser?.linkedChildId
+                    ? t("incidents.child_unlinked_desc")
+                    : t("incidents.empty_desc"))}
             </p>
           </Card>
         </div>
@@ -386,8 +390,8 @@ export function IncidentsPage({ token, syncTrigger }: IncidentsPageProps) {
                             )}
                           </div>
 
-                          {/* Left side (Hebrew/RTL end): Kid name as badge without icon */}
-                          {inc.studentName && (
+                          {/* Left side (Hebrew/RTL end): Kid name as badge without icon (hidden for child users) */}
+                          {!isChild && inc.studentName && (
                             <span className={cn(
                               "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass

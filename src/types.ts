@@ -1,4 +1,5 @@
 export type UserRole = 'admin' | 'user';
+export type FamilyRole = 'parent' | 'child';
 
 export interface User {
   id: string;
@@ -7,6 +8,8 @@ export interface User {
   lastName: string;
   avatar?: string;
   role: UserRole;
+  familyRole: FamilyRole;
+  linkedChildId?: string | null;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -1,4 +1,4 @@
-import db from '../../server/db.js';
+import db, { initDb } from '../../server/db.js';
 import bcrypt from 'bcryptjs';
 import { Page, expect } from '@playwright/test';
 import { randomBytes } from 'crypto';
@@ -8,22 +8,30 @@ export interface TestUser {
   username: string;
   password: string;
   role: 'admin' | 'user';
+  familyRole?: 'parent' | 'child';
+  linkedChildId?: string | null;
 }
 
 /**
  * Creates a unique dedicated test user directly in the database.
  */
-export function createTestUser(role: 'admin' | 'user' = 'admin'): TestUser {
+export function createTestUser(
+  role: 'admin' | 'user' = 'admin',
+  familyRole: 'parent' | 'child' = 'parent',
+  linkedChildId: string | null = null
+): TestUser {
+  initDb(db);
   const uniqueId = `e2e_${Date.now()}_${randomBytes(3).toString('hex')}`;
   const username = `e2e_user_${Date.now()}_${randomBytes(2).toString('hex')}`;
   const password = `Pass_${Date.now()}!`;
   const salt = bcrypt.genSaltSync(10);
   const passwordHash = bcrypt.hashSync(password, salt);
   const now = new Date().toISOString();
+  const effectiveFamilyRole = role === 'admin' ? 'parent' : familyRole;
 
   db.prepare(`
-    INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, family_role, linked_child_id, created_at, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     uniqueId,
     username,
@@ -32,11 +40,13 @@ export function createTestUser(role: 'admin' | 'user' = 'admin'): TestUser {
     'TestUser',
     '',
     role,
+    effectiveFamilyRole,
+    effectiveFamilyRole === 'child' ? linkedChildId : null,
     now,
     now
   );
 
-  return { id: uniqueId, username, password, role };
+  return { id: uniqueId, username, password, role, familyRole: effectiveFamilyRole, linkedChildId };
 }
 
 /**

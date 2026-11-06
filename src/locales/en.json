@@ -54,6 +54,7 @@
     "justified": "Justified",
     "not_justified": "Unjustified",
     "no_incidents_match": "No incidents match the selected filters",
+    "child_unlinked_desc": "Your account is set as a child but is not linked to a student. Contact an administrator to link your account.",
     "sync_now": "Sync",
     "syncing": "Syncing...",
     "last_sync": "Updated: {{date}}",
@@ -81,6 +82,7 @@
     "mark_as_done": "Mark as completed",
     "mark_as_pending": "Mark as pending",
     "no_homework_match": "No homework items match the selected filters",
+    "child_unlinked_desc": "Your account is set as a child but is not linked to a student. Contact an administrator to link your account.",
     "sync_now": "Sync",
     "syncing": "Syncing...",
     "last_sync": "Updated: {{date}}",
@@ -118,6 +120,9 @@
     "role": "Role",
     "role_admin": "Administrator",
     "role_user": "User",
+    "family_role": "Family Role",
+    "role_parent": "Parent",
+    "role_child": "Child",
     "change_photo": "Change Photo",
     "remove_photo": "Remove",
     "avatar_too_large": "Avatar Image Too Large",
@@ -254,7 +259,16 @@
     "default_admin_role_fixed": "The default system admin account role is locked to Administrator.",
     "cannot_delete_sole_admin": "Cannot delete the sole administrator account.",
     "cannot_delete_self": "You cannot delete your own account from the admin dashboard.",
-    "username_taken": "Username is already taken by another account."
+    "username_taken": "Username is already taken by another account.",
+    "family_role": "Family Role",
+    "role_parent": "Parent",
+    "role_child": "Child",
+    "linked_child": "Linked Student (Webtop)",
+    "select_child_placeholder": "Not linked (empty lists)",
+    "no_webtop_children_hint": "No Webtop students synced yet. Unlinked child users will see empty lists.",
+    "unlinked_child_badge": "No linked student",
+    "admin_must_be_parent": "An administrator user can only be a parent.",
+    "admin_parent_only_hint": "Administrator accounts can only be parents."
   }
 }
 

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
-import { User, Lock, Upload, LogOut, Check, Shield, Loader2, Camera, Trash2, Fingerprint, Plus, Smartphone, Laptop, Key } from "lucide-react"
+import { User, Lock, Upload, LogOut, Check, Shield, Loader2, Camera, Trash2, Fingerprint, Plus, Smartphone, Laptop, Key, Users, Baby } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
@@ -386,8 +386,8 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                 </div>
               </div>
 
-              {/* Username & Role (Read only) */}
-              <div className="grid grid-cols-2 gap-4">
+              {/* Username, System Role & Family Role (Read only) */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">{t("auth.username")}</Label>
                   <div className="flex items-center h-9 px-3.5 rounded-full text-sm font-semibold bg-muted/40 border border-border text-foreground shadow-xs truncate">
@@ -399,6 +399,19 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-border shadow-xs text-foreground">
                     <Shield className={`w-4 h-4 shrink-0 ${user.role === 'admin' ? 'text-amber-500' : 'text-blue-500'}`} />
                     <span className="truncate">{user.role === 'admin' ? t("account.role_admin") : t("account.role_user")}</span>
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-xs text-muted-foreground">{t("account.family_role")}</Label>
+                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-border shadow-xs text-foreground">
+                    {user.familyRole === 'child' ? (
+                      <Baby className="w-4 h-4 shrink-0 text-emerald-500" />
+                    ) : (
+                      <Users className="w-4 h-4 shrink-0 text-purple-500" />
+                    )}
+                    <span className="truncate">
+                      {user.familyRole === 'child' ? t("account.role_child") : t("account.role_parent")}
+                    </span>
                   </div>
                 </div>
               </div>
