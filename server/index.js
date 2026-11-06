@@ -184,7 +184,7 @@ export function authenticate(req, res, next) {
   const token = authHeader.split(' ')[1];
   try {
     const payload = jwt.verify(token, JWT_SECRET);
-    const user = db.prepare('SELECT id, username, role, first_name, last_name, token_version FROM users WHERE id = ?').get(payload.id);
+    const user = db.prepare('SELECT id, username, role, family_role, linked_child_id, first_name, last_name, token_version FROM users WHERE id = ?').get(payload.id);
     if (!user) {
       return res.status(401).json({ error: 'User no longer exists' });
     }
@@ -199,6 +199,8 @@ export function authenticate(req, res, next) {
       id: user.id,
       username: user.username,
       role: user.role,
+      familyRole: user.role === 'admin' ? 'parent' : (user.family_role || 'parent'),
+      linkedChildId: user.role === 'admin' ? null : (user.linked_child_id || null),
       firstName: user.first_name || '',
       lastName: user.last_name || ''
     };
@@ -211,6 +213,13 @@ export function authenticate(req, res, next) {
 export function requireAdmin(req, res, next) {
   if (req.user?.role !== 'admin') {
     return res.status(403).json({ error: 'Forbidden: Admin access required' });
+  }
+  next();
+}
+
+export function requireParent(req, res, next) {
+  if (req.user?.familyRole !== 'parent' && req.user?.role !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden: Parent access required' });
   }
   next();
 }
@@ -245,6 +254,8 @@ app.post('/api/auth/login', rateLimitAuth(20, 60000), (req, res) => {
       id: user.id,
       username: user.username,
       role: user.role,
+      familyRole: user.role === 'admin' ? 'parent' : (user.family_role || 'parent'),
+      linkedChildId: user.role === 'admin' ? null : (user.linked_child_id || null),
       firstName: user.first_name || '',
       lastName: user.last_name || '',
       avatar: user.avatar || ''
@@ -456,6 +467,8 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
         id: user.id,
         username: user.username,
         role: user.role,
+        familyRole: user.role === 'admin' ? 'parent' : (user.family_role || 'parent'),
+        linkedChildId: user.role === 'admin' ? null : (user.linked_child_id || null),
         firstName: user.first_name || '',
         lastName: user.last_name || '',
         avatar: user.avatar || ''
@@ -548,12 +561,14 @@ app.put('/api/auth/profile', authenticate, (req, res) => {
     req.user.id
   );
 
-  const updatedUser = db.prepare('SELECT id, username, role, first_name, last_name, avatar FROM users WHERE id = ?').get(req.user.id);
+  const updatedUser = db.prepare('SELECT id, username, role, family_role, linked_child_id, first_name, last_name, avatar FROM users WHERE id = ?').get(req.user.id);
   res.json({
     user: {
       id: updatedUser.id,
       username: updatedUser.username,
       role: updatedUser.role,
+      familyRole: updatedUser.role === 'admin' ? 'parent' : (updatedUser.family_role || 'parent'),
+      linkedChildId: updatedUser.role === 'admin' ? null : (updatedUser.linked_child_id || null),
       firstName: updatedUser.first_name || '',
       lastName: updatedUser.last_name || '',
       avatar: updatedUser.avatar || ''
@@ -591,7 +606,7 @@ app.put('/api/auth/password', authenticate, (req, res) => {
 app.get('/api/admin/users', authenticate, requireAdmin, (req, res) => {
   try {
     const users = db.prepare(`
-      SELECT id, username, first_name, last_name, avatar, role, created_at, updated_at
+      SELECT id, username, first_name, last_name, avatar, role, family_role, linked_child_id, created_at, updated_at
       FROM users
       ORDER BY created_at ASC
     `).all();
@@ -604,6 +619,8 @@ app.get('/api/admin/users', authenticate, requireAdmin, (req, res) => {
         lastName: u.last_name || '',
         avatar: u.avatar || '',
         role: u.role,
+        familyRole: u.role === 'admin' ? 'parent' : (u.family_role || 'parent'),
+        linkedChildId: u.role === 'admin' ? null : (u.linked_child_id || null),
         createdAt: u.created_at,
         updatedAt: u.updated_at
       }))
@@ -617,7 +634,7 @@ app.get('/api/admin/users', authenticate, requireAdmin, (req, res) => {
 // POST /api/admin/users
 app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
   try {
-    const { username, password, firstName, lastName, role } = req.body;
+    const { username, password, firstName, lastName, role, familyRole, linkedChildId } = req.body;
     if (!username || !password) {
       return res.status(400).json({ error: 'Username and password are required' });
     }
@@ -632,6 +649,12 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
     }
 
     const userRole = role === 'admin' ? 'admin' : 'user';
+    if (userRole === 'admin' && familyRole === 'child') {
+      return res.status(400).json({ error: 'admin_must_be_parent' });
+    }
+
+    const userFamilyRole = userRole === 'admin' ? 'parent' : (familyRole === 'child' ? 'child' : 'parent');
+    const userLinkedChildId = userFamilyRole === 'child' ? (linkedChildId ? String(linkedChildId).trim() : null) : null;
 
     const existing = db.prepare('SELECT id FROM users WHERE username = ? COLLATE NOCASE').get(cleanUsername);
     if (existing) {
@@ -644,8 +667,8 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
     const now = new Date().toISOString();
 
     db.prepare(`
-      INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, family_role, linked_child_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(
       id,
       cleanUsername,
@@ -654,6 +677,8 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
       lastName?.trim() || '',
       '',
       userRole,
+      userFamilyRole,
+      userLinkedChildId,
       now,
       now
     );
@@ -666,6 +691,8 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
         lastName: lastName?.trim() || '',
         avatar: '',
         role: userRole,
+        familyRole: userFamilyRole,
+        linkedChildId: userLinkedChildId,
         createdAt: now
       }
     });
@@ -679,7 +706,7 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
 app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, role } = req.body;
+    const { firstName, lastName, role, familyRole, linkedChildId } = req.body;
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
     if (!user) {
@@ -689,6 +716,25 @@ app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
     let targetRole = user.role;
     if (role !== undefined) {
       targetRole = role === 'admin' ? 'admin' : 'user';
+    }
+
+    let targetFamilyRole = user.family_role || 'parent';
+    if (familyRole !== undefined) {
+      targetFamilyRole = familyRole === 'child' ? 'child' : 'parent';
+    }
+
+    if (targetRole === 'admin') {
+      if (familyRole === 'child') {
+        return res.status(400).json({ error: 'admin_must_be_parent' });
+      }
+      targetFamilyRole = 'parent';
+    }
+
+    let targetLinkedChildId = user.linked_child_id;
+    if (targetFamilyRole === 'parent') {
+      targetLinkedChildId = null;
+    } else if (linkedChildId !== undefined) {
+      targetLinkedChildId = linkedChildId ? String(linkedChildId).trim() : null;
     }
 
     const isDefaultAdmin = id === 'admin-default' || user.username.toLowerCase() === 'admin';
@@ -707,17 +753,19 @@ app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
 
     db.prepare(`
       UPDATE users
-      SET first_name = ?, last_name = ?, role = ?, updated_at = ?
+      SET first_name = ?, last_name = ?, role = ?, family_role = ?, linked_child_id = ?, updated_at = ?
       WHERE id = ?
     `).run(
       firstName !== undefined ? String(firstName).trim() : user.first_name,
       lastName !== undefined ? String(lastName).trim() : user.last_name,
       targetRole,
+      targetFamilyRole,
+      targetLinkedChildId,
       now,
       id
     );
 
-    const updated = db.prepare('SELECT id, username, first_name, last_name, avatar, role, created_at FROM users WHERE id = ?').get(id);
+    const updated = db.prepare('SELECT id, username, first_name, last_name, avatar, role, family_role, linked_child_id, created_at FROM users WHERE id = ?').get(id);
     res.json({
       user: {
         id: updated.id,
@@ -726,6 +774,8 @@ app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
         lastName: updated.last_name || '',
         avatar: updated.avatar || '',
         role: updated.role,
+        familyRole: updated.role === 'admin' ? 'parent' : (updated.family_role || 'parent'),
+        linkedChildId: updated.role === 'admin' ? null : (updated.linked_child_id || null),
         createdAt: updated.created_at
       }
     });
@@ -816,8 +866,8 @@ app.get('/api/users', authenticate, requireAdmin, (req, res) => {
 
 /* --- Webtop Sync & Data Endpoints --- */
 
-async function syncWebtopData(userId) {
-  const creds = db.prepare('SELECT * FROM webtop_credentials WHERE user_id = ?').get(userId);
+async function syncWebtopData() {
+  const creds = db.prepare('SELECT * FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
   if (!creds) {
     throw new Error('Webtop credentials not configured');
   }
@@ -851,8 +901,8 @@ async function syncWebtopData(userId) {
   // Upsert into dedicated relational children table
   const upsertChild = db.prepare(`
     INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, external_id, external_source, created_at, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
-    ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+    VALUES (?, 'family', ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
+    ON CONFLICT(id) DO UPDATE SET
       class_code = excluded.class_code,
       class_num = excluded.class_num,
       cellphone = excluded.cellphone,
@@ -865,7 +915,6 @@ async function syncWebtopData(userId) {
     const childId = generateChildId(c.firstName, c.lastName);
     upsertChild.run(
       childId,
-      userId,
       (c.firstName || '').trim(),
       (c.lastName || '').trim(),
       c.classCode || null,
@@ -881,9 +930,9 @@ async function syncWebtopData(userId) {
   const linkedChildren = db.prepare(`
     SELECT id, first_name as firstName, last_name as lastName, class_code as classCode, class_num as classNum, cellphone, color, external_id as externalId
     FROM children
-    WHERE user_id = ? AND external_source = 'webtop'
+    WHERE external_source = 'webtop'
     ORDER BY class_code ASC, first_name ASC
-  `).all(userId);
+  `).all();
 
   let selectedChildId = creds.selected_child_id;
   if (selectedChildId === 'all') {
@@ -898,8 +947,8 @@ async function syncWebtopData(userId) {
   db.prepare(`
     UPDATE webtop_credentials
     SET selected_child_id = ?, sync_status = 'syncing', updated_at = ?
-    WHERE user_id = ?
-  `).run(selectedChildId, now, userId);
+    WHERE id = ?
+  `).run(selectedChildId, now, creds.id);
 
   const allIncidents = [];
   const allHomework = [];
@@ -916,7 +965,7 @@ async function syncWebtopData(userId) {
       for (const ev of incidents) {
         allIncidents.push({
           id: `webtop-inc-${userId}-${ev.eventID || crypto.randomUUID()}`,
-          userId,
+          userId: 'family',
           childId,
           studentId: externalChildId,
           studentName: childFullName,
@@ -967,7 +1016,7 @@ async function syncWebtopData(userId) {
 
                 allHomework.push({
                   id: hwId,
-                  userId,
+                  userId: 'family',
                   childId,
                   studentId: externalChildId,
                   studentName: childFullName,
@@ -1004,7 +1053,7 @@ async function syncWebtopData(userId) {
 
         allHomework.push({
           id: hwId,
-          userId,
+          userId: 'family',
           childId,
           studentId: externalChildId,
           studentName: childFullName,
@@ -1029,30 +1078,30 @@ async function syncWebtopData(userId) {
   }
   const dedupedHomework = Array.from(uniqueHomeworkMap.values());
 
-  // Atomically update DB records for this user
+  // Atomically update DB records for the family
   const syncTx = db.transaction(() => {
     // Keep historical student_id & child_id in incidents & homework synchronized
     const updateIncidentStudentId = db.prepare(`
       UPDATE incidents
       SET child_id = ?, student_id = ?
-      WHERE user_id = ? AND (student_name = ? OR child_id = ? OR student_id = ?)
+      WHERE student_name = ? OR child_id = ? OR student_id = ?
     `);
     const updateHomeworkStudentId = db.prepare(`
       UPDATE homework
       SET child_id = ?, student_id = ?
-      WHERE user_id = ? AND (student_name = ? OR child_id = ? OR student_id = ?)
+      WHERE student_name = ? OR child_id = ? OR student_id = ?
     `);
 
     for (const child of linkedChildren) {
       const childFullName = `${child.firstName} ${child.lastName}`.trim();
-      updateIncidentStudentId.run(child.id, child.externalId, userId, childFullName, child.id, child.externalId);
-      updateHomeworkStudentId.run(child.id, child.externalId, userId, childFullName, child.id, child.externalId);
+      updateIncidentStudentId.run(child.id, child.externalId, childFullName, child.id, child.externalId);
+      updateHomeworkStudentId.run(child.id, child.externalId, childFullName, child.id, child.externalId);
     }
 
     // Upsert incidents
     const upsertIncident = db.prepare(`
       INSERT INTO incidents (id, user_id, child_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         child_id = excluded.child_id,
         student_id = excluded.student_id,
@@ -1070,7 +1119,7 @@ async function syncWebtopData(userId) {
 
     for (const inc of allIncidents) {
       upsertIncident.run(
-        inc.id, inc.userId, inc.childId, inc.studentId, inc.studentName, inc.date, inc.type,
+        inc.id, inc.childId, inc.studentId, inc.studentName, inc.date, inc.type,
         inc.subject, inc.teacher, inc.description, inc.hourNum, inc.isJustified,
         inc.eventCode, inc.rawData, new Date().toISOString()
       );
@@ -1079,7 +1128,7 @@ async function syncWebtopData(userId) {
     // Upsert homework
     const upsertHw = db.prepare(`
       INSERT INTO homework (id, user_id, child_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, raw_data, created_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(id) DO UPDATE SET
         child_id = excluded.child_id,
         student_id = excluded.student_id,
@@ -1095,7 +1144,7 @@ async function syncWebtopData(userId) {
 
     for (const hw of dedupedHomework) {
       upsertHw.run(
-        hw.id, hw.userId, hw.childId, hw.studentId, hw.studentName, hw.subject,
+        hw.id, hw.childId, hw.studentId, hw.studentName, hw.subject,
         hw.teacher, hw.dueDate, hw.description, hw.lessonSubject, hw.hourNum,
         hw.rawData, new Date().toISOString()
       );
@@ -1105,8 +1154,8 @@ async function syncWebtopData(userId) {
     db.prepare(`
       UPDATE webtop_credentials
       SET last_synced_at = ?, sync_status = 'success', sync_error = null, updated_at = ?
-      WHERE user_id = ?
-    `).run(new Date().toISOString(), new Date().toISOString(), userId);
+      WHERE id = ?
+    `).run(new Date().toISOString(), new Date().toISOString(), creds.id);
   });
 
   syncTx();
@@ -1118,14 +1167,27 @@ async function syncWebtopData(userId) {
   };
 }
 
+let activeSyncPromise = null;
+
+async function runWebtopSync() {
+  if (activeSyncPromise) {
+    return activeSyncPromise;
+  }
+  activeSyncPromise = syncWebtopData().finally(() => {
+    activeSyncPromise = null;
+  });
+  return activeSyncPromise;
+}
+
 // GET /api/webtop/config
 app.get('/api/webtop/config', authenticate, (req, res) => {
   try {
     const creds = db.prepare(`
       SELECT username, selected_child_id, last_synced_at, sync_status, sync_error
       FROM webtop_credentials
-      WHERE user_id = ?
-    `).get(req.user.id);
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `).get();
 
     if (!creds) {
       return res.json({
@@ -1139,18 +1201,33 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
       });
     }
 
-    const linkedChildren = db.prepare(`
+    const allChildren = db.prepare(`
       SELECT id, first_name as firstName, last_name as lastName, class_code as classCode, class_num as classNum, cellphone, color, external_id as externalId
       FROM children
-      WHERE user_id = ? AND external_source = 'webtop'
+      WHERE external_source = 'webtop'
       ORDER BY class_code ASC, first_name ASC
-    `).all(req.user.id);
+    `).all();
+
+    if (req.user.familyRole === 'child') {
+      const childRecord = req.user.linkedChildId
+        ? allChildren.find(c => c.id === req.user.linkedChildId || (c.externalId && c.externalId === req.user.linkedChildId))
+        : null;
+      return res.json({
+        configured: true,
+        username: null,
+        selectedChildId: req.user.linkedChildId || null,
+        linkedChildren: childRecord ? [childRecord] : [],
+        lastSyncedAt: creds.last_synced_at,
+        syncStatus: creds.sync_status,
+        syncError: null
+      });
+    }
 
     res.json({
       configured: true,
       username: creds.username,
       selectedChildId: creds.selected_child_id,
-      linkedChildren,
+      linkedChildren: allChildren,
       lastSyncedAt: creds.last_synced_at,
       syncStatus: creds.sync_status,
       syncError: creds.sync_error
@@ -1162,7 +1239,7 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
 });
 
 // POST /api/webtop/test - verify credentials live without persisting
-app.post('/api/webtop/test', authenticate, async (req, res) => {
+app.post('/api/webtop/test', authenticate, requireParent, async (req, res) => {
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -1198,8 +1275,8 @@ app.post('/api/webtop/test', authenticate, async (req, res) => {
   }
 });
 
-// POST /api/webtop/config - save credentials & run initial sync
-app.post('/api/webtop/config', authenticate, async (req, res) => {
+// POST /api/webtop/config - save credentials & run initial sync (parent only)
+app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => {
   try {
     const { username, password, selectedChildId } = req.body;
     if (!username || !password) {
@@ -1214,8 +1291,8 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
 
     const upsertChild = db.prepare(`
       INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, external_id, external_source, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
-      ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+      VALUES (?, 'family', ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
+      ON CONFLICT(id) DO UPDATE SET
         class_code = excluded.class_code,
         class_num = excluded.class_num,
         cellphone = excluded.cellphone,
@@ -1228,7 +1305,6 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
       const childId = generateChildId(c.firstName, c.lastName);
       upsertChild.run(
         childId,
-        req.user.id,
         (c.firstName || '').trim(),
         (c.lastName || '').trim(),
         c.classCode || null,
@@ -1243,9 +1319,9 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
     const linkedChildren = db.prepare(`
       SELECT id, first_name as firstName, last_name as lastName, class_code as classCode, class_num as classNum, cellphone, color, external_id as externalId
       FROM children
-      WHERE user_id = ? AND external_source = 'webtop'
+      WHERE external_source = 'webtop'
       ORDER BY class_code ASC, first_name ASC
-    `).all(req.user.id);
+    `).all();
 
     let effectiveChildId = selectedChildId;
     if (effectiveChildId === 'all') {
@@ -1259,23 +1335,24 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
     }
 
     const encryptedPass = encryptPassword(password);
+    const existing = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
 
     if (existing) {
       db.prepare(`
         UPDATE webtop_credentials
         SET username = ?, encrypted_password = ?, selected_child_id = ?, updated_at = ?
-        WHERE user_id = ?
-      `).run(username, encryptedPass, effectiveChildId, now, req.user.id);
+        WHERE id = ?
+      `).run(username, encryptedPass, effectiveChildId, now, existing.id);
     } else {
       db.prepare(`
         INSERT INTO webtop_credentials (id, user_id, username, encrypted_password, selected_child_id, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?)
-      `).run(crypto.randomUUID(), req.user.id, username, encryptedPass, effectiveChildId, now, now);
+        VALUES (?, 'family', ?, ?, ?, ?, ?)
+      `).run(crypto.randomUUID(), username, encryptedPass, effectiveChildId, now, now);
     }
 
     let syncResult = null;
     try {
-      syncResult = await syncWebtopData(req.user.id);
+      syncResult = await syncWebtopData();
     } catch (syncErr) {
       console.warn('Initial sync warning:', syncErr.message);
     }
@@ -1293,8 +1370,8 @@ app.post('/api/webtop/config', authenticate, async (req, res) => {
   }
 });
 
-// PATCH /api/webtop/child - switch active child
-app.patch('/api/webtop/child', authenticate, (req, res) => {
+// PATCH /api/webtop/child - switch active child (parent only)
+app.patch('/api/webtop/child', authenticate, requireParent, (req, res) => {
   try {
     const { childId } = req.body;
     if (!childId) {
@@ -1305,8 +1382,8 @@ app.patch('/api/webtop/child', authenticate, (req, res) => {
     if (childId !== 'all') {
       const match = db.prepare(`
         SELECT id FROM children
-        WHERE user_id = ? AND (id = ? OR external_id = ?)
-      `).get(req.user.id, childId, childId);
+        WHERE (id = ? OR external_id = ?)
+      `).get(childId, childId);
 
       if (!match) {
         return res.status(400).json({ error: 'Child not found in linked children' });
@@ -1314,11 +1391,14 @@ app.patch('/api/webtop/child', authenticate, (req, res) => {
       targetChildId = match.id;
     }
 
-    db.prepare(`
-      UPDATE webtop_credentials
-      SET selected_child_id = ?, updated_at = ?
-      WHERE user_id = ?
-    `).run(targetChildId, new Date().toISOString(), req.user.id);
+    const creds = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
+    if (creds) {
+      db.prepare(`
+        UPDATE webtop_credentials
+        SET selected_child_id = ?, updated_at = ?
+        WHERE id = ?
+      `).run(targetChildId, new Date().toISOString(), creds.id);
+    }
 
     res.json({ success: true, selectedChildId: targetChildId });
   } catch (err) {
@@ -1327,8 +1407,8 @@ app.patch('/api/webtop/child', authenticate, (req, res) => {
   }
 });
 
-// PATCH /api/webtop/child-color - set badge color for a linked child
-app.patch('/api/webtop/child-color', authenticate, (req, res) => {
+// PATCH /api/webtop/child-color - set badge color for a linked child (parent only)
+app.patch('/api/webtop/child-color', authenticate, requireParent, (req, res) => {
   try {
     const { childId, color } = req.body;
     if (!childId) {
@@ -1347,8 +1427,8 @@ app.patch('/api/webtop/child-color', authenticate, (req, res) => {
     const result = db.prepare(`
       UPDATE children
       SET color = ?, updated_at = ?
-      WHERE user_id = ? AND (id = ? OR external_id = ?)
-    `).run(cleanColor, now, req.user.id, childId, childId);
+      WHERE (id = ? OR external_id = ?)
+    `).run(cleanColor, now, childId, childId);
 
     if (result.changes === 0) {
       return res.status(404).json({ error: 'Child not found in linked children' });
@@ -1357,9 +1437,9 @@ app.patch('/api/webtop/child-color', authenticate, (req, res) => {
     const linkedChildren = db.prepare(`
       SELECT id, first_name as firstName, last_name as lastName, class_code as classCode, class_num as classNum, cellphone, color, external_id as externalId
       FROM children
-      WHERE user_id = ? AND external_source = 'webtop'
+      WHERE external_source = 'webtop'
       ORDER BY class_code ASC, first_name ASC
-    `).all(req.user.id);
+    `).all();
 
     res.json({ success: true, linkedChildren });
   } catch (err) {
@@ -1368,37 +1448,40 @@ app.patch('/api/webtop/child-color', authenticate, (req, res) => {
   }
 });
 
-// POST /api/webtop/sync - trigger manual sync
+// POST /api/webtop/sync - trigger manual sync (available to all family members)
 app.post('/api/webtop/sync', authenticate, async (req, res) => {
   try {
-    const creds = db.prepare('SELECT id FROM webtop_credentials WHERE user_id = ?').get(req.user.id);
+    const creds = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
     if (!creds) {
       return res.status(400).json({ error: 'Webtop credentials not configured' });
     }
 
-    const result = await syncWebtopData(req.user.id);
+    const result = await runWebtopSync();
     res.json({ success: true, result });
   } catch (err) {
     console.error('Failed to sync Webtop data:', err);
     // Persist error status
-    db.prepare(`
-      UPDATE webtop_credentials
-      SET sync_status = 'error', sync_error = ?, updated_at = ?
-      WHERE user_id = ?
-    `).run(err.message || 'Sync failed', new Date().toISOString(), req.user.id);
+    const creds = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
+    if (creds) {
+      db.prepare(`
+        UPDATE webtop_credentials
+        SET sync_status = 'error', sync_error = ?, updated_at = ?
+        WHERE id = ?
+      `).run(err.message || 'Sync failed', new Date().toISOString(), creds.id);
+    }
 
     res.status(500).json({ error: err.message || 'Failed to sync Webtop data' });
   }
 });
 
-// DELETE /api/webtop/config - remove credentials and clear synced data
-app.delete('/api/webtop/config', authenticate, (req, res) => {
+// DELETE /api/webtop/config - remove credentials and clear synced data (parent only)
+app.delete('/api/webtop/config', authenticate, requireParent, (req, res) => {
   try {
     const deleteTx = db.transaction(() => {
-      db.prepare('DELETE FROM webtop_credentials WHERE user_id = ?').run(req.user.id);
-      db.prepare('DELETE FROM incidents WHERE user_id = ?').run(req.user.id);
-      db.prepare('DELETE FROM homework WHERE user_id = ?').run(req.user.id);
-      db.prepare('DELETE FROM children WHERE user_id = ? AND external_source = ?').run(req.user.id, 'webtop');
+      db.prepare('DELETE FROM webtop_credentials').run();
+      db.prepare('DELETE FROM incidents').run();
+      db.prepare('DELETE FROM homework').run();
+      db.prepare("DELETE FROM children WHERE external_source = 'webtop'").run();
     });
     deleteTx();
     res.json({ success: true });
@@ -1412,15 +1495,28 @@ app.delete('/api/webtop/config', authenticate, (req, res) => {
 app.get('/api/incidents', authenticate, (req, res) => {
   try {
     const { childId } = req.query;
+
+    if (req.user.familyRole === 'child') {
+      if (!req.user.linkedChildId) {
+        return res.json({ incidents: [] });
+      }
+      const incidents = db.prepare(`
+        SELECT id, child_id as childId, student_id as studentId, student_name as studentName, date, type, subject, teacher, description, hour_num as hourNum, is_justified as isJustified, event_code as eventCode, raw_data as rawData, created_at as createdAt
+        FROM incidents
+        WHERE (child_id = ? OR student_id = ?)
+        ORDER BY date DESC, hour_num ASC
+      `).all(req.user.linkedChildId, req.user.linkedChildId);
+      return res.json({ incidents });
+    }
+
     let query = `
       SELECT id, child_id as childId, student_id as studentId, student_name as studentName, date, type, subject, teacher, description, hour_num as hourNum, is_justified as isJustified, event_code as eventCode, raw_data as rawData, created_at as createdAt
       FROM incidents
-      WHERE user_id = ?
     `;
-    const params = [req.user.id];
+    const params = [];
 
     if (childId && childId !== 'all') {
-      query += ` AND (child_id = ? OR student_id = ?)`;
+      query += ` WHERE (child_id = ? OR student_id = ?)`;
       params.push(childId, childId);
     }
 
@@ -1438,15 +1534,28 @@ app.get('/api/incidents', authenticate, (req, res) => {
 app.get('/api/homework', authenticate, (req, res) => {
   try {
     const { childId } = req.query;
+
+    if (req.user.familyRole === 'child') {
+      if (!req.user.linkedChildId) {
+        return res.json({ homework: [] });
+      }
+      const homework = db.prepare(`
+        SELECT id, child_id as childId, student_id as studentId, student_name as studentName, subject, teacher, due_date as dueDate, description, lesson_subject as lessonSubject, hour_num as hourNum, completed, raw_data as rawData, created_at as createdAt
+        FROM homework
+        WHERE (child_id = ? OR student_id = ?)
+        ORDER BY due_date DESC, hour_num ASC
+      `).all(req.user.linkedChildId, req.user.linkedChildId);
+      return res.json({ homework: homework.map(h => ({ ...h, completed: Boolean(h.completed) })) });
+    }
+
     let query = `
       SELECT id, child_id as childId, student_id as studentId, student_name as studentName, subject, teacher, due_date as dueDate, description, lesson_subject as lessonSubject, hour_num as hourNum, completed, raw_data as rawData, created_at as createdAt
       FROM homework
-      WHERE user_id = ?
     `;
-    const params = [req.user.id];
+    const params = [];
 
     if (childId && childId !== 'all') {
-      query += ` AND (child_id = ? OR student_id = ?)`;
+      query += ` WHERE (child_id = ? OR student_id = ?)`;
       params.push(childId, childId);
     }
 
@@ -1463,13 +1572,19 @@ app.get('/api/homework', authenticate, (req, res) => {
 // PATCH /api/homework/:id/toggle
 app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
   try {
-    const item = db.prepare('SELECT id, completed FROM homework WHERE id = ? AND user_id = ?').get(req.params.id, req.user.id);
+    const item = db.prepare('SELECT id, child_id, student_id, completed FROM homework WHERE id = ?').get(req.params.id);
     if (!item) {
       return res.status(404).json({ error: 'Homework item not found' });
     }
 
+    if (req.user.familyRole === 'child') {
+      if (!req.user.linkedChildId || (item.child_id !== req.user.linkedChildId && item.student_id !== req.user.linkedChildId)) {
+        return res.status(403).json({ error: 'Forbidden: Cannot toggle another student\'s homework' });
+      }
+    }
+
     const newCompleted = item.completed ? 0 : 1;
-    db.prepare('UPDATE homework SET completed = ? WHERE id = ? AND user_id = ?').run(newCompleted, req.params.id, req.user.id);
+    db.prepare('UPDATE homework SET completed = ? WHERE id = ?').run(newCompleted, req.params.id);
 
     res.json({ success: true, completed: Boolean(newCompleted) });
   } catch (err) {

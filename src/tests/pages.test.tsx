@@ -18,6 +18,8 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
       id: `test-admin-${uniqueRunId}`,
       username: `admin_${uniqueRunId}`,
       role: 'admin',
+      familyRole: 'parent',
+      linkedChildId: null,
       firstName: 'TestAdminFirst',
       lastName: 'TestAdminLast',
       avatar: ''
@@ -27,6 +29,8 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
       id: `test-user-${uniqueRunId}`,
       username: `parent_${uniqueRunId}`,
       role: 'user',
+      familyRole: 'parent',
+      linkedChildId: null,
       firstName: 'TestParentFirst',
       lastName: 'TestParentLast',
       avatar: ''
@@ -121,6 +125,22 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
 
       await waitFor(() => {
         expect(screen.queryByText('admin.create_user_modal_title')).not.toBeInTheDocument()
+      })
+    })
+
+    it('opens reset password dialog for selected user', async () => {
+      render(<AdminPage currentUser={testAdminUser} token="mock-test-jwt-token" />)
+
+      await waitFor(() => {
+        expect(screen.getByText(`(${testRegularUser.username})`)).toBeInTheDocument()
+      })
+
+      const resetButtons = screen.getAllByTitle('admin.reset_password')
+      fireEvent.click(resetButtons[1])
+
+      await waitFor(() => {
+        expect(screen.getByText('admin.reset_password_modal_desc')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /admin\.confirm_reset_password/i })).toBeInTheDocument()
       })
     })
   })

@@ -7,7 +7,7 @@
 
 **School** (בית הספר) is a sleek, modern, mobile-first web application designed for parents and students to monitor school life, homework assignments, attendance, and disciplinary incidents synced directly from the Israeli **Webtop** (SmartSchool) portal.
 
-Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual support (**Hebrew RTL** as default, and **English LTR**), it features an ultra-responsive interface with a floating liquid glass dock, multi-user authentication with biometric passkeys, per-child color customizer, and complete self-hosting capabilities backed by an embedded SQLite database.
+Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual support (**Hebrew RTL** as default, and **English LTR**), it features an ultra-responsive interface with a floating liquid glass dock, a family-shared architecture with parent and child roles, biometric passkeys, per-child color customizer, and complete self-hosting capabilities backed by an embedded SQLite database.
 
 > 🌐 **Bilingual First:** Fully localized in **Hebrew (RTL, default)** and **English (LTR)** with instant language switching and logical directional layouts.
 
@@ -28,11 +28,20 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **Multi-Student Filtering:** Easily filter incidents by specific child or view all siblings together in a consolidated feed.
 
 ### ⚙️ Webtop Integration & Settings (הגדרות וסנכרון)
+*   **Centralized Family Configuration:** Exactly one shared Webtop integration per family—configured and managed exclusively by parent accounts, eliminating duplicate integrations.
 *   **Native Webtop Connector:** Connects directly to the SmartSchool Webtop server with real-time connection testing and diagnostic error feedback.
-*   **Encrypted Credentials at Rest:** User credentials are encrypted in SQLite using **AES-256-GCM** with PBKDF2/scrypt derived encryption keys.
+*   **Encrypted Credentials at Rest:** Credentials are encrypted in SQLite using **AES-256-GCM** with PBKDF2/scrypt derived encryption keys.
 *   **Ephemeral ID Resilience:** Heuristic matching (`matchChildWithPrevious`) maintains child identity, settings, and color selections even when Webtop rotates student session tokens or IDs across days.
-*   **Per-Child Custom Color Badges:** Assign distinctive accent colors (Blue, Emerald, Purple, Amber, Rose, Cyan, Orange, Indigo) to each child, propagating instantly across all homework and incident feeds for effortless multi-child tracking.
-*   **One-Touch Instant Sync:** Quick-sync button with rotating animation and instant green checkmark confirmation in the desktop header, sidebar, and settings panel.
+*   **Per-Child Custom Color Badges:** Assign distinctive accent colors (Blue, Emerald, Purple, Amber, Rose, Cyan, Orange, Indigo) to each child, propagating across all homework and incident feeds for effortless multi-child tracking.
+*   **Universal One-Touch Sync:** Quick-sync button available to both parents and children in the desktop header, sidebar, and mobile header to update the family's shared data at any time.
+
+### 👨‍👩‍👧‍👦 Family Architecture & Secondary Roles
+*   **Shared Family Data Model:** Homework, incidents, children records, and Webtop credentials belong to the family entity. Deleting individual users preserves the family's academic history.
+*   **Secondary Roles (`Parent` vs `Child`):**
+    *   **Parent:** Full access to all siblings' feeds, filter selectors, color customizer, and Webtop settings.
+    *   **Child:** Focused, private view scoped strictly to their own homework and incidents (no sibling selector or student badges on cards). Settings tab is hidden to protect integration credentials, while the family Sync button remains fully accessible.
+    *   **Student Account Linking:** Administrators link child accounts directly to their corresponding Webtop student profile. Unlinked child accounts display clear guidance to request linking from an administrator.
+*   **Administrative Invariant:** Administrators can create and manage user accounts and reset passwords, and system administrators are strictly locked to the `parent` role.
 
 ### 🎨 Apple-Inspired Mobile Polish & Modern UI/UX
 *   **Floating Liquid Glass Dock:** Custom bottom navigation bar (`apple-liquid-dock`) with spring physics pill animation (`apple-liquid-pill` powered by **Framer Motion**).
@@ -51,13 +60,17 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **JWT Session Authentication:** Signed tokens with configurable expiration, database-backed `token_version` tracking, and automatic token invalidation upon password reset.
 *   **Bcrypt Hashing:** User passwords securely hashed with bcrypt (salt rounds = 10).
 *   **Protected Administration:** Built-in safeguards preventing deletion or role demotion of the last remaining admin or default administrator.
-*   **Cascading Integrity:** Foreign-key cascade deletion in SQLite ensures clean database teardowns when removing users or passkeys.
+*   **Family Data Integrity:** Authenticators cascade on user deletion, while shared family data (Webtop credentials, student list, homework, incidents) remains preserved in SQLite.
 
 ### 👥 User & Account Administration
-*   **Account Management:** Update first and last names, change passwords, and upload avatar photos with automatic client-side canvas compression (`compressImage`).
-*   **Role-Based Access Control:**
-    *   **Admin:** Full administrative dashboard to view, create, edit, search, and delete users, as well as trigger administrative password resets.
-    *   **User:** Access scoped strictly to the authenticated user's assigned student records, settings, and Webtop credentials.
+*   **Account Management:** Update first and last names, change passwords, and upload avatar photos with automatic client-side canvas compression (`compressImage`). Personal info displays both system and family roles.
+*   **Dual-Tier Role-Based Access Control:**
+    *   **System Role (`Admin` vs `User`):**
+        *   **Admin:** Full administrative dashboard to create, edit, search, and delete users, assign family roles, link students, and trigger password resets. System administrators are strictly locked to the `parent` role.
+        *   **User:** Standard member access.
+    *   **Family Role (`Parent` vs `Child`):**
+        *   **Parent:** Full access to all children's homework and incidents with sibling filter switcher and custom color badges, plus full access to the Webtop integration tab.
+        *   **Child:** View restricted to their own assignments and incidents (no sibling selector, no student badges on cards). Settings tab is hidden; family Sync button remains active.
 
 ---
 

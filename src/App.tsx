@@ -58,7 +58,9 @@ function App() {
         username: 'admin',
         firstName: 'Test',
         lastName: 'Admin',
-        role: 'admin'
+        role: 'admin',
+        familyRole: 'parent',
+        linkedChildId: null
       }
     }
     return null
@@ -407,12 +409,14 @@ function App() {
               icon={AlertCircle}
               label={t('common.incidents')}
             />
-            <MenuButton
-              active={activeTab === 'settings'}
-              onClick={() => handleTabChange('settings')}
-              icon={SettingsIcon}
-              label={t('common.settings')}
-            />
+            {currentUser.familyRole !== 'child' && (
+              <MenuButton
+                active={activeTab === 'settings'}
+                onClick={() => handleTabChange('settings')}
+                icon={SettingsIcon}
+                label={t('common.settings')}
+              />
+            )}
             {currentUser.role === 'admin' && (
               <MenuButton
                 active={activeTab === 'admin'}
@@ -523,9 +527,9 @@ function App() {
                   className="h-full"
                 >
                   <Suspense fallback={<LoadingSpinner />}>
-                    {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} />}
-                    {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} />}
-                    {activeTab === 'settings' && <SettingsPage token={token} />}
+                    {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                    {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                    {activeTab === 'settings' && currentUser.familyRole !== 'child' && <SettingsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
                         currentUser={currentUser}
@@ -564,12 +568,14 @@ function App() {
                 icon={AlertCircle}
                 label={t('common.incidents')}
               />
-              <MobileNavButton
-                active={activeTab === 'settings'}
-                onClick={() => handleTabChange('settings')}
-                icon={SettingsIcon}
-                label={t('common.settings_short')}
-              />
+              {currentUser.familyRole !== 'child' && (
+                <MobileNavButton
+                  active={activeTab === 'settings'}
+                  onClick={() => handleTabChange('settings')}
+                  icon={SettingsIcon}
+                  label={t('common.settings_short')}
+                />
+              )}
               {currentUser.role === 'admin' && (
                 <MobileNavButton
                   active={activeTab === 'admin'}
@@ -627,8 +633,8 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
-        <Icon className={cn("w-6 h-6 transition-transform duration-200", active ? "stroke-[2.5px] scale-105" : "stroke-[2px]")} />
-        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[76px] transition-all", active ? "font-bold text-primary" : "font-medium text-foreground")}>
+        <Icon className="w-6 h-6 stroke-[2px]" />
+        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[76px] font-medium transition-colors", active ? "text-primary" : "text-foreground")}>
           {label}
         </span>
       </div>

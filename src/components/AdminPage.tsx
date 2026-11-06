@@ -8,7 +8,9 @@ import {
   Edit2,
   Search,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Users,
+  Baby
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -40,7 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
-import type { User, UserRole } from "@/types"
+import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
 
 interface AdminPageProps {
   currentUser: User
@@ -50,6 +52,7 @@ interface AdminPageProps {
 export function AdminPage({ currentUser, token }: AdminPageProps) {
   const { t } = useTranslation()
   const [users, setUsers] = useState<User[]>([])
+  const [webtopChildren, setWebtopChildren] = useState<WebtopChild[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
 
@@ -66,12 +69,16 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   const [createFirstName, setCreateFirstName] = useState("")
   const [createLastName, setCreateLastName] = useState("")
   const [createRole, setCreateRole] = useState<UserRole>("user")
+  const [createFamilyRole, setCreateFamilyRole] = useState<FamilyRole>("parent")
+  const [createLinkedChildId, setCreateLinkedChildId] = useState<string>("")
   const [isSubmittingCreate, setIsSubmittingCreate] = useState(false)
 
   // Form states for Edit User
   const [editFirstName, setEditFirstName] = useState("")
   const [editLastName, setEditLastName] = useState("")
   const [editRole, setEditRole] = useState<UserRole>("user")
+  const [editFamilyRole, setEditFamilyRole] = useState<FamilyRole>("parent")
+  const [editLinkedChildId, setEditLinkedChildId] = useState<string>("")
   const [isSubmittingEdit, setIsSubmittingEdit] = useState(false)
 
   // Form states for Reset Password
@@ -115,6 +122,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     if (err === "username_taken" || err === "A user with this username already exists") {
       return t("admin.username_taken")
     }
+    if (err === "admin_must_be_parent") {
+      return t("admin.admin_must_be_parent")
+    }
 
     const translated = t(`admin.${err}`)
     if (translated && translated !== `admin.${err}`) return translated
@@ -122,21 +132,34 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     return err || t(fallbackKey)
   }, [t])
 
-  // Fetch Users
+  // Fetch Users & Webtop Children
   const fetchUsers = useCallback(async () => {
     try {
       setLoading(true)
-      const res = await fetch("/api/admin/users", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      })
-      if (!res.ok) {
-        const msg = await getErrorMessage(res, "admin.fetch_failed")
+      const [usersRes, configRes] = await Promise.all([
+        fetch("/api/admin/users", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }),
+        fetch("/api/webtop/config", {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        })
+      ])
+
+      if (!usersRes.ok) {
+        const msg = await getErrorMessage(usersRes, "admin.fetch_failed")
         throw new Error(msg)
       }
-      const data = await res.json()
+      const data = await usersRes.json()
       setUsers(data.users || [])
+
+      if (configRes.ok) {
+        const configData = await configRes.json()
+        setWebtopChildren(configData.linkedChildren || [])
+      }
     } catch (err: unknown) {
       toast({
         variant: "destructive",
@@ -158,6 +181,10 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     setIsSubmittingCreate(true)
 
     try {
+      const payloadRole = createRole
+      const payloadFamilyRole = payloadRole === "admin" ? "parent" : createFamilyRole
+      const payloadLinkedChildId = payloadFamilyRole === "child" ? (createLinkedChildId || null) : null
+
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: {
@@ -169,7 +196,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
           password: createPassword,
           firstName: createFirstName,
           lastName: createLastName,
-          role: createRole
+          role: payloadRole,
+          familyRole: payloadFamilyRole,
+          linkedChildId: payloadLinkedChildId
         })
       })
 
@@ -190,6 +219,8 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       setCreateFirstName("")
       setCreateLastName("")
       setCreateRole("user")
+      setCreateFamilyRole("parent")
+      setCreateLinkedChildId("")
       fetchUsers()
     } catch (err: unknown) {
       toast({
@@ -208,6 +239,8 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     setEditFirstName(u.firstName || "")
     setEditLastName(u.lastName || "")
     setEditRole(u.role)
+    setEditFamilyRole(u.role === "admin" ? "parent" : (u.familyRole || "parent"))
+    setEditLinkedChildId(u.linkedChildId || "")
     setIsEditOpen(true)
   }
 
@@ -219,6 +252,10 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
     try {
       const isDefaultAdmin = activeUser.id === "admin-default" || activeUser.username.toLowerCase() === "admin"
+      const payloadRole = isDefaultAdmin ? "admin" : editRole
+      const payloadFamilyRole = payloadRole === "admin" ? "parent" : editFamilyRole
+      const payloadLinkedChildId = payloadFamilyRole === "child" ? (editLinkedChildId || null) : null
+
       const res = await fetch(`/api/admin/users/${activeUser.id}`, {
         method: "PUT",
         headers: {
@@ -228,7 +265,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         body: JSON.stringify({
           firstName: editFirstName,
           lastName: editLastName,
-          role: isDefaultAdmin ? "admin" : editRole
+          role: payloadRole,
+          familyRole: payloadFamilyRole,
+          linkedChildId: payloadLinkedChildId
         })
       })
 
@@ -440,7 +479,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                             </span>
                           )}
                         </div>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           <span
                             className={`inline-flex items-center gap-1 font-medium ${
                               u.role === "admin" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
@@ -449,6 +488,41 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                             <Shield className="w-3 h-3" />
                             {u.role === "admin" ? t("account.role_admin") : t("account.role_user")}
                           </span>
+                          <span className="text-border">•</span>
+                          <span
+                            className={`inline-flex items-center gap-1 font-medium ${
+                              u.familyRole === "child" ? "text-emerald-600 dark:text-emerald-400" : "text-purple-600 dark:text-purple-400"
+                            }`}
+                          >
+                            {u.familyRole === "child" ? (
+                              <Baby className="w-3 h-3" />
+                            ) : (
+                              <Users className="w-3 h-3" />
+                            )}
+                            {u.familyRole === "child" ? t("admin.role_child") : t("admin.role_parent")}
+                          </span>
+                          {u.familyRole === "child" && (() => {
+                            const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
+                            if (linkedChild) {
+                              const childName = `${linkedChild.firstName} ${linkedChild.lastName}`.trim() || linkedChild.id
+                              return (
+                                <>
+                                  <span className="text-border">•</span>
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-border/50">
+                                    {childName}
+                                  </span>
+                                </>
+                              )
+                            }
+                            return (
+                              <>
+                                <span className="text-border">•</span>
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                  {t("admin.unlinked_child_badge")}
+                                </span>
+                              </>
+                            )
+                          })()}
                         </div>
                       </div>
                     </div>
@@ -547,7 +621,16 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
             </div>
             <div className="space-y-2">
               <Label htmlFor="create-role">{t("account.role")}</Label>
-              <Select value={createRole} onValueChange={(val: UserRole) => setCreateRole(val)}>
+              <Select
+                value={createRole}
+                onValueChange={(val: UserRole) => {
+                  setCreateRole(val)
+                  if (val === "admin") {
+                    setCreateFamilyRole("parent")
+                    setCreateLinkedChildId("")
+                  }
+                }}
+              >
                 <SelectTrigger id="create-role">
                   <SelectValue />
                 </SelectTrigger>
@@ -557,6 +640,68 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 </SelectContent>
               </Select>
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="create-family-role">{t("admin.family_role")}</Label>
+              <Select
+                value={createFamilyRole}
+                onValueChange={(val: FamilyRole) => {
+                  setCreateFamilyRole(val)
+                  if (val === "parent") {
+                    setCreateLinkedChildId("")
+                  }
+                }}
+                disabled={createRole === "admin"}
+              >
+                <SelectTrigger id="create-family-role" disabled={createRole === "admin"}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="parent">{t("admin.role_parent")}</SelectItem>
+                  <SelectItem value="child">{t("admin.role_child")}</SelectItem>
+                </SelectContent>
+              </Select>
+              {createRole === "admin" && (
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.admin_parent_only_hint")}
+                </p>
+              )}
+            </div>
+            {createFamilyRole === "child" && createRole !== "admin" && (
+              <div className="space-y-2">
+                <Label htmlFor="create-linked-child">{t("admin.linked_child")}</Label>
+                <Select
+                  value={createLinkedChildId || "none"}
+                  onValueChange={(val) => {
+                    const childId = val === "none" ? "" : val
+                    setCreateLinkedChildId(childId)
+                    if (childId) {
+                      const matched = webtopChildren.find((c) => c.id === childId)
+                      if (matched && !createFirstName && !createLastName) {
+                        if (matched.firstName) setCreateFirstName(matched.firstName)
+                        if (matched.lastName) setCreateLastName(matched.lastName)
+                      }
+                    }
+                  }}
+                >
+                  <SelectTrigger id="create-linked-child">
+                    <SelectValue placeholder={t("admin.select_child_placeholder")} />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">{t("admin.select_child_placeholder")}</SelectItem>
+                    {webtopChildren.map((child) => (
+                      <SelectItem key={child.id} value={child.id}>
+                        {child.firstName} {child.lastName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {webtopChildren.length === 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    {t("admin.no_webtop_children_hint")}
+                  </p>
+                )}
+              </div>
+            )}
             <DialogFooter className="pt-2">
               <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="flex-1 sm:flex-none">
                 {t("common.cancel")}
@@ -606,7 +751,13 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                     <Label htmlFor="edit-role">{t("account.role")}</Label>
                     <Select
                       value={isEditingDefaultAdmin ? "admin" : editRole}
-                      onValueChange={(val: UserRole) => setEditRole(val)}
+                      onValueChange={(val: UserRole) => {
+                        setEditRole(val)
+                        if (val === "admin") {
+                          setEditFamilyRole("parent")
+                          setEditLinkedChildId("")
+                        }
+                      }}
                       disabled={isEditingDefaultAdmin}
                     >
                       <SelectTrigger id="edit-role" disabled={isEditingDefaultAdmin}>
@@ -623,6 +774,61 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                       </p>
                     )}
                   </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-family-role">{t("admin.family_role")}</Label>
+                    <Select
+                      value={editRole === "admin" || isEditingDefaultAdmin ? "parent" : editFamilyRole}
+                      onValueChange={(val: FamilyRole) => {
+                        setEditFamilyRole(val)
+                        if (val === "parent") {
+                          setEditLinkedChildId("")
+                        }
+                      }}
+                      disabled={editRole === "admin" || isEditingDefaultAdmin}
+                    >
+                      <SelectTrigger id="edit-family-role" disabled={editRole === "admin" || isEditingDefaultAdmin}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="parent">{t("admin.role_parent")}</SelectItem>
+                        <SelectItem value="child">{t("admin.role_child")}</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {(editRole === "admin" || isEditingDefaultAdmin) && (
+                      <p className="text-xs text-muted-foreground">
+                        {t("admin.admin_parent_only_hint")}
+                      </p>
+                    )}
+                  </div>
+                  {editFamilyRole === "child" && editRole !== "admin" && !isEditingDefaultAdmin && (
+                    <div className="space-y-2">
+                      <Label htmlFor="edit-linked-child">{t("admin.linked_child")}</Label>
+                      <Select
+                        value={editLinkedChildId || "none"}
+                        onValueChange={(val) => {
+                          const childId = val === "none" ? "" : val
+                          setEditLinkedChildId(childId)
+                        }}
+                      >
+                        <SelectTrigger id="edit-linked-child">
+                          <SelectValue placeholder={t("admin.select_child_placeholder")} />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">{t("admin.select_child_placeholder")}</SelectItem>
+                          {webtopChildren.map((child) => (
+                            <SelectItem key={child.id} value={child.id}>
+                              {child.firstName} {child.lastName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      {webtopChildren.length === 0 && (
+                        <p className="text-xs text-muted-foreground">
+                          {t("admin.no_webtop_children_hint")}
+                        </p>
+                      )}
+                    </div>
+                  )}
                   <DialogFooter className="pt-2">
                     <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="flex-1 sm:flex-none">
                       {t("common.cancel")}
@@ -646,7 +852,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
             <DialogTitle>
               {t("admin.reset_password_modal_title", { username: activeUser?.username })}
             </DialogTitle>
-            <DialogDescription>{t("admin.reset_password_modal_desc")}</DialogDescription>
+            <DialogDescription>
+              {t("admin.reset_password_modal_desc", { username: activeUser?.username })}
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleResetPassword} className="space-y-4 py-2">
             <div className="space-y-2">

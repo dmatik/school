@@ -25,15 +25,17 @@ import { cn, parseLocalDate, getHomeworkText, consolidateHomework } from "@/lib/
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
-import type { HomeworkItem, ConsolidatedHomeworkItem, WebtopConfig } from "@/types"
+import type { HomeworkItem, ConsolidatedHomeworkItem, WebtopConfig, User as UserType } from "@/types"
 
 interface HomeworkPageProps {
   token?: string | null
   syncTrigger?: number
+  currentUser?: UserType | null
 }
 
-export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
+export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPageProps) {
   const { t, i18n } = useTranslation()
+  const isChild = currentUser?.familyRole === "child"
   const isRtl = i18n.dir() === "rtl"
   const dateLocale = isRtl ? he : enUS
 
@@ -227,10 +229,10 @@ export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
           {/* Kids Dropdown & Date Filter in the same row */}
           <div className={cn(
             "gap-2 w-full md:flex md:w-auto md:items-center",
-            webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
+            !isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
           )}>
             {/* Child Selector */}
-            {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+            {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
               <Select value={selectedChildId} onValueChange={setSelectedChildId}>
                 <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-border min-w-0">
                   <div className="flex items-center gap-2 truncate">
@@ -321,7 +323,9 @@ export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               {searchQuery || selectedDate
                 ? t("homework.search_placeholder")
-                : t("homework.empty_desc")}
+                : (isChild && !currentUser?.linkedChildId
+                    ? t("homework.child_unlinked_desc")
+                    : t("homework.empty_desc"))}
             </p>
             {selectedDate && (
               <div className="flex items-center justify-center gap-2 mt-4">
@@ -413,8 +417,8 @@ export function HomeworkPage({ token, syncTrigger }: HomeworkPageProps) {
                           </div>
                         </div>
 
-                        {/* Student Name badge */}
-                        {hw.studentName && (
+                        {/* Student Name badge (hidden for child users) */}
+                        {!isChild && hw.studentName && (
                           <span
                             className={cn(
                               "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",

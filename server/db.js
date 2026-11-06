@@ -40,6 +40,8 @@ export function initDb(targetDb = db) {
       last_name TEXT DEFAULT '',
       avatar TEXT DEFAULT '',
       role TEXT NOT NULL CHECK(role IN ('admin', 'user')),
+      family_role TEXT NOT NULL DEFAULT 'parent' CHECK(family_role IN ('parent', 'child')),
+      linked_child_id TEXT DEFAULT NULL,
       token_version INTEGER NOT NULL DEFAULT 0,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
@@ -62,7 +64,8 @@ export function initDb(targetDb = db) {
 
     CREATE TABLE IF NOT EXISTS incidents (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT DEFAULT 'family',
+      child_id TEXT,
       student_id TEXT,
       student_name TEXT,
       date TEXT,
@@ -78,11 +81,12 @@ export function initDb(targetDb = db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_incidents_user ON incidents(user_id);
-    CREATE INDEX IF NOT EXISTS idx_incidents_date ON incidents(user_id, date);
+    CREATE INDEX IF NOT EXISTS idx_incidents_date ON incidents(date);
 
     CREATE TABLE IF NOT EXISTS homework (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT DEFAULT 'family',
+      child_id TEXT,
       student_id TEXT,
       student_name TEXT,
       subject TEXT,
@@ -97,11 +101,11 @@ export function initDb(targetDb = db) {
     );
 
     CREATE INDEX IF NOT EXISTS idx_homework_user ON homework(user_id);
-    CREATE INDEX IF NOT EXISTS idx_homework_due_date ON homework(user_id, due_date);
+    CREATE INDEX IF NOT EXISTS idx_homework_due_date ON homework(due_date);
 
     CREATE TABLE IF NOT EXISTS webtop_credentials (
       id TEXT PRIMARY KEY,
-      user_id TEXT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
+      user_id TEXT DEFAULT 'family',
       username TEXT NOT NULL,
       encrypted_password TEXT NOT NULL,
       selected_child_id TEXT,
@@ -115,8 +119,8 @@ export function initDb(targetDb = db) {
     CREATE INDEX IF NOT EXISTS idx_webtop_credentials_user ON webtop_credentials(user_id);
 
     CREATE TABLE IF NOT EXISTS children (
-      id TEXT NOT NULL,
-      user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'family',
       first_name TEXT NOT NULL,
       last_name TEXT NOT NULL,
       class_code INTEGER,
@@ -126,42 +130,24 @@ export function initDb(targetDb = db) {
       external_id TEXT,
       external_source TEXT NOT NULL DEFAULT 'webtop',
       created_at TEXT NOT NULL,
-      updated_at TEXT NOT NULL,
-      PRIMARY KEY (user_id, id),
-      UNIQUE(user_id, external_source, id)
+      updated_at TEXT NOT NULL
     );
 
     CREATE INDEX IF NOT EXISTS idx_children_user ON children(user_id);
-    CREATE INDEX IF NOT EXISTS idx_children_external ON children(user_id, external_source, external_id);
+    CREATE INDEX IF NOT EXISTS idx_children_external ON children(external_source, external_id);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_children_source_id ON children(user_id, external_source, id);
   `);
 
-  // Ensure children table has composite primary key (user_id, id)
-  const childrenSql = targetDb.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='children'").get()?.sql || '';
-  if (childrenSql && !childrenSql.includes('PRIMARY KEY (user_id, id)') && !childrenSql.includes('PRIMARY KEY(user_id, id)')) {
-    targetDb.exec(`
-      CREATE TABLE IF NOT EXISTS children_new (
-        id TEXT NOT NULL,
-        user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        class_code INTEGER,
-        class_num INTEGER,
-        cellphone TEXT,
-        color TEXT,
-        external_id TEXT,
-        external_source TEXT NOT NULL DEFAULT 'webtop',
-        created_at TEXT NOT NULL,
-        updated_at TEXT NOT NULL,
-        PRIMARY KEY (user_id, id),
-        UNIQUE(user_id, external_source, id)
-      );
-      INSERT OR REPLACE INTO children_new SELECT * FROM children;
-      DROP TABLE children;
-      ALTER TABLE children_new RENAME TO children;
-      CREATE INDEX IF NOT EXISTS idx_children_user ON children(user_id);
-      CREATE INDEX IF NOT EXISTS idx_children_external ON children(user_id, external_source, external_id);
-    `);
+  // Migrate existing users table if it lacks family_role or linked_child_id
+  const userCols = targetDb.prepare("PRAGMA table_info(users)").all().map(c => c.name);
+  if (!userCols.includes('family_role')) {
+    targetDb.exec("ALTER TABLE users ADD COLUMN family_role TEXT NOT NULL DEFAULT 'parent' CHECK(family_role IN ('parent', 'child'));");
   }
+  if (!userCols.includes('linked_child_id')) {
+    targetDb.exec("ALTER TABLE users ADD COLUMN linked_child_id TEXT DEFAULT NULL;");
+  }
+  // Admin user can only be parent
+  targetDb.exec("UPDATE users SET family_role = 'parent', linked_child_id = NULL WHERE role = 'admin';");
 
   // Migrate existing tables if they lack new columns
   const incidentsCols = targetDb.prepare("PRAGMA table_info(incidents)").all().map(c => c.name);
@@ -289,10 +275,14 @@ export function initDb(targetDb = db) {
     if (credCols.includes('linked_children')) {
       const backfillTx = targetDb.transaction(() => {
         const credRows = targetDb.prepare('SELECT user_id, linked_children FROM webtop_credentials').all();
+        const childrenSql = targetDb.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='children'").get()?.sql || '';
+        const conflictTarget = childrenSql.includes('UNIQUE(user_id, external_source, id)') || childrenSql.includes('UNIQUE (user_id, external_source, id)')
+          ? '(user_id, external_source, id)'
+          : '(id)';
         const upsertChild = targetDb.prepare(`
           INSERT INTO children (id, user_id, first_name, last_name, class_code, class_num, cellphone, color, external_id, external_source, created_at, updated_at)
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'webtop', ?, ?)
-          ON CONFLICT(user_id, external_source, id) DO UPDATE SET
+          ON CONFLICT ${conflictTarget} DO UPDATE SET
             class_code = coalesce(excluded.class_code, children.class_code),
             class_num = coalesce(excluded.class_num, children.class_num),
             cellphone = coalesce(excluded.cellphone, children.cellphone),
@@ -481,6 +471,129 @@ export function initDb(targetDb = db) {
     console.warn('Failed to deduplicate children table:', dedupeErr.message);
   }
 
+  // Ensure children, webtop_credentials, incidents, and homework do not cascade delete from users
+  const childrenFks = targetDb.prepare("PRAGMA foreign_key_list(children)").all();
+  const childrenSql = targetDb.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='children'").get()?.sql || '';
+  if (childrenFks.some(fk => fk.table === 'users') || childrenSql.includes('PRIMARY KEY (user_id, id)') || childrenSql.includes('PRIMARY KEY(user_id, id)')) {
+    targetDb.transaction(() => {
+      targetDb.exec(`
+        CREATE TABLE IF NOT EXISTS children_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT DEFAULT 'family',
+          first_name TEXT NOT NULL,
+          last_name TEXT NOT NULL,
+          class_code INTEGER,
+          class_num INTEGER,
+          cellphone TEXT,
+          color TEXT,
+          external_id TEXT,
+          external_source TEXT NOT NULL DEFAULT 'webtop',
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        INSERT OR REPLACE INTO children_new (id, user_id, first_name, last_name, class_code, class_num, cellphone, color, external_id, external_source, created_at, updated_at)
+        SELECT id, coalesce(user_id, 'family'), first_name, last_name, class_code, class_num, cellphone, color, external_id, external_source, created_at, updated_at FROM children;
+        DROP TABLE children;
+        ALTER TABLE children_new RENAME TO children;
+        CREATE INDEX IF NOT EXISTS idx_children_user ON children(user_id);
+        CREATE INDEX IF NOT EXISTS idx_children_external ON children(external_source, external_id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_children_source_id ON children(user_id, external_source, id);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_children_name_unique
+        ON children(user_id, external_source, lower(trim(first_name)), lower(trim(last_name)));
+      `);
+    })();
+  }
+
+  const credFks = targetDb.prepare("PRAGMA foreign_key_list(webtop_credentials)").all();
+  if (credFks.some(fk => fk.table === 'users')) {
+    targetDb.transaction(() => {
+      targetDb.exec(`
+        CREATE TABLE IF NOT EXISTS webtop_credentials_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT DEFAULT 'family',
+          username TEXT NOT NULL,
+          encrypted_password TEXT NOT NULL,
+          selected_child_id TEXT,
+          last_synced_at TEXT,
+          sync_status TEXT DEFAULT 'idle',
+          sync_error TEXT,
+          created_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        );
+        INSERT OR REPLACE INTO webtop_credentials_new (id, user_id, username, encrypted_password, selected_child_id, last_synced_at, sync_status, sync_error, created_at, updated_at)
+        SELECT id, coalesce(user_id, 'family'), username, encrypted_password, selected_child_id, last_synced_at, sync_status, sync_error, created_at, updated_at FROM webtop_credentials;
+        DROP TABLE webtop_credentials;
+        ALTER TABLE webtop_credentials_new RENAME TO webtop_credentials;
+        CREATE INDEX IF NOT EXISTS idx_webtop_credentials_user ON webtop_credentials(user_id);
+      `);
+    })();
+  }
+
+  const incFks = targetDb.prepare("PRAGMA foreign_key_list(incidents)").all();
+  if (incFks.some(fk => fk.table === 'users')) {
+    targetDb.transaction(() => {
+      targetDb.exec(`
+        CREATE TABLE IF NOT EXISTS incidents_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT DEFAULT 'family',
+          child_id TEXT,
+          student_id TEXT,
+          student_name TEXT,
+          date TEXT,
+          type TEXT,
+          subject TEXT,
+          teacher TEXT,
+          description TEXT,
+          hour_num INTEGER,
+          is_justified INTEGER DEFAULT 0,
+          event_code INTEGER,
+          raw_data TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR REPLACE INTO incidents_new (id, user_id, child_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at)
+        SELECT id, coalesce(user_id, 'family'), child_id, student_id, student_name, date, type, subject, teacher, description, hour_num, is_justified, event_code, raw_data, created_at FROM incidents;
+        DROP TABLE incidents;
+        ALTER TABLE incidents_new RENAME TO incidents;
+        CREATE INDEX IF NOT EXISTS idx_incidents_user ON incidents(user_id);
+        CREATE INDEX IF NOT EXISTS idx_incidents_date ON incidents(date);
+        CREATE INDEX IF NOT EXISTS idx_incidents_child_id ON incidents(child_id);
+        CREATE INDEX IF NOT EXISTS idx_incidents_student ON incidents(student_id);
+      `);
+    })();
+  }
+
+  const hwFks = targetDb.prepare("PRAGMA foreign_key_list(homework)").all();
+  if (hwFks.some(fk => fk.table === 'users')) {
+    targetDb.transaction(() => {
+      targetDb.exec(`
+        CREATE TABLE IF NOT EXISTS homework_new (
+          id TEXT PRIMARY KEY,
+          user_id TEXT DEFAULT 'family',
+          child_id TEXT,
+          student_id TEXT,
+          student_name TEXT,
+          subject TEXT,
+          teacher TEXT,
+          due_date TEXT,
+          description TEXT,
+          lesson_subject TEXT,
+          hour_num INTEGER,
+          completed INTEGER DEFAULT 0,
+          raw_data TEXT,
+          created_at TEXT NOT NULL
+        );
+        INSERT OR REPLACE INTO homework_new (id, user_id, child_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, completed, raw_data, created_at)
+        SELECT id, coalesce(user_id, 'family'), child_id, student_id, student_name, subject, teacher, due_date, description, lesson_subject, hour_num, completed, raw_data, created_at FROM homework;
+        DROP TABLE homework;
+        ALTER TABLE homework_new RENAME TO homework;
+        CREATE INDEX IF NOT EXISTS idx_homework_user ON homework(user_id);
+        CREATE INDEX IF NOT EXISTS idx_homework_due_date ON homework(due_date);
+        CREATE INDEX IF NOT EXISTS idx_homework_child_id ON homework(child_id);
+        CREATE INDEX IF NOT EXISTS idx_homework_student ON homework(student_id);
+      `);
+    })();
+  }
+
   // Seed default admin if no users exist
   const countStmt = targetDb.prepare('SELECT COUNT(*) as count FROM users');
   const userCount = countStmt.get().count;
@@ -491,8 +604,8 @@ export function initDb(targetDb = db) {
     const now = new Date().toISOString();
 
     const insertAdmin = targetDb.prepare(`
-      INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, family_role, linked_child_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, 'parent', NULL, ?, ?)
     `);
 
     insertAdmin.run(
