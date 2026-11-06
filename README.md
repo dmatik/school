@@ -5,7 +5,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/dmatik/school.svg)](https://hub.docker.com/r/dmatik/school)
 ![Version](https://img.shields.io/badge/version-0.5.6-green)
 
-**School** (בית הספר) is a sleek, modern, mobile-first web application designed for parents and students to monitor school life, homework assignments, attendance, and disciplinary incidents synced directly from the Israeli **Webtop** (SmartSchool) portal.
+**School** (בית הספר) is a sleek, modern, mobile-first web application designed for parents and students to monitor school life, homework assignments, exams and grades, attendance, and disciplinary incidents synced directly from the Israeli **Webtop** (SmartSchool) portal.
 
 Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual support (**Hebrew RTL** as default, and **English LTR**), it features an ultra-responsive interface with a floating liquid glass dock, a family-shared architecture with parent and child roles, biometric passkeys, per-child color customizer, and complete self-hosting capabilities backed by an embedded SQLite database.
 
@@ -27,6 +27,13 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **Detailed Incident Breakdown:** Shows incident type, academic subject, reporting teacher, lesson hour, and full teacher remarks in clean cards.
 *   **Multi-Student Filtering:** Easily filter incidents by specific child or view all siblings together in a consolidated feed.
 
+### 📝 Exams & Grades Tracker (מבחנים וציונים)
+*   **Upcoming & Past Timeline:** Dual-period feed defaulting to Upcoming exams (ordered chronologically from today forward into the future) with seamless switching to Past exams (ordered reverse-chronologically from most recent backwards).
+*   **Parent-Managed Scheduling & Grading:** Only parents can schedule, edit, or delete exams, assign them to a child, and record grades upon evaluation.
+*   **Rich Exam Cards:** Cards display academic subject icons, exam name, formatted date, optional grade badge, child name badge (parents only), and optional multi-line description container.
+*   **Textarea with Live Counter:** Add and Edit modals feature an optional description textarea limited to 200 characters with a live character counter and strict calendar date validation.
+*   **Private Student View:** Child accounts view a clean, focused, read-only feed scoped strictly to their own upcoming exams and grades.
+
 ### ⚙️ Webtop Integration & Settings (הגדרות וסנכרון)
 *   **Centralized Family Configuration:** Exactly one shared Webtop integration per family—configured and managed exclusively by parent accounts, eliminating duplicate integrations.
 *   **Native Webtop Connector:** Connects directly to the SmartSchool Webtop server with real-time connection testing and diagnostic error feedback.
@@ -36,15 +43,15 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **Universal One-Touch Sync:** Quick-sync button available to both parents and children in the desktop header, sidebar, and mobile header to update the family's shared data at any time.
 
 ### 👨‍👩‍👧‍👦 Family Architecture & Secondary Roles
-*   **Shared Family Data Model:** Homework, incidents, children records, and Webtop credentials belong to the family entity. Deleting individual users preserves the family's academic history.
+*   **Shared Family Data Model:** Homework, incidents, exams, children records, and Webtop credentials belong to the family entity. Deleting individual users preserves the family's academic history.
 *   **Secondary Roles (`Parent` vs `Child`):**
-    *   **Parent:** Full access to all siblings' feeds, filter selectors, color customizer, and Webtop settings.
-    *   **Child:** Focused, private view scoped strictly to their own homework and incidents (no sibling selector or student badges on cards). Settings tab is hidden to protect integration credentials, while the family Sync button remains fully accessible.
+    *   **Parent:** Full access to all siblings' feeds, filter selectors, exam scheduling and grading, color customizer, and Webtop settings.
+    *   **Child:** Focused, private view scoped strictly to their own homework, exams, and incidents (no sibling selector or student badges on cards). Cannot add, edit, or delete exams. Settings tab is hidden to protect integration credentials, while the family Sync button remains fully accessible.
     *   **Student Account Linking:** Administrators link child accounts directly to their corresponding Webtop student profile. Unlinked child accounts display clear guidance to request linking from an administrator.
 *   **Administrative Invariant:** Administrators can create and manage user accounts and reset passwords, and system administrators are strictly locked to the `parent` role.
 
 ### 🎨 Apple-Inspired Mobile Polish & Modern UI/UX
-*   **Floating Liquid Glass Dock:** Custom bottom navigation bar (`apple-liquid-dock`) with spring physics pill animation (`apple-liquid-pill` powered by **Framer Motion**).
+*   **Adaptive Liquid Glass Dock:** Custom bottom navigation bar (`apple-liquid-dock`) dynamically scaling items (4 items @ 85px = 340px, 5 items @ 68px = 340px) preserving identical 352px dock width without overflowing mobile viewports, with fluid horizontal scrolling on sub-360px viewports and spring physics pill animation (`apple-liquid-pill` powered by **Framer Motion**).
 *   **Dynamic Scroll Header:** Header seamlessly tracks page scrolling, transitioning titles and applying subtle backdrop blurs when scrolling past section headers.
 *   **Responsive Hybrid Shell:** Collapsible sidebar with quick shortcuts on desktop/tablet, switching to a minimalist floating dock on mobile phones.
 *   **Dark & Light Modes:** Built-in theme switcher with automatic system preference detection powered by `next-themes`.
@@ -69,8 +76,8 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
         *   **Admin:** Full administrative dashboard to create, edit, search, and delete users, assign family roles, link students, and trigger password resets. System administrators are strictly locked to the `parent` role.
         *   **User:** Standard member access.
     *   **Family Role (`Parent` vs `Child`):**
-        *   **Parent:** Full access to all children's homework and incidents with sibling filter switcher and custom color badges, plus full access to the Webtop integration tab.
-        *   **Child:** View restricted to their own assignments and incidents (no sibling selector, no student badges on cards). Settings tab is hidden; family Sync button remains active.
+        *   **Parent:** Full access to all children's homework, exams, and incidents with sibling filter switcher, exam scheduling & grading, and custom color badges, plus full access to the Webtop integration tab.
+        *   **Child:** View restricted to their own assignments, scheduled exams, and incidents (no sibling selector, no student badges on cards). Cannot add, edit, or delete exams. Settings tab is hidden; family Sync button remains active.
 
 ---
 
@@ -206,6 +213,7 @@ school/
     │   ├── AccountPage.tsx  # User profile, password reset & passkeys manager
     │   ├── AdminPage.tsx    # User administration, roles & password resets
     │   ├── ErrorBoundary.tsx # React error boundary component
+    │   ├── ExamsPage.tsx    # Exams & grades feed, period filtering & scheduling modals
     │   ├── HomeworkPage.tsx # Homework feed, consolidation & subject filters
     │   ├── IncidentsPage.tsx # Disciplinary & attendance events feed
     │   ├── LanguageSwitcher.tsx # Bilingual Hebrew / English language toggle
@@ -223,7 +231,7 @@ school/
     │   └── webauthn.ts      # SimpleWebAuthn browser client wrappers
     ├── locales/             # Bilingual translations (he.json, en.json)
     ├── tests/               # Vitest unit & component test suites
-    ├── types.ts             # TypeScript interfaces (User, Incident, HomeworkItem, etc.)
+    ├── types.ts             # TypeScript interfaces (User, Incident, HomeworkItem, ExamItem, etc.)
     ├── App.tsx              # Application shell, responsive layout & liquid glass dock
     └── main.tsx             # Application bootstrap & i18n setup
 ```

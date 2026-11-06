@@ -136,6 +136,23 @@ export function initDb(targetDb = db) {
     CREATE INDEX IF NOT EXISTS idx_children_user ON children(user_id);
     CREATE INDEX IF NOT EXISTS idx_children_external ON children(external_source, external_id);
     CREATE UNIQUE INDEX IF NOT EXISTS idx_children_source_id ON children(user_id, external_source, id);
+
+    CREATE TABLE IF NOT EXISTS exams (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'family',
+      child_id TEXT NOT NULL,
+      student_name TEXT NOT NULL,
+      name TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      date TEXT NOT NULL,
+      grade TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_exams_user ON exams(user_id);
+    CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(date);
+    CREATE INDEX IF NOT EXISTS idx_exams_child_id ON exams(child_id);
   `);
 
   // Migrate existing users table if it lacks family_role or linked_child_id
@@ -164,6 +181,9 @@ export function initDb(targetDb = db) {
   if (!homeworkCols.includes('teacher')) targetDb.exec("ALTER TABLE homework ADD COLUMN teacher TEXT;");
   if (!homeworkCols.includes('lesson_subject')) targetDb.exec("ALTER TABLE homework ADD COLUMN lesson_subject TEXT;");
   if (!homeworkCols.includes('hour_num')) targetDb.exec("ALTER TABLE homework ADD COLUMN hour_num INTEGER;");
+
+  const examsCols = targetDb.prepare("PRAGMA table_info(exams)").all().map(c => c.name);
+  if (!examsCols.includes('description')) targetDb.exec("ALTER TABLE exams ADD COLUMN description TEXT DEFAULT '';");
 
   targetDb.exec(`
     CREATE INDEX IF NOT EXISTS idx_incidents_student ON incidents(user_id, student_id);

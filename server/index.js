@@ -1593,6 +1593,223 @@ app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
   }
 });
 
+/* --- Exams Endpoints --- */
+
+// Helper to validate real calendar dates (YYYY-MM-DD)
+function isValidCalendarDate(dateStr) {
+  if (typeof dateStr !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) {
+    return false;
+  }
+  const [year, month, day] = dateStr.split('-').map(Number);
+  if (year < 2000 || year > 2099) return false;
+  const d = new Date(year, month - 1, day);
+  return d.getFullYear() === year && d.getMonth() === month - 1 && d.getDate() === day;
+}
+
+// GET /api/exams
+app.get('/api/exams', authenticate, (req, res) => {
+  try {
+    const rawChildId = req.query.childId;
+    const cleanChildId = typeof rawChildId === 'string' ? rawChildId.trim() : null;
+
+    if (req.user.familyRole === 'child') {
+      if (!req.user.linkedChildId) {
+        return res.json({ exams: [] });
+      }
+      const exams = db.prepare(`
+        SELECT id, child_id as childId, student_name as studentName, name, coalesce(description, '') as description, date, grade, created_at as createdAt, updated_at as updatedAt
+        FROM exams
+        WHERE (child_id = ? OR child_id IN (SELECT id FROM children WHERE external_id = ?))
+        ORDER BY date ASC
+      `).all(req.user.linkedChildId, req.user.linkedChildId);
+      return res.json({ exams });
+    }
+
+    let query = `
+      SELECT id, child_id as childId, student_name as studentName, name, coalesce(description, '') as description, date, grade, created_at as createdAt, updated_at as updatedAt
+      FROM exams
+    `;
+    const params = [];
+
+    if (cleanChildId && cleanChildId !== 'all') {
+      query += ` WHERE (child_id = ? OR child_id IN (SELECT id FROM children WHERE external_id = ?))`;
+      params.push(cleanChildId, cleanChildId);
+    }
+
+    query += ` ORDER BY date ASC`;
+    const exams = db.prepare(query).all(...params);
+
+    res.json({ exams });
+  } catch (err) {
+    console.error('Failed to fetch exams:', err);
+    res.status(500).json({ error: 'Failed to fetch exams' });
+  }
+});
+
+// POST /api/exams
+app.post('/api/exams', authenticate, requireParent, (req, res) => {
+  try {
+    const { childId, name, description, date, grade } = req.body;
+
+    if (!childId || typeof childId !== 'string') {
+      return res.status(400).json({ error: 'child_required', message: 'Student selection is required' });
+    }
+
+    const cleanName = typeof name === 'string' ? name.trim() : '';
+    if (!cleanName || cleanName.length > 120) {
+      return res.status(400).json({ error: 'name_invalid', message: 'Exam name is required (max 120 characters)' });
+    }
+
+    const cleanDescription = typeof description === 'string' ? description.trim().slice(0, 200) : '';
+
+    const cleanDate = typeof date === 'string' ? date.trim() : '';
+    if (!isValidCalendarDate(cleanDate)) {
+      return res.status(400).json({ error: 'date_invalid', message: 'Valid date (YYYY-MM-DD) is required' });
+    }
+
+    const cleanGrade = (typeof grade === 'string' || typeof grade === 'number')
+      ? String(grade).trim().slice(0, 32)
+      : '';
+
+    const child = db.prepare(`
+      SELECT id, first_name, last_name FROM children
+      WHERE (id = ? OR external_id = ?)
+    `).get(childId.trim(), childId.trim());
+
+    if (!child) {
+      return res.status(400).json({ error: 'child_not_found', message: 'Selected student not found' });
+    }
+
+    const studentName = `${child.first_name || ''} ${child.last_name || ''}`.trim() || 'Student';
+    const id = crypto.randomUUID();
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      INSERT INTO exams (id, user_id, child_id, student_name, name, description, date, grade, created_at, updated_at)
+      VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
+    `).run(id, child.id, studentName, cleanName, cleanDescription, cleanDate, cleanGrade, now, now);
+
+    res.status(201).json({
+      exam: {
+        id,
+        childId: child.id,
+        studentName,
+        name: cleanName,
+        description: cleanDescription,
+        date: cleanDate,
+        grade: cleanGrade,
+        createdAt: now,
+        updatedAt: now
+      }
+    });
+  } catch (err) {
+    console.error('Failed to create exam:', err);
+    res.status(500).json({ error: 'create_failed', message: 'Failed to create exam' });
+  }
+});
+
+// PUT /api/exams/:id
+app.put('/api/exams/:id', authenticate, requireParent, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT * FROM exams WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'not_found', message: 'Exam not found' });
+    }
+
+    const { childId, name, description, date, grade } = req.body;
+
+    let targetChildId = existing.child_id;
+    let targetStudentName = existing.student_name;
+
+    if (childId !== undefined) {
+      if (!childId || typeof childId !== 'string') {
+        return res.status(400).json({ error: 'child_required', message: 'Student selection is required' });
+      }
+      const child = db.prepare(`
+        SELECT id, first_name, last_name FROM children
+        WHERE (id = ? OR external_id = ?)
+      `).get(childId.trim(), childId.trim());
+
+      if (!child) {
+        return res.status(400).json({ error: 'child_not_found', message: 'Selected student not found' });
+      }
+      targetChildId = child.id;
+      targetStudentName = `${child.first_name || ''} ${child.last_name || ''}`.trim() || 'Student';
+    }
+
+    let targetName = existing.name;
+    if (name !== undefined) {
+      const cleanName = typeof name === 'string' ? name.trim() : '';
+      if (!cleanName || cleanName.length > 120) {
+        return res.status(400).json({ error: 'name_invalid', message: 'Exam name is required (max 120 characters)' });
+      }
+      targetName = cleanName;
+    }
+
+    let targetDescription = existing.description || '';
+    if (description !== undefined) {
+      targetDescription = typeof description === 'string' ? description.trim().slice(0, 200) : '';
+    }
+
+    let targetDate = existing.date;
+    if (date !== undefined) {
+      const cleanDate = typeof date === 'string' ? date.trim() : '';
+      if (!isValidCalendarDate(cleanDate)) {
+        return res.status(400).json({ error: 'date_invalid', message: 'Valid date (YYYY-MM-DD) is required' });
+      }
+      targetDate = cleanDate;
+    }
+
+    let targetGrade = existing.grade || '';
+    if (grade !== undefined) {
+      targetGrade = (typeof grade === 'string' || typeof grade === 'number')
+        ? String(grade).trim().slice(0, 32)
+        : '';
+    }
+
+    const now = new Date().toISOString();
+
+    db.prepare(`
+      UPDATE exams
+      SET child_id = ?, student_name = ?, name = ?, description = ?, date = ?, grade = ?, updated_at = ?
+      WHERE id = ?
+    `).run(targetChildId, targetStudentName, targetName, targetDescription, targetDate, targetGrade, now, req.params.id);
+
+    res.json({
+      exam: {
+        id: req.params.id,
+        childId: targetChildId,
+        studentName: targetStudentName,
+        name: targetName,
+        description: targetDescription,
+        date: targetDate,
+        grade: targetGrade,
+        createdAt: existing.created_at,
+        updatedAt: now
+      }
+    });
+  } catch (err) {
+    console.error('Failed to update exam:', err);
+    res.status(500).json({ error: 'update_failed', message: 'Failed to update exam' });
+  }
+});
+
+// DELETE /api/exams/:id
+app.delete('/api/exams/:id', authenticate, requireParent, (req, res) => {
+  try {
+    const existing = db.prepare('SELECT id FROM exams WHERE id = ?').get(req.params.id);
+    if (!existing) {
+      return res.status(404).json({ error: 'not_found', message: 'Exam not found' });
+    }
+
+    db.prepare('DELETE FROM exams WHERE id = ?').run(req.params.id);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to delete exam:', err);
+    res.status(500).json({ error: 'delete_failed', message: 'Failed to delete exam' });
+  }
+});
+
 // Catch-all 404 for undefined /api routes
 app.all(/^\/api(\/.*)?$/, (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });

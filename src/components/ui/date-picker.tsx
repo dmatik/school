@@ -85,8 +85,8 @@ export function DatePicker({
                             className
                         )}
                     >
-                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground" />
-                        <span className="truncate">
+                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground -translate-y-[1px]" />
+                        <span className="truncate leading-none">
                             {formattedDate}
                         </span>
                     </Button>

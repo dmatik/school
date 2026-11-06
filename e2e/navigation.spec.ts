@@ -24,26 +24,31 @@ test.describe('Navigation Flow', () => {
     cleanupAllTestUsers();
   });
 
-  test('admin user sees Homework, Incidents, Settings, and Admin tabs', async ({ page }) => {
+  test('admin user sees Homework, Incidents, Exams, Settings, and Admin tabs', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
     // Default tab should be Homework
     await expect(page.locator('main h1')).toContainText(/שיעורי בית|Homework/);
 
-    // Click Incidents tab
+    // Click Incidents tab (2nd tab)
     const incidentsBtn = page.locator('aside nav button').nth(1);
     await incidentsBtn.click();
     await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
 
-    // Click Settings tab (3rd tab, before Admin)
-    const settingsBtn = page.locator('aside nav button').nth(2);
+    // Click Exams tab (3rd tab, right after Incidents)
+    const examsBtn = page.locator('aside nav button').nth(2);
+    await examsBtn.click();
+    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+
+    // Click Settings tab (4th tab)
+    const settingsBtn = page.locator('aside nav button').nth(3);
     await settingsBtn.click();
     await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
 
-    // Click Admin tab (4th tab)
-    const adminBtn = page.locator('aside nav button').nth(3);
+    // Click Admin tab (5th tab)
+    const adminBtn = page.locator('aside nav button').nth(4);
     await adminBtn.click();
     await expect(page.locator('main h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
 
@@ -54,28 +59,40 @@ test.describe('Navigation Flow', () => {
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
   });
 
-  test('regular user sees Homework, Incidents, and Settings tabs but not Admin tab', async ({ page }) => {
+  test('regular user sees Homework, Incidents, Exams, and Settings tabs but not Admin tab', async ({ page }) => {
     regularUser = createTestUser('user');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 3 (Homework, Incidents, Settings)
+    // Nav items count in aside nav should be 4 (Homework, Incidents, Exams, Settings)
     const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(3);
+    await expect(navButtons).toHaveCount(4);
 
-    // Click Settings tab
-    const settingsBtn = navButtons.nth(2);
+    // Click Exams tab (3rd tab)
+    const examsBtn = navButtons.nth(2);
+    await examsBtn.click();
+    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+
+    // Click Settings tab (4th tab)
+    const settingsBtn = navButtons.nth(3);
     await settingsBtn.click();
     await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
   });
 
-  test('child user sees Homework and Incidents, but neither Settings nor Admin tab, and has Sync button', async ({ page }) => {
+  test('child user sees Homework, Incidents, and Exams, but neither Settings nor Admin tab, and has Sync button', async ({ page }) => {
     regularUser = createTestUser('user', 'child');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 2 (Homework, Incidents)
+    // Nav items count in aside nav should be 3 (Homework, Incidents, Exams)
     const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(2);
+    await expect(navButtons).toHaveCount(3);
+
+    // Click Exams tab (3rd tab)
+    const examsBtn = navButtons.nth(2);
+    await examsBtn.click();
+    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+    // Add Exam button should not be visible for child
+    await expect(page.locator('button:has-text("הוסף מבחן"), button:has-text("Add Exam")')).not.toBeVisible();
 
     // Settings and Admin should not be present
     await expect(page.locator('aside nav').getByText(/הגדרות|Settings/)).not.toBeVisible();
