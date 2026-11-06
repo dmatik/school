@@ -138,9 +138,9 @@ describe('Exams Feature — Component and Backend Tests', () => {
     // Parents see "Add Exam" button
     expect(screen.getByRole('button', { name: /exams\.add_exam_button/i })).toBeInTheDocument()
 
-    // Parents see child badges
-    expect(screen.getAllByText('David Cohen').length).toBeGreaterThan(0)
-    expect(screen.getAllByText('Maya Cohen').length).toBeGreaterThan(0)
+    // Parents see child badges (first names only)
+    expect(screen.getAllByText('David').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Maya').length).toBeGreaterThan(0)
 
     // Parents see edit buttons
     const editButtons = screen.getAllByTitle('exams.edit_exam_button')
@@ -161,7 +161,7 @@ describe('Exams Feature — Component and Backend Tests', () => {
     expect(screen.queryByTitle('exams.edit_exam_button')).not.toBeInTheDocument()
 
     // Child user cannot see child badge container
-    expect(screen.queryByText('David Cohen')).not.toBeInTheDocument()
+    expect(screen.queryByText('David')).not.toBeInTheDocument()
   })
 
   it('defaults to future period and orders dates from today to future dates', async () => {

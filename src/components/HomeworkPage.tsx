@@ -21,7 +21,7 @@ import {
 import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { cn, parseLocalDate, getHomeworkText, consolidateHomework } from "@/lib/utils"
+import { cn, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
@@ -373,6 +373,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                       (hw.studentName && `${c.firstName} ${c.lastName}`.trim() === hw.studentName.trim())
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const childDisplayName = getChildFirstName(hw.studentName, matchedChild) || hw.studentName
                   const homeworkText = getHomeworkText(hw)
 
                   return (
@@ -418,14 +419,14 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                         </div>
 
                         {/* Student Name badge (hidden for child users) */}
-                        {!isChild && hw.studentName && (
+                        {!isChild && childDisplayName && (
                           <span
                             className={cn(
                               "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}
                           >
-                            <span className="truncate max-w-[130px] sm:max-w-none">{hw.studentName}</span>
+                            <span className="truncate max-w-[130px] sm:max-w-none">{childDisplayName}</span>
                           </span>
                         )}
                       </div>

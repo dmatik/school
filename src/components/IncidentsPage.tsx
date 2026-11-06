@@ -17,12 +17,12 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import { cn, parseLocalDate } from "@/lib/utils"
+import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { getSubjectIcon } from "@/lib/subject-icons"
+import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import type { Incident, WebtopConfig, User as UserType } from "@/types"
 
@@ -345,7 +345,11 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
               {/* Chat-style Continuing Feed */}
               <div className="flex flex-col gap-2.5 sm:gap-3">
                 {group.items.map((inc) => {
-                  const SubjectIcon = getSubjectIcon(inc.subject)
+                  const subjectTitle = inc.subject || inc.type
+                  const hasSubject = Boolean(inc.subject?.trim())
+                  const subjectConfig = getSubjectConfig(subjectTitle)
+                  const SubjectIcon = subjectConfig.icon
+                  const subjectBadgeClass = subjectConfig.badgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) =>
                       (inc.childId && c.id === inc.childId) ||
@@ -353,63 +357,82 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
                       (inc.studentName && `${c.firstName} ${c.lastName}`.trim() === inc.studentName.trim())
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const childDisplayName = getChildFirstName(inc.studentName, matchedChild) || inc.studentName
 
                   return (
                     <Card
                       key={inc.id}
-                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col rounded-xl sm:rounded-2xl bg-card"
+                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
                     >
-                      <CardHeader className={cn("p-3 sm:p-3.5 space-y-1.5", inc.description && "pb-1.5")}>
-                        <div className="flex items-start justify-between gap-2.5">
-                          {/* Right side (Hebrew/RTL start): Incident type, Subject & Teacher */}
-                          <div className="space-y-1 min-w-0 flex-1">
-                            {/* Incident Name / Type as black text (same as subject in homework card) */}
-                            <span className="font-bold text-base sm:text-lg text-foreground block truncate tracking-tight">
-                              {inc.type}
-                            </span>
-
-                            {/* Subject with lesson hour in brackets */}
-                            {inc.subject && (
-                              <div className="text-sm sm:text-base text-foreground font-medium flex items-center gap-1.5 flex-wrap">
-                                <SubjectIcon className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                                <span className="truncate">{inc.subject}</span>
-                                {inc.hourNum && (
-                                  <span className="text-sm font-normal text-muted-foreground shrink-0">
-                                    ({t("incidents.lesson_hour", { hour: inc.hourNum })})
-                                  </span>
-                                )}
-                              </div>
+                      {/* Top Row: Subject Icon, Subject Title & Teacher, Student Name badge */}
+                      <div className="flex items-start justify-between gap-2.5">
+                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                          {/* Subject icon badge */}
+                          <div
+                            className={cn(
+                              "w-11 h-11 rounded-full border flex items-center justify-center shrink-0 shadow-xs",
+                              subjectBadgeClass
                             )}
+                          >
+                            <SubjectIcon className="w-5 h-5 shrink-0" />
+                          </div>
 
-                            {/* Teacher name with user icon */}
+                          {/* Subject Title & Teacher name */}
+                          <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[44px]">
+                            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
+                              <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight">
+                                {subjectTitle}
+                              </span>
+                              {inc.hourNum ? (
+                                <span className="font-normal text-sm text-muted-foreground shrink-0">
+                                  ({t("incidents.lesson_hour", { hour: inc.hourNum })})
+                                </span>
+                              ) : null}
+                            </div>
+
+                            {/* Teacher name */}
                             {inc.teacher && (
-                              <div className="text-sm font-medium text-muted-foreground flex items-center gap-1.5">
-                                <User className="w-4 h-4 text-muted-foreground/80 shrink-0" />
-                                <span className="truncate">{inc.teacher}</span>
+                              <div className="text-sm text-muted-foreground font-medium truncate mt-0.5">
+                                {inc.teacher}
                               </div>
                             )}
                           </div>
+                        </div>
 
-                          {/* Left side (Hebrew/RTL end): Kid name as badge without icon (hidden for child users) */}
-                          {!isChild && inc.studentName && (
-                            <span className={cn(
+                        {/* Student Name badge (hidden for child users) */}
+                        {!isChild && childDisplayName && (
+                          <span
+                            className={cn(
                               "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
-                            )}>
-                              <span className="truncate max-w-[130px] sm:max-w-none">{inc.studentName}</span>
+                            )}
+                          >
+                            <span className="truncate max-w-[130px] sm:max-w-none">{childDisplayName}</span>
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Incident type & description below in clean subtle panel */}
+                      {(hasSubject ? (inc.type || inc.description) : inc.description) ? (
+                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 mt-0.5">
+                          {hasSubject && inc.type ? (
+                            <>
+                              <span className="font-bold text-foreground">
+                                {inc.type}
+                              </span>
+                              {inc.description ? (
+                                <span className="font-bold me-1.5 text-foreground">:</span>
+                              ) : null}
+                              {inc.description ? " " : null}
+                            </>
+                          ) : null}
+                          {inc.description && (
+                            <span className="font-normal">
+                              {inc.description}
                             </span>
                           )}
                         </div>
-                      </CardHeader>
-
-                      {inc.description && (
-                        <CardContent className="p-3 sm:p-3.5 pt-0">
-                          {/* Remark / Description */}
-                          <p className="text-sm text-foreground/90 bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 text-start leading-relaxed">
-                            {inc.description}
-                          </p>
-                        </CardContent>
-                      )}
+                      ) : null}
                     </Card>
                   )
                 })}

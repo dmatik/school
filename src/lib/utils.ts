@@ -49,6 +49,24 @@ const HEBREW_GRADE_MAP: Record<number, string> = {
   12: "יב"
 }
 
+/**
+ * Extracts the first name for display on cards.
+ * Prefers the firstName from matched WebtopChild if available,
+ * otherwise extracts the first word from studentName.
+ */
+export function getChildFirstName(
+  studentName?: string | null,
+  matchedChild?: { firstName?: string | null } | null
+): string {
+  if (matchedChild?.firstName?.trim()) {
+    return matchedChild.firstName.trim()
+  }
+  if (!studentName) return ""
+  const trimmed = studentName.trim()
+  if (!trimmed) return ""
+  return trimmed.split(/\s+/)[0]
+}
+
 export function formatGradeHebrew(code: number | string | null | undefined): string {
   if (code == null) return ""
   const num = typeof code === "number" ? code : parseInt(String(code), 10)
