@@ -195,20 +195,78 @@ export function initDb(targetDb = db) {
   // Migrate legacy unscoped incident and homework IDs to user-scoped IDs & clean duplicates
   try {
     const migrateTx = targetDb.transaction(() => {
-      // 1. Incidents migration
+      // 1. Incidents migration & cross-user family deduplication
       const oldIncidents = targetDb.prepare(`
-        SELECT id, user_id FROM incidents
-        WHERE id LIKE 'webtop-inc-%'
+        SELECT id, user_id, child_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data
+        FROM incidents
       `).all();
 
       for (const inc of oldIncidents) {
-        if (!inc.id.startsWith(`webtop-inc-${inc.user_id}-`)) {
+        if (inc.id.startsWith('webtop-inc-') && !inc.id.startsWith(`webtop-inc-${inc.user_id}-`)) {
           const newId = `webtop-inc-${inc.user_id}-${inc.id.slice('webtop-inc-'.length)}`;
           const existing = targetDb.prepare('SELECT id FROM incidents WHERE id = ?').get(newId);
           if (existing) {
             targetDb.prepare('DELETE FROM incidents WHERE id = ?').run(inc.id);
+            inc.id = null;
           } else {
             targetDb.prepare('UPDATE incidents SET id = ? WHERE id = ?').run(newId, inc.id);
+            inc.id = newId;
+          }
+        }
+      }
+
+      // Deduplicate incidents where 'family' and legacy user-scoped (e.g. 'admin-default') rows coexist for the same event
+      const activeIncidents = targetDb.prepare(`
+        SELECT id, user_id, child_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data
+        FROM incidents
+      `).all();
+
+      const hasFamilyIncidents = activeIncidents.some(i => i.user_id === 'family');
+      if (hasFamilyIncidents) {
+        const incByEventKey = new Map();
+        for (const inc of activeIncidents) {
+          let eventId = null;
+          if (inc.raw_data) {
+            try {
+              const parsed = JSON.parse(inc.raw_data);
+              if (parsed && parsed.eventID) eventId = String(parsed.eventID);
+            } catch {}
+          }
+          if (!eventId && inc.id.startsWith(`webtop-inc-${inc.user_id}-`)) {
+            eventId = inc.id.slice(`webtop-inc-${inc.user_id}-`.length);
+          }
+          const key = eventId
+            ? `ev::${eventId}`
+            : `comp::${inc.child_id || inc.student_name || ''}::${inc.date || ''}::${inc.type || ''}::${inc.subject || ''}::${inc.hour_num ?? ''}::${inc.event_code ?? ''}`;
+
+          if (!incByEventKey.has(key)) {
+            incByEventKey.set(key, []);
+          }
+          incByEventKey.get(key).push({ ...inc, eventId });
+        }
+
+        for (const group of incByEventKey.values()) {
+          const familyRow = group.find(r => r.user_id === 'family');
+          if (familyRow) {
+            // Delete any duplicate non-family rows for the same event
+            for (const other of group) {
+              if (other.id !== familyRow.id) {
+                targetDb.prepare('DELETE FROM incidents WHERE id = ?').run(other.id);
+              }
+            }
+          } else if (group.length > 0 && group[0].user_id === 'admin-default') {
+            // Normalize legacy admin-default Webtop incidents to 'family'
+            const primary = group[0];
+            const canonicalId = primary.eventId ? `webtop-inc-family-${primary.eventId}` : primary.id;
+            const collision = targetDb.prepare('SELECT id FROM incidents WHERE id = ?').get(canonicalId);
+            if (!collision) {
+              targetDb.prepare('UPDATE incidents SET id = ?, user_id = ? WHERE id = ?').run(canonicalId, 'family', primary.id);
+            } else if (collision.id !== primary.id) {
+              targetDb.prepare('DELETE FROM incidents WHERE id = ?').run(primary.id);
+            }
+            for (let i = 1; i < group.length; i++) {
+              targetDb.prepare('DELETE FROM incidents WHERE id = ?').run(group[i].id);
+            }
           }
         }
       }
@@ -219,18 +277,21 @@ export function initDb(targetDb = db) {
         FROM homework
       `).all();
 
+      const hasFamilyHw = allHw.some(h => h.user_id === 'family');
       const groupedMap = new Map();
       for (const hw of allHw) {
+        // If family-scoped homework exists, normalize legacy 'admin-default' Webtop homework into 'family' to eliminate duplicates
+        const effectiveUserId = (hasFamilyHw && hw.user_id === 'admin-default') ? 'family' : hw.user_id;
         const sanitizedChild = (hw.student_name || '').trim().replace(/[^\w\u0590-\u05fe]/g, '_');
         const subject = (hw.subject || 'כללי').trim();
         const sanitizedSubject = subject.replace(/[^\w\u0590-\u05fe]/g, '_');
         const hour = (hw.hour_num !== null && !isNaN(hw.hour_num)) ? hw.hour_num : '0';
-        const canonicalId = `webtop-hw-${hw.user_id}-${sanitizedChild}-${hw.due_date}-${hour}-${sanitizedSubject}`;
+        const canonicalId = `webtop-hw-${effectiveUserId}-${sanitizedChild}-${hw.due_date}-${hour}-${sanitizedSubject}`;
 
-        const groupKey = `${hw.user_id}::${(hw.student_name || '').trim()}::${hw.due_date}::${hour}::${subject}`;
+        const groupKey = `${effectiveUserId}::${(hw.student_name || '').trim()}::${hw.due_date}::${hour}::${subject}`;
         let group = groupedMap.get(groupKey);
         if (!group) {
-          group = { canonicalId, bestRow: { ...hw, id: canonicalId }, idsToDelete: [] };
+          group = { canonicalId, bestRow: { ...hw, id: canonicalId, user_id: effectiveUserId }, idsToDelete: [] };
           groupedMap.set(groupKey, group);
         } else {
           // If any duplicate was completed, preserve completed status
