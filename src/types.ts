@@ -72,3 +72,15 @@ export interface ConsolidatedHomeworkItem extends HomeworkItem {
   hourNums: number[];
   ids: string[];
 }
+
+export interface ExamItem {
+  id: string;
+  childId: string;
+  studentName: string;
+  name: string;
+  description?: string | null;
+  date: string;
+  grade?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}

@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, Suspense, lazy } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertCircle,
@@ -9,6 +9,7 @@ import {
   Loader2,
   RefreshCw,
   Check,
+  GraduationCap,
   type LucideIcon
 } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
@@ -25,6 +26,7 @@ import { DirectionProvider } from "@radix-ui/react-direction"
 // Lazy load views
 const IncidentsPage = lazy(() => import("@/components/IncidentsPage").then(module => ({ default: module.IncidentsPage })))
 const HomeworkPage = lazy(() => import("@/components/HomeworkPage").then(module => ({ default: module.HomeworkPage })))
+const ExamsPage = lazy(() => import("@/components/ExamsPage").then(module => ({ default: module.ExamsPage })))
 const SettingsPage = lazy(() => import("@/components/SettingsPage").then(module => ({ default: module.SettingsPage })))
 const AccountPage = lazy(() => import("@/components/AccountPage").then(module => ({ default: module.AccountPage })))
 const AdminPage = lazy(() => import("@/components/AdminPage").then(module => ({ default: module.AdminPage })))
@@ -35,7 +37,7 @@ const LoadingSpinner = () => (
   </div>
 )
 
-type AppTab = 'homework' | 'incidents' | 'settings' | 'admin' | 'account'
+type AppTab = 'homework' | 'incidents' | 'exams' | 'settings' | 'admin' | 'account'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -185,6 +187,21 @@ function App() {
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
+
+  const mobileNavItems = useMemo(() => {
+    const items: { tab: AppTab; icon: LucideIcon; label: string }[] = [
+      { tab: 'homework', icon: BookOpen, label: t('common.homework') },
+      { tab: 'incidents', icon: AlertCircle, label: t('common.incidents') },
+      { tab: 'exams', icon: GraduationCap, label: t('common.exams') },
+    ]
+    if (currentUser?.familyRole !== 'child') {
+      items.push({ tab: 'settings', icon: SettingsIcon, label: t('common.settings_short') })
+    }
+    if (currentUser?.role === 'admin') {
+      items.push({ tab: 'admin', icon: Shield, label: t('common.admin_short') })
+    }
+    return items
+  }, [currentUser?.familyRole, currentUser?.role, t])
 
   const checkWebtopConfig = useCallback(async () => {
     if (!token) return
@@ -409,6 +426,12 @@ function App() {
               icon={AlertCircle}
               label={t('common.incidents')}
             />
+            <MenuButton
+              active={activeTab === 'exams'}
+              onClick={() => handleTabChange('exams')}
+              icon={GraduationCap}
+              label={t('common.exams')}
+            />
             {currentUser.familyRole !== 'child' && (
               <MenuButton
                 active={activeTab === 'settings'}
@@ -529,6 +552,7 @@ function App() {
                   <Suspense fallback={<LoadingSpinner />}>
                     {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                    {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'settings' && currentUser.familyRole !== 'child' && <SettingsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
@@ -553,37 +577,24 @@ function App() {
           {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}
           <nav
             aria-label="Mobile Navigation"
-            className="md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 w-fit max-w-[calc(100vw-1.5rem)] mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300"
+            className={cn(
+              "md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300",
+              mobileNavItems.length >= 5
+                ? "w-fit max-w-[calc(100vw-1.5rem)] overflow-x-auto no-scrollbar"
+                : "w-fit max-w-[calc(100vw-1.5rem)]"
+            )}
           >
-            <div className="flex items-center relative">
-              <MobileNavButton
-                active={activeTab === 'homework'}
-                onClick={() => handleTabChange('homework')}
-                icon={BookOpen}
-                label={t('common.homework')}
-              />
-              <MobileNavButton
-                active={activeTab === 'incidents'}
-                onClick={() => handleTabChange('incidents')}
-                icon={AlertCircle}
-                label={t('common.incidents')}
-              />
-              {currentUser.familyRole !== 'child' && (
+            <div className={cn("flex items-center relative", mobileNavItems.length >= 5 && "w-max")}>
+              {mobileNavItems.map((item) => (
                 <MobileNavButton
-                  active={activeTab === 'settings'}
-                  onClick={() => handleTabChange('settings')}
-                  icon={SettingsIcon}
-                  label={t('common.settings_short')}
+                  key={item.tab}
+                  active={activeTab === item.tab}
+                  onClick={() => handleTabChange(item.tab)}
+                  icon={item.icon}
+                  label={item.label}
+                  isFiveOrMore={mobileNavItems.length >= 5}
                 />
-              )}
-              {currentUser.role === 'admin' && (
-                <MobileNavButton
-                  active={activeTab === 'admin'}
-                  onClick={() => handleTabChange('admin')}
-                  icon={Shield}
-                  label={t('common.admin_short')}
-                />
-              )}
+              ))}
             </div>
           </nav>
         </div>
@@ -611,13 +622,26 @@ function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; o
   )
 }
 
-function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: LucideIcon; label: string }) {
+function MobileNavButton({
+  active,
+  onClick,
+  icon: Icon,
+  label,
+  isFiveOrMore
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: LucideIcon;
+  label: string;
+  isFiveOrMore?: boolean;
+}) {
   return (
     <motion.button
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "w-[85px] shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        isFiveOrMore ? "w-[68px]" : "w-[85px]",
         active ? "text-primary" : "text-foreground"
       )}
     >
@@ -633,8 +657,12 @@ function MobileNavButton({ active, onClick, icon: Icon, label }: { active: boole
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
-        <Icon className="w-6 h-6 stroke-[2px]" />
-        <span className={cn("text-[10px] leading-none mt-1 truncate max-w-[76px] font-medium transition-colors", active ? "text-primary" : "text-foreground")}>
+        <Icon className={cn("stroke-[2px]", isFiveOrMore ? "w-5 h-5" : "w-6 h-6")} />
+        <span className={cn(
+          "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
+          isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
+          active ? "text-primary" : "text-foreground"
+        )}>
           {label}
         </span>
       </div>
