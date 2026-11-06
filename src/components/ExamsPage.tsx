@@ -44,7 +44,7 @@ import {
 import { format, isToday, isYesterday, isTomorrow } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
-import { cn, parseLocalDate } from "@/lib/utils"
+import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
@@ -547,6 +547,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                       (exam.studentName && `${c.firstName} ${c.lastName}`.trim() === exam.studentName.trim())
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const childDisplayName = getChildFirstName(exam.studentName, matchedChild) || exam.studentName
 
                   return (
                     <Card
@@ -594,14 +595,14 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                         {/* Top-End actions: Student Name badge (parents only) & Edit button (parents only) */}
                         <div className="flex items-center gap-1.5 shrink-0">
                           {/* Child Badge (visible ONLY to parents) */}
-                          {!isChild && exam.studentName && (
+                          {!isChild && childDisplayName && (
                             <span
                               className={cn(
                                 "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors",
                                 childBadgeClass
                               )}
                             >
-                              <span className="truncate max-w-[120px] sm:max-w-none">{exam.studentName}</span>
+                              <span className="truncate max-w-[120px] sm:max-w-none">{childDisplayName}</span>
                             </span>
                           )}
 

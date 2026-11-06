@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText, consolidateHomework } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -475,5 +475,29 @@ describe('consolidateHomework utility', () => {
         expect(consolidateHomework(null as unknown as [])).toEqual([])
         expect(consolidateHomework(undefined as unknown as [])).toEqual([])
         expect(consolidateHomework([null as unknown as { id: string; subject: string; dueDate: string; completed: boolean; description: string }])).toEqual([])
+    })
+})
+
+describe('getChildFirstName utility', () => {
+    it('returns matchedChild.firstName if provided', () => {
+        expect(getChildFirstName('David Cohen', { firstName: 'David' })).toBe('David')
+        expect(getChildFirstName('שרה לאה כהן', { firstName: 'שרה לאה' })).toBe('שרה לאה')
+        expect(getChildFirstName(null, { firstName: 'Maya' })).toBe('Maya')
+    })
+
+    it('extracts first name from studentName string when matchedChild is not provided or has no firstName', () => {
+        expect(getChildFirstName('David Cohen')).toBe('David')
+        expect(getChildFirstName('דניאל כהן')).toBe('דניאל')
+        expect(getChildFirstName('  Noa  Levi  ')).toBe('Noa')
+        expect(getChildFirstName('SingleName')).toBe('SingleName')
+        expect(getChildFirstName('Maya Cohen', { firstName: '' })).toBe('Maya')
+    })
+
+    it('returns empty string for empty, null, or undefined inputs', () => {
+        expect(getChildFirstName(null)).toBe('')
+        expect(getChildFirstName(undefined)).toBe('')
+        expect(getChildFirstName('')).toBe('')
+        expect(getChildFirstName('   ')).toBe('')
+        expect(getChildFirstName(null, null)).toBe('')
     })
 })
