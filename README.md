@@ -5,7 +5,7 @@
 [![Docker Pulls](https://img.shields.io/docker/pulls/dmatik/school.svg)](https://hub.docker.com/r/dmatik/school)
 ![Version](https://img.shields.io/badge/version-0.5.6-green)
 
-**School** (בית הספר) is a sleek, modern, mobile-first web application designed for parents and students to monitor school life, homework assignments, exams and grades, attendance, and disciplinary incidents synced directly from the Israeli **Webtop** (SmartSchool) portal.
+**School** (בית הספר) is a sleek, modern, mobile-first web application designed for parents and students to monitor school life, homework assignments, weekly schedules, exams and grades, attendance, and disciplinary incidents synced directly from the Israeli **Webtop** (SmartSchool) portal.
 
 Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual support (**Hebrew RTL** as default, and **English LTR**), it features an ultra-responsive interface with a floating liquid glass dock, a family-shared architecture with parent and child roles, biometric passkeys, per-child color customizer, and complete self-hosting capabilities backed by an embedded SQLite database.
 
@@ -33,6 +33,15 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **Rich Exam Cards:** Cards display academic subject icons, exam name, formatted date, optional grade badge, child name badge (parents only), and optional multi-line description container.
 *   **Textarea with Live Counter:** Add and Edit modals feature an optional description textarea limited to 200 characters with a live character counter and strict calendar date validation.
 *   **Private Student View:** Child accounts view a clean, focused, read-only feed scoped strictly to their own upcoming exams and grades.
+
+### 🗓️ Weekly Schedule (מערכת שעות)
+*   **Complete Sunday–Friday Timetable:** Displays the student's full school week with customizable lesson periods and daily dismissal times.
+*   **Dynamic Hour Expansion:** Intelligently sizes the table to show exactly one period below the student's latest lesson of the week (bounded between periods 1 and 12).
+*   **School Dismissal Times:** Dedicated dismissal row displaying when school ends for each day of the week, with quick-select presets (`11:45`, `12:45`, `13:30`, `14:15`, `15:00`, `16:00`) and clear options.
+*   **Atomic Batch Edit Mode:** Parents can toggle into edit mode to update multiple lessons and dismissal times across the entire week with draft staging, an instant "X" button to cancel and revert changes, and an atomic transactional batch save (`PUT /api/schedule/batch`).
+*   **Child Accent Theming:** Table headers and period index column dynamically adopt the active student's accent badge and text colors.
+*   **Mobile-Optimized 3-Day View:** Responsive layout presenting exactly 3 days per screen with snap alignment, bidirectional navigation controls, and full vertical touch scrolling.
+*   **Student Privacy Mode:** Student accounts view their personalized weekly schedule in read-only mode without edit buttons or sibling switchers.
 
 ### ⚙️ Webtop Integration & Settings (הגדרות וסנכרון)
 *   **Centralized Family Configuration:** Exactly one shared Webtop integration per family—configured and managed exclusively by parent accounts, eliminating duplicate integrations.
@@ -219,6 +228,7 @@ school/
     │   ├── LanguageSwitcher.tsx # Bilingual Hebrew / English language toggle
     │   ├── LoginView.tsx    # Password & WebAuthn biometric login screen
     │   ├── mode-toggle.tsx  # Dark / Light / System theme toggle
+    │   ├── SchedulePage.tsx # Weekly schedule timetable, dismissal times & batch edit mode
     │   ├── SettingsPage.tsx # Webtop credentials, sync & per-child color customizer
     │   ├── theme-provider.tsx # Next-themes provider
     │   └── ui/              # Radix UI primitives styled with Tailwind CSS
