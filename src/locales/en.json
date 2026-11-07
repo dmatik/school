@@ -37,7 +37,8 @@
     "sync": "Sync",
     "sync_now": "Sync",
     "syncing": "Syncing...",
-    "sync_success": "Synced successfully"
+    "sync_success": "Synced successfully",
+    "clear_search": "Clear search"
   },
   "incidents": {
     "title": "School Incidents",

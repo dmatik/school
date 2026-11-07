@@ -6,7 +6,8 @@ import {
   User,
   GraduationCap,
   CheckCircle2,
-  Loader2
+  Loader2,
+  X
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -238,8 +239,18 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("incidents.search_placeholder")}
-              className="ps-9 h-9 text-sm rounded-full"
+              className="ps-9 pe-9 h-9 text-sm rounded-full"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
+                aria-label={t("common.clear_search")}
+              >
+                <X className="w-3.5 h-3.5 stroke-[2.5px]" />
+              </button>
+            )}
           </div>
 
           {/* Kids Dropdown & Date Filter in the same row */}
