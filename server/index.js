@@ -14,15 +14,13 @@ import {
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
 import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId } from './webtop.js';
-import { getWebAuthnConfig } from './webauthn-config.js';
+import { getWebAuthnConfig, resolveTrustProxy } from './webauthn-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-if (process.env.TRUST_PROXY === 'true' || process.env.TRUST_PROXY === '1') {
-  app.set('trust proxy', 1);
-}
+app.set('trust proxy', resolveTrustProxy());
 const PORT = process.env.PORT || 3001;
 
 // Rate limiter for sensitive authentication endpoints (CodeQL js/missing-rate-limiting & CWE-307)
@@ -34,7 +32,7 @@ function rateLimitAuth(maxAttempts = (process.env.NODE_ENV === 'test' ? 1000 : 2
     legacyHeaders: false,
     keyGenerator: (req) => {
       const userPart = req.body?.username ? `:${String(req.body.username).toLowerCase().trim()}` : '';
-      return `${ipKeyGenerator(req)}${userPart}`;
+      return `${ipKeyGenerator(req.ip || '127.0.0.1')}${userPart}`;
     },
     message: {
       error: 'too_many_requests',

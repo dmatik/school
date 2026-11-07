@@ -1,3 +1,21 @@
+export function resolveTrustProxy(envValue = process.env.TRUST_PROXY) {
+  if (envValue === undefined || envValue === '') {
+    // Automatically trust local/Docker/LAN reverse proxies (Cloudflare Tunnel, Synology NGINX, Docker bridge)
+    return 'loopback, linklocal, uniquelocal';
+  }
+  const normalized = String(envValue).trim().toLowerCase();
+  if (normalized === 'false' || normalized === '0') {
+    return false;
+  }
+  if (normalized === 'true') {
+    return 'loopback, linklocal, uniquelocal';
+  }
+  if (/^\d+$/.test(normalized)) {
+    return parseInt(normalized, 10);
+  }
+  return envValue;
+}
+
 export function isLoopbackOrIp(hostname) {
   if (!hostname) return true;
   if (['localhost', '127.0.0.1', '::1'].includes(hostname)) return true;

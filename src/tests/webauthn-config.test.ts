@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'
-import { getWebAuthnConfig, isLoopbackOrIp } from '../../server/webauthn-config.js'
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit'
+import { getWebAuthnConfig, isLoopbackOrIp, resolveTrustProxy } from '../../server/webauthn-config.js'
 
 describe('WebAuthn Config Resolver', () => {
   const originalEnv = { ...process.env }
@@ -140,6 +141,65 @@ describe('WebAuthn Config Resolver', () => {
       expect(config.rpID).toBe('custom.domain.com')
       expect(config.expectedOrigin).toContain('https://custom.domain.com')
       expect(config.expectedOrigin).toContain('https://another.domain.com')
+    })
+  })
+
+  describe('resolveTrustProxy & express-rate-limit behind reverse proxy', () => {
+    it('defaults to trusting loopback, linklocal, uniquelocal without env configuration', () => {
+      delete process.env.TRUST_PROXY
+      expect(resolveTrustProxy()).toBe('loopback, linklocal, uniquelocal')
+      expect(resolveTrustProxy('')).toBe('loopback, linklocal, uniquelocal')
+      expect(resolveTrustProxy('true')).toBe('loopback, linklocal, uniquelocal')
+    })
+
+    it('supports explicit false/0 and numeric hop counts', () => {
+      expect(resolveTrustProxy('false')).toBe(false)
+      expect(resolveTrustProxy('0')).toBe(false)
+      expect(resolveTrustProxy('1')).toBe(1)
+      expect(resolveTrustProxy('2')).toBe(2)
+      expect(resolveTrustProxy('loopback')).toBe('loopback')
+    })
+
+    it('processes X-Forwarded-For from Docker/LAN reverse proxy without ValidationError', async () => {
+      const trustProxySetting = resolveTrustProxy(undefined)
+      const errors: unknown[] = []
+      const limiter = rateLimit({
+        windowMs: 60_000,
+        limit: 10,
+        logger: {
+          error: (...args: unknown[]) => errors.push(args),
+          warn: () => {},
+        },
+      })
+
+      const mockReq = {
+        ip: '203.0.113.42',
+        headers: {
+          'x-forwarded-for': '203.0.113.42, 172.18.0.2',
+        },
+        app: {
+          get: (setting: string) => (setting === 'trust proxy' ? trustProxySetting : undefined),
+        },
+      } as unknown as Parameters<typeof limiter>[0]
+
+      const mockRes = {
+        statusCode: 200,
+        headersSent: false,
+        setHeader: () => {},
+        append: () => {},
+      } as unknown as Parameters<typeof limiter>[1]
+
+      let nextCalled = false
+      let nextError: unknown = null
+      await limiter(mockReq, mockRes, (err?: unknown) => {
+        nextCalled = true
+        nextError = err ?? null
+      })
+
+      expect(nextCalled).toBe(true)
+      expect(nextError).toBeNull()
+      expect(errors).toHaveLength(0)
+      expect(`${ipKeyGenerator(mockReq.ip || '127.0.0.1')}:admin`).toBe('203.0.113.42:admin')
     })
   })
 })
