@@ -590,7 +590,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
             <DialogTitle>{t("admin.create_user_modal_title")}</DialogTitle>
             <DialogDescription>{t("admin.create_user_modal_desc")}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateUser} className="space-y-4 py-2">
+          <form onSubmit={handleCreateUser} className="flex flex-col flex-1 space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="create-username">{t("auth.username")}</Label>
               <Input
@@ -743,7 +743,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   </DialogTitle>
                   <DialogDescription>{t("admin.edit_user_modal_desc")}</DialogDescription>
                 </DialogHeader>
-                <form onSubmit={handleEditUser} className="space-y-4 py-2">
+                <form onSubmit={handleEditUser} className="flex flex-col flex-1 space-y-4 py-2">
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-2">
                       <Label htmlFor="edit-fn">{t("account.first_name")}</Label>
@@ -873,7 +873,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
               {t("admin.reset_password_modal_desc", { username: activeUser?.username })}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleResetPassword} className="space-y-4 py-2">
+          <form onSubmit={handleResetPassword} className="flex flex-col flex-1 space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="reset-pass">{t("admin.new_password")}</Label>
               <Input

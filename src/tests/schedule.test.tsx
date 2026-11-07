@@ -263,6 +263,17 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       expect(screen.getByRole('button', { name: '11:45' })).toBeInTheDocument()
       expect(screen.getByRole('button', { name: '12:45' })).toBeInTheDocument()
     })
+
+    const finishInput = screen.getByLabelText('schedule.finish_time_label') as HTMLInputElement
+    expect(finishInput.value).toBe('13:30')
+
+    // Typing raw digits auto-formats as HH:MM
+    fireEvent.change(finishInput, { target: { value: '1445' } })
+    expect(finishInput.value).toBe('14:45')
+
+    // Clicking a preset sets the value
+    fireEvent.click(screen.getByRole('button', { name: '12:45' }))
+    expect(finishInput.value).toBe('12:45')
   })
 
   it('does NOT open finish time dialog when child user clicks dismissal time', async () => {

@@ -655,7 +655,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
             <DialogTitle>{t("exams.add_modal_title")}</DialogTitle>
             <DialogDescription>{t("exams.add_modal_desc")}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleCreateExam} className="space-y-4 py-2">
+          <form onSubmit={handleCreateExam} className="flex flex-col flex-1 space-y-4 py-2">
             {/* Child Selection */}
             <div className="space-y-2">
               <Label htmlFor="exam-add-child">{t("exams.child_label")}</Label>
@@ -757,7 +757,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
             <DialogTitle>{t("exams.edit_modal_title")}</DialogTitle>
             <DialogDescription>{t("exams.edit_modal_desc")}</DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdateExam} className="space-y-4 py-2">
+          <form onSubmit={handleUpdateExam} className="flex flex-col flex-1 space-y-4 py-2">
             {/* Child Selection */}
             <div className="space-y-2">
               <Label htmlFor="exam-edit-child">{t("exams.child_label")}</Label>
