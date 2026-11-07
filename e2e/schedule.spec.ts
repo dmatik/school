@@ -69,7 +69,7 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
 
     // Check scroll hints exist on mobile
-    await expect(page.locator('button[aria-label="Scroll days forward"]')).toBeVisible();
-    await expect(page.locator('button[aria-label="Scroll days backward"]')).toBeVisible();
+    await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).toBeVisible();
+    await expect(page.locator('button[aria-label="Scroll backward"], button[aria-label="גלול אחורה"]')).toBeVisible();
   });
 });

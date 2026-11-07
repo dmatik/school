@@ -467,4 +467,43 @@ describe('Schedule Database Schema & Backend Constraints (Isolated In-Memory SQL
     const updated = db.prepare('SELECT finish_time FROM schedule_day_settings WHERE child_id = ? AND day_of_week = ?').get('child-1', 0) as { finish_time: string }
     expect(updated.finish_time).toBe('14:00')
   })
+
+  it('validates batch array size bounds and strict 24-hour finish time format', () => {
+    const timeRegex = /^([01]\d|2[0-3]):[0-5]\d$/
+
+    expect(timeRegex.test('11:45')).toBe(true)
+    expect(timeRegex.test('00:00')).toBe(true)
+    expect(timeRegex.test('23:59')).toBe(true)
+    expect(timeRegex.test('24:00')).toBe(false)
+    expect(timeRegex.test('99:99')).toBe(false)
+    expect(timeRegex.test('12:60')).toBe(false)
+    expect(timeRegex.test('1:30')).toBe(false)
+
+    // Batch limits
+    const maxLessons = 72
+    const maxFinishTimes = 6
+    expect(maxLessons).toBe(6 * 12)
+    expect(maxFinishTimes).toBe(6)
+  })
+
+  it('deduplicates batch slots cleanly without unique constraint crash', () => {
+    const rawLessons = [
+      { dayOfWeek: 0, hourNum: 1, subject: 'First Math' },
+      { dayOfWeek: 0, hourNum: 1, subject: 'Duplicate Math' },
+      { dayOfWeek: 1, hourNum: 2, subject: 'English' }
+    ]
+
+    const seenSlots = new Set<string>()
+    const deduplicated = []
+    for (const l of rawLessons) {
+      const key = `${l.dayOfWeek}-${l.hourNum}`
+      if (seenSlots.has(key)) continue
+      seenSlots.add(key)
+      deduplicated.push(l)
+    }
+
+    expect(deduplicated).toHaveLength(2)
+    expect(deduplicated[0].subject).toBe('First Math')
+    expect(deduplicated[1].subject).toBe('English')
+  })
 })

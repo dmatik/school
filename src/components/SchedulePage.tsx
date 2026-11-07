@@ -456,8 +456,11 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       {isParent && (
         <div className="flex items-center gap-2 pt-3 pb-1 shrink-0">
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <Select value={selectedChildId} onValueChange={handleSelectChild}>
-              <SelectTrigger className="h-9 text-sm gap-2 px-3.5 w-auto min-w-[150px] sm:w-[180px] bg-card border-transparent shadow-xs rounded-full hover:bg-card/90 transition-colors">
+            <Select value={selectedChildId} onValueChange={handleSelectChild} disabled={isSavingBatch}>
+              <SelectTrigger
+                disabled={isSavingBatch}
+                className="h-9 text-sm gap-2 px-3.5 w-auto min-w-[150px] sm:w-[180px] bg-card border-transparent shadow-xs rounded-full hover:bg-card/90 transition-colors"
+              >
                 <div className="flex items-center gap-2 truncate">
                   <User className="h-4 w-4 text-muted-foreground shrink-0" />
                   <SelectValue placeholder={t("schedule.select_child")} />
@@ -560,9 +563,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             <button
               onClick={() => scrollDay("prev")}
               className="flex items-center gap-1 hover:text-foreground p-1 rounded-md transition-colors"
-              aria-label="Scroll days backward"
+              title={t("schedule.scroll_backward")}
+              aria-label={t("schedule.scroll_backward")}
             >
-              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
+              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
             </button>
             <span className="text-[11px] font-medium opacity-80 select-none">
               {t("schedule.days.day_0")} – {t("schedule.days.day_5")}
@@ -570,9 +574,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             <button
               onClick={() => scrollDay("next")}
               className="flex items-center gap-1 hover:text-foreground p-1 rounded-md transition-colors"
-              aria-label="Scroll days forward"
+              title={t("schedule.scroll_forward")}
+              aria-label={t("schedule.scroll_forward")}
             >
-              <ChevronLeft className="w-4 h-4 rtl:rotate-180" />
+              <ChevronRight className="w-4 h-4 rtl:rotate-180" />
             </button>
           </div>
 
@@ -610,20 +615,17 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             <div
               ref={scrollContainerRef}
               style={{
-                overscrollBehavior: "none",
                 overscrollBehaviorX: "none",
-                overscrollBehaviorY: "none",
-                WebkitOverflowScrolling: "touch",
-                touchAction: "pan-x"
+                WebkitOverflowScrolling: "touch"
               }}
-              className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-x-hidden no-scrollbar snap-x snap-mandatory min-w-0 overscroll-none touch-pan-x"
+              className="flex-1 overflow-x-auto md:overflow-x-hidden no-scrollbar snap-x snap-mandatory min-w-0 overscroll-x-none"
             >
               <div className="w-[200%] min-w-[200%] max-w-[200%] md:w-full md:min-w-full md:max-w-full flex flex-col">
                 {/* Table Header: Days of the week */}
                 <div
                   data-schedule-header
                   className={cn(
-                    "h-10 backdrop-blur-md border-b border-border/80 flex shrink-0 divide-x divide-x-reverse divide-border/70 transition-colors",
+                    "h-10 backdrop-blur-md border-b border-border/80 flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70 transition-colors",
                     childColor ? childColor.badgeBg : "bg-muted/80 dark:bg-secondary/80"
                   )}
                 >
@@ -662,7 +664,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                   {hoursToDisplay.map((hourNum) => (
                     <div
                       key={hourNum}
-                      className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] flex shrink-0 divide-x divide-x-reverse divide-border/70"
+                      className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70"
                     >
                       {DAYS.map((day) => {
                         const lesson = lessonMap.get(`${day}-${hourNum}`)
@@ -704,7 +706,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 {/* Bottom Row: School Dismissal Finish Time */}
                 <div
                   data-schedule-dismissal
-                  className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] border-t border-border/80 bg-muted/90 dark:bg-secondary/90 backdrop-blur-md flex shrink-0 divide-x divide-x-reverse divide-border/70"
+                  className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] border-t border-border/80 bg-muted/90 dark:bg-secondary/90 backdrop-blur-md flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70"
                 >
                   {DAYS.map((day) => {
                     const finishTime = finishTimeMap.get(day)

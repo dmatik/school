@@ -197,7 +197,9 @@
     "edit_mode_save": "Save changes",
     "edit_mode_cancel": "Cancel editing",
     "changes_saved": "Schedule saved successfully",
-    "changes_discarded": "Changes discarded"
+    "changes_discarded": "Changes discarded",
+    "scroll_backward": "Scroll backward",
+    "scroll_forward": "Scroll forward"
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",

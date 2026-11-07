@@ -2060,6 +2060,10 @@ app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
       return res.status(400).json({ error: 'invalid_payload', message: 'lessons and finishTimes must be arrays' });
     }
 
+    if (lessons.length > 72 || finishTimes.length > 6) {
+      return res.status(400).json({ error: 'payload_too_large', message: 'Exceeded maximum allowable lessons (72) or finish times (6)' });
+    }
+
     const now = new Date().toISOString();
 
     const saveBatch = db.transaction(() => {
@@ -2072,19 +2076,22 @@ app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
         VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
       `);
 
+      const seenSlots = new Set();
       for (const l of lessons) {
         if (!l || typeof l !== 'object') continue;
         const parsedDay = parseInt(l.dayOfWeek, 10);
         const parsedHour = parseInt(l.hourNum, 10);
         const cleanSubject = typeof l.subject === 'string' ? l.subject.trim().slice(0, 50) : '';
-        const cleanTeacher = typeof l.teacher === 'string' ? l.teacher.trim().slice(0, 60) : '';
-        const cleanRoom = typeof l.room === 'string' ? l.room.trim().slice(0, 60) : '';
 
         if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) continue;
         if (isNaN(parsedHour) || parsedHour < 1 || parsedHour > 12) continue;
         if (!cleanSubject) continue;
 
-        insertLesson.run(crypto.randomUUID(), child.id, parsedDay, parsedHour, cleanSubject, cleanTeacher, cleanRoom, now, now);
+        const slotKey = `${parsedDay}-${parsedHour}`;
+        if (seenSlots.has(slotKey)) continue;
+        seenSlots.add(slotKey);
+
+        insertLesson.run(crypto.randomUUID(), child.id, parsedDay, parsedHour, cleanSubject, '', '', now, now);
       }
 
       const insertFinish = db.prepare(`
@@ -2092,13 +2099,17 @@ app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
         VALUES (?, 'family', ?, ?, ?, ?, ?)
       `);
 
+      const seenDays = new Set();
       for (const f of finishTimes) {
         if (!f || typeof f !== 'object') continue;
         const parsedDay = parseInt(f.dayOfWeek, 10);
         const cleanTime = typeof f.finishTime === 'string' ? f.finishTime.trim() : '';
 
         if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) continue;
-        if (!cleanTime || !/^\d{2}:\d{2}$/.test(cleanTime)) continue;
+        if (!cleanTime || !/^([01]\d|2[0-3]):[0-5]\d$/.test(cleanTime)) continue;
+
+        if (seenDays.has(parsedDay)) continue;
+        seenDays.add(parsedDay);
 
         insertFinish.run(crypto.randomUUID(), child.id, parsedDay, cleanTime, now, now);
       }

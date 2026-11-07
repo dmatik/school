@@ -197,7 +197,9 @@
     "edit_mode_save": "שמור שינויים",
     "edit_mode_cancel": "בטל שינויים",
     "changes_saved": "המערכת נשמרה בהצלחה",
-    "changes_discarded": "השינויים בוטלו"
+    "changes_discarded": "השינויים בוטלו",
+    "scroll_backward": "גלול אחורה",
+    "scroll_forward": "גלול קדימה"
   },
   "auth": {
     "login_subtitle": "התחברות למערכת בית הספר",
