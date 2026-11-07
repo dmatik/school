@@ -1860,7 +1860,283 @@ app.delete('/api/exams/:id', authenticate, requireParent, (req, res) => {
   }
 });
 
-// Catch-all 404 for undefined /api routes
+/* --- Weekly Schedule Endpoints --- */
+
+// GET /api/schedule
+app.get('/api/schedule', authenticate, (req, res) => {
+  try {
+    const rawChildId = req.query.childId;
+    const cleanChildId = typeof rawChildId === 'string' ? rawChildId.trim() : null;
+
+    let targetChildId = cleanChildId;
+    if (req.user.familyRole === 'child') {
+      if (!req.user.linkedChildId) {
+        return res.json({ lessons: [], finishTimes: [] });
+      }
+      targetChildId = req.user.linkedChildId;
+    }
+
+    if (!targetChildId || targetChildId === 'all') {
+      // Find default child if available
+      const firstChild = db.prepare('SELECT id FROM children ORDER BY class_code ASC, first_name ASC LIMIT 1').get();
+      if (!firstChild) {
+        return res.json({ lessons: [], finishTimes: [] });
+      }
+      targetChildId = firstChild.id;
+    }
+
+    const lessons = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, hour_num as hourNum, subject, coalesce(teacher, '') as teacher, coalesce(room, '') as room, updated_at as updatedAt
+      FROM schedule_lessons
+      WHERE (child_id = ? OR child_id IN (SELECT id FROM children WHERE external_id = ?))
+      ORDER BY day_of_week ASC, hour_num ASC
+    `).all(targetChildId, targetChildId);
+
+    const finishTimes = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, finish_time as finishTime, updated_at as updatedAt
+      FROM schedule_day_settings
+      WHERE (child_id = ? OR child_id IN (SELECT id FROM children WHERE external_id = ?))
+      ORDER BY day_of_week ASC
+    `).all(targetChildId, targetChildId);
+
+    res.json({ lessons, finishTimes });
+  } catch (err) {
+    console.error('Failed to fetch schedule:', err);
+    res.status(500).json({ error: 'Failed to fetch schedule' });
+  }
+});
+
+// PUT /api/schedule/lesson
+app.put('/api/schedule/lesson', authenticate, requireParent, (req, res) => {
+  try {
+    const { childId, dayOfWeek, hourNum, subject, teacher, room } = req.body;
+
+    if (!childId || typeof childId !== 'string') {
+      return res.status(400).json({ error: 'child_required', message: 'Student selection is required' });
+    }
+
+    const parsedDay = parseInt(dayOfWeek, 10);
+    if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) {
+      return res.status(400).json({ error: 'day_invalid', message: 'Day of week must be between 0 (Sunday) and 5 (Friday)' });
+    }
+
+    const parsedHour = parseInt(hourNum, 10);
+    if (isNaN(parsedHour) || parsedHour < 1 || parsedHour > 12) {
+      return res.status(400).json({ error: 'hour_invalid', message: 'Hour number must be between 1 and 12' });
+    }
+
+    const child = db.prepare(`
+      SELECT id FROM children
+      WHERE (id = ? OR external_id = ?)
+    `).get(childId.trim(), childId.trim());
+
+    if (!child) {
+      return res.status(400).json({ error: 'child_not_found', message: 'Selected student not found' });
+    }
+
+    if (typeof subject === 'string' && subject.trim().length > 50) {
+      return res.status(400).json({ error: 'subject_too_long', message: 'Lesson subject cannot exceed 50 characters' });
+    }
+
+    const cleanSubject = typeof subject === 'string' ? subject.trim().slice(0, 50) : '';
+    const cleanTeacher = typeof teacher === 'string' ? teacher.trim().slice(0, 120) : '';
+    const cleanRoom = typeof room === 'string' ? room.trim().slice(0, 60) : '';
+
+    if (!cleanSubject) {
+      // Clear/delete the lesson slot
+      db.prepare(`
+        DELETE FROM schedule_lessons
+        WHERE child_id = ? AND day_of_week = ? AND hour_num = ?
+      `).run(child.id, parsedDay, parsedHour);
+
+      return res.json({ deleted: true, dayOfWeek: parsedDay, hourNum: parsedHour });
+    }
+
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+
+    db.prepare(`
+      INSERT INTO schedule_lessons (id, user_id, child_id, day_of_week, hour_num, subject, teacher, room, created_at, updated_at)
+      VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
+      ON CONFLICT(child_id, day_of_week, hour_num) DO UPDATE SET
+        subject = excluded.subject,
+        teacher = excluded.teacher,
+        room = excluded.room,
+        updated_at = excluded.updated_at
+    `).run(id, child.id, parsedDay, parsedHour, cleanSubject, cleanTeacher, cleanRoom, now, now);
+
+    const saved = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, hour_num as hourNum, subject, teacher, room, updated_at as updatedAt
+      FROM schedule_lessons
+      WHERE child_id = ? AND day_of_week = ? AND hour_num = ?
+    `).get(child.id, parsedDay, parsedHour);
+
+    res.json({ lesson: saved });
+  } catch (err) {
+    console.error('Failed to update schedule lesson:', err);
+    res.status(500).json({ error: 'update_failed', message: 'Failed to update schedule lesson' });
+  }
+});
+
+// PUT /api/schedule/finish-time
+app.put('/api/schedule/finish-time', authenticate, requireParent, (req, res) => {
+  try {
+    const { childId, dayOfWeek, finishTime } = req.body;
+
+    if (!childId || typeof childId !== 'string') {
+      return res.status(400).json({ error: 'child_required', message: 'Student selection is required' });
+    }
+
+    const parsedDay = parseInt(dayOfWeek, 10);
+    if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) {
+      return res.status(400).json({ error: 'day_invalid', message: 'Day of week must be between 0 (Sunday) and 5 (Friday)' });
+    }
+
+    const child = db.prepare(`
+      SELECT id FROM children
+      WHERE (id = ? OR external_id = ?)
+    `).get(childId.trim(), childId.trim());
+
+    if (!child) {
+      return res.status(400).json({ error: 'child_not_found', message: 'Selected student not found' });
+    }
+
+    const cleanTime = typeof finishTime === 'string' ? finishTime.trim() : '';
+
+    if (!cleanTime) {
+      // Clear finish time for this day
+      db.prepare(`
+        DELETE FROM schedule_day_settings
+        WHERE child_id = ? AND day_of_week = ?
+      `).run(child.id, parsedDay);
+
+      return res.json({ deleted: true, dayOfWeek: parsedDay });
+    }
+
+    // Validate 24-hour time format: HH:mm
+    if (!/^([01]\d|2[0-3]):[0-5]\d$/.test(cleanTime)) {
+      return res.status(400).json({ error: 'invalid_time_format', message: 'Finish time must be in HH:mm format' });
+    }
+
+    const now = new Date().toISOString();
+    const id = crypto.randomUUID();
+
+    db.prepare(`
+      INSERT INTO schedule_day_settings (id, user_id, child_id, day_of_week, finish_time, created_at, updated_at)
+      VALUES (?, 'family', ?, ?, ?, ?, ?)
+      ON CONFLICT(child_id, day_of_week) DO UPDATE SET
+        finish_time = excluded.finish_time,
+        updated_at = excluded.updated_at
+    `).run(id, child.id, parsedDay, cleanTime, now, now);
+
+    const saved = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, finish_time as finishTime, updated_at as updatedAt
+      FROM schedule_day_settings
+      WHERE child_id = ? AND day_of_week = ?
+    `).get(child.id, parsedDay);
+
+    res.json({ finishTime: saved });
+  } catch (err) {
+    console.error('Failed to update finish time:', err);
+    res.status(500).json({ error: 'update_failed', message: 'Failed to update finish time' });
+  }
+});
+
+// PUT /api/schedule/batch - Save all lessons and finish times for a child in one transaction
+app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
+  try {
+    const { childId, lessons, finishTimes } = req.body;
+
+    if (!childId || typeof childId !== 'string') {
+      return res.status(400).json({ error: 'child_required', message: 'Student selection is required' });
+    }
+
+    const child = db.prepare('SELECT id FROM children WHERE id = ? OR external_id = ?').get(childId.trim(), childId.trim());
+    if (!child) {
+      return res.status(404).json({ error: 'child_not_found', message: 'Selected child does not exist' });
+    }
+
+    if (!Array.isArray(lessons) || !Array.isArray(finishTimes)) {
+      return res.status(400).json({ error: 'invalid_payload', message: 'lessons and finishTimes must be arrays' });
+    }
+
+    if (lessons.length > 72 || finishTimes.length > 6) {
+      return res.status(400).json({ error: 'payload_too_large', message: 'Exceeded maximum allowable lessons (72) or finish times (6)' });
+    }
+
+    const now = new Date().toISOString();
+
+    const saveBatch = db.transaction(() => {
+      // Clear existing schedule records for this child
+      db.prepare('DELETE FROM schedule_lessons WHERE child_id = ?').run(child.id);
+      db.prepare('DELETE FROM schedule_day_settings WHERE child_id = ?').run(child.id);
+
+      const insertLesson = db.prepare(`
+        INSERT INTO schedule_lessons (id, user_id, child_id, day_of_week, hour_num, subject, teacher, room, created_at, updated_at)
+        VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
+      `);
+
+      const seenSlots = new Set();
+      for (const l of lessons) {
+        if (!l || typeof l !== 'object') continue;
+        const parsedDay = parseInt(l.dayOfWeek, 10);
+        const parsedHour = parseInt(l.hourNum, 10);
+        const cleanSubject = typeof l.subject === 'string' ? l.subject.trim().slice(0, 50) : '';
+
+        if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) continue;
+        if (isNaN(parsedHour) || parsedHour < 1 || parsedHour > 12) continue;
+        if (!cleanSubject) continue;
+
+        const slotKey = `${parsedDay}-${parsedHour}`;
+        if (seenSlots.has(slotKey)) continue;
+        seenSlots.add(slotKey);
+
+        insertLesson.run(crypto.randomUUID(), child.id, parsedDay, parsedHour, cleanSubject, '', '', now, now);
+      }
+
+      const insertFinish = db.prepare(`
+        INSERT INTO schedule_day_settings (id, user_id, child_id, day_of_week, finish_time, created_at, updated_at)
+        VALUES (?, 'family', ?, ?, ?, ?, ?)
+      `);
+
+      const seenDays = new Set();
+      for (const f of finishTimes) {
+        if (!f || typeof f !== 'object') continue;
+        const parsedDay = parseInt(f.dayOfWeek, 10);
+        const cleanTime = typeof f.finishTime === 'string' ? f.finishTime.trim() : '';
+
+        if (isNaN(parsedDay) || parsedDay < 0 || parsedDay > 5) continue;
+        if (!cleanTime || !/^([01]\d|2[0-3]):[0-5]\d$/.test(cleanTime)) continue;
+
+        if (seenDays.has(parsedDay)) continue;
+        seenDays.add(parsedDay);
+
+        insertFinish.run(crypto.randomUUID(), child.id, parsedDay, cleanTime, now, now);
+      }
+    });
+
+    saveBatch();
+
+    const updatedLessons = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, hour_num as hourNum, subject, coalesce(teacher, '') as teacher, coalesce(room, '') as room, updated_at as updatedAt
+      FROM schedule_lessons
+      WHERE child_id = ?
+      ORDER BY day_of_week ASC, hour_num ASC
+    `).all(child.id);
+
+    const updatedFinishTimes = db.prepare(`
+      SELECT id, child_id as childId, day_of_week as dayOfWeek, finish_time as finishTime, updated_at as updatedAt
+      FROM schedule_day_settings
+      WHERE child_id = ?
+      ORDER BY day_of_week ASC
+    `).all(child.id);
+
+    res.json({ success: true, lessons: updatedLessons, finishTimes: updatedFinishTimes });
+  } catch (err) {
+    console.error('Failed to update schedule batch:', err);
+    res.status(500).json({ error: 'update_failed', message: 'Failed to update schedule batch' });
+  }
+});
 app.all(/^\/api(\/.*)?$/, (req, res) => {
   res.status(404).json({ error: 'Endpoint not found' });
 });

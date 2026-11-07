@@ -10,6 +10,7 @@ import {
   RefreshCw,
   Check,
   GraduationCap,
+  CalendarDays,
   type LucideIcon
 } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
@@ -27,6 +28,7 @@ import { DirectionProvider } from "@radix-ui/react-direction"
 const IncidentsPage = lazy(() => import("@/components/IncidentsPage").then(module => ({ default: module.IncidentsPage })))
 const HomeworkPage = lazy(() => import("@/components/HomeworkPage").then(module => ({ default: module.HomeworkPage })))
 const ExamsPage = lazy(() => import("@/components/ExamsPage").then(module => ({ default: module.ExamsPage })))
+const SchedulePage = lazy(() => import("@/components/SchedulePage").then(module => ({ default: module.SchedulePage })))
 const SettingsPage = lazy(() => import("@/components/SettingsPage").then(module => ({ default: module.SettingsPage })))
 const AccountPage = lazy(() => import("@/components/AccountPage").then(module => ({ default: module.AccountPage })))
 const AdminPage = lazy(() => import("@/components/AdminPage").then(module => ({ default: module.AdminPage })))
@@ -37,7 +39,7 @@ const LoadingSpinner = () => (
   </div>
 )
 
-type AppTab = 'homework' | 'incidents' | 'exams' | 'settings' | 'admin' | 'account'
+type AppTab = 'homework' | 'incidents' | 'exams' | 'schedule' | 'settings' | 'admin' | 'account'
 
 function App() {
   const { t, i18n } = useTranslation()
@@ -193,6 +195,7 @@ function App() {
       { tab: 'homework', icon: BookOpen, label: t('common.homework') },
       { tab: 'incidents', icon: AlertCircle, label: t('common.incidents') },
       { tab: 'exams', icon: GraduationCap, label: t('common.exams') },
+      { tab: 'schedule', icon: CalendarDays, label: t('common.schedule') },
     ]
     if (currentUser?.familyRole !== 'child') {
       items.push({ tab: 'settings', icon: SettingsIcon, label: t('common.settings_short') })
@@ -432,6 +435,12 @@ function App() {
               icon={GraduationCap}
               label={t('common.exams')}
             />
+            <MenuButton
+              active={activeTab === 'schedule'}
+              onClick={() => handleTabChange('schedule')}
+              icon={CalendarDays}
+              label={t('common.schedule')}
+            />
             {currentUser.familyRole !== 'child' && (
               <MenuButton
                 active={activeTab === 'settings'}
@@ -553,6 +562,7 @@ function App() {
                     {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                    {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'settings' && currentUser.familyRole !== 'child' && <SettingsPage token={token} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
@@ -579,8 +589,8 @@ function App() {
             aria-label="Mobile Navigation"
             className={cn(
               "md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300",
-              mobileNavItems.length >= 5
-                ? "w-fit max-w-[calc(100vw-1.5rem)] overflow-x-auto no-scrollbar"
+              mobileNavItems.length > 5
+                ? "w-[min(352px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
                 : "w-fit max-w-[calc(100vw-1.5rem)]"
             )}
           >
@@ -635,8 +645,21 @@ function MobileNavButton({
   label: string;
   isFiveOrMore?: boolean;
 }) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null)
+
+  useEffect(() => {
+    if (active && buttonRef.current) {
+      buttonRef.current.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'center'
+      })
+    }
+  }, [active])
+
   return (
     <motion.button
+      ref={buttonRef}
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(

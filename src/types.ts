@@ -84,3 +84,22 @@ export interface ExamItem {
   createdAt?: string;
   updatedAt?: string;
 }
+
+export interface ScheduleLesson {
+  id: string;
+  childId: string;
+  dayOfWeek: number; // 0 (Sunday) to 5 (Friday)
+  hourNum: number;   // 1-based lesson number
+  subject: string;
+  teacher?: string;
+  room?: string;
+  updatedAt?: string;
+}
+
+export interface ScheduleFinishTime {
+  id: string;
+  childId: string;
+  dayOfWeek: number; // 0 (Sunday) to 5 (Friday)
+  finishTime: string; // "HH:mm"
+  updatedAt?: string;
+}
