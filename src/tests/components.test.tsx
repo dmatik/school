@@ -615,6 +615,55 @@ describe('Empty Page Views', () => {
       global.fetch = originalFetch
     }
   })
+
+  it('renders a visible clear button when search input has text and clears it on click', async () => {
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            homework: [
+              {
+                id: 'hw-1',
+                subject: 'חשבון',
+                dueDate: '2026-03-01',
+                description: 'תרגיל',
+                rawData: JSON.stringify({ homeWork: 'תרגיל' })
+              }
+            ]
+          })
+        })
+      }
+      return Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({ configured: true, linkedChildren: [] })
+      })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+      await screen.findByText('חשבון')
+
+      const searchInput = screen.getByPlaceholderText('homework.search_placeholder') as HTMLInputElement
+      expect(screen.queryByLabelText('common.clear_search')).not.toBeInTheDocument()
+
+      // Type in search input
+      fireEvent.change(searchInput, { target: { value: 'חשבון' } })
+      expect(searchInput.value).toBe('חשבון')
+
+      // Clear button should now be visible
+      const clearBtn = screen.getByLabelText('common.clear_search')
+      expect(clearBtn).toBeInTheDocument()
+
+      // Click clear button
+      fireEvent.click(clearBtn)
+      expect(searchInput.value).toBe('')
+      expect(screen.queryByLabelText('common.clear_search')).not.toBeInTheDocument()
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
 })
 
 describe('Toast & ToastClose Component', () => {
