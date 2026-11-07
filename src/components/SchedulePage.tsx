@@ -615,10 +615,13 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             <div
               ref={scrollContainerRef}
               style={{
+                overflowY: "hidden",
                 overscrollBehaviorX: "none",
-                WebkitOverflowScrolling: "touch"
+                overscrollBehaviorY: "auto",
+                WebkitOverflowScrolling: "touch",
+                touchAction: "manipulation"
               }}
-              className="flex-1 overflow-x-auto md:overflow-x-hidden no-scrollbar snap-x snap-mandatory min-w-0 overscroll-x-none"
+              className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-x-hidden no-scrollbar snap-x snap-mandatory min-w-0 overscroll-x-none touch-manipulation"
             >
               <div className="w-[200%] min-w-[200%] max-w-[200%] md:w-full md:min-w-full md:max-w-full flex flex-col">
                 {/* Table Header: Days of the week */}
