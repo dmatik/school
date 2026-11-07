@@ -16,7 +16,7 @@ describe('Child Colors Utility', () => {
   });
 
   it('returns default styling when colorId is not provided or undefined', () => {
-    const defaultClasses = 'bg-muted/70 text-foreground border-border/60';
+    const defaultClasses = 'bg-muted/70 text-foreground border-transparent';
     expect(getChildBadgeClasses()).toBe(defaultClasses);
     expect(getChildBadgeClasses(null)).toBe(defaultClasses);
     expect(getChildBadgeClasses(undefined)).toBe(defaultClasses);
@@ -27,7 +27,7 @@ describe('Child Colors Utility', () => {
     const blueClasses = getChildBadgeClasses('blue');
     expect(blueClasses).toContain('bg-blue-500');
     expect(blueClasses).toContain('text-blue-700');
-    expect(blueClasses).toContain('border-blue-500');
+    expect(blueClasses).toContain('border-transparent');
 
     const emeraldClasses = getChildBadgeClasses('emerald');
     expect(emeraldClasses).toContain('bg-emerald-500');

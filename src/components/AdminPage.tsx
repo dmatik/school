@@ -402,7 +402,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   }, [users, searchQuery])
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-5xl mx-auto space-y-6">
+    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-6 max-w-3xl mx-auto w-full space-y-6">
       {/* Page Header */}
       <div data-page-title className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
         <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
@@ -432,7 +432,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       </div>
 
       {/* Users List */}
-      <Card className="shadow-sm overflow-hidden">
+      <Card className="shadow-sm border border-transparent overflow-hidden">
         <CardContent className="p-0">
           {loading ? (
             <div className="flex justify-center items-center py-12">
@@ -458,10 +458,10 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                         <img
                           src={u.avatar}
                           alt={u.username}
-                          className="w-10 h-10 rounded-full object-cover border"
+                          className="w-10 h-10 rounded-full object-cover border border-transparent"
                         />
                       ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold">
+                        <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold border border-transparent">
                           {u.username[0]?.toUpperCase() || "U"}
                         </div>
                       )}
@@ -474,7 +474,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                             <span className="text-xs text-muted-foreground">({u.username})</span>
                           )}
                           {isSelf && (
-                            <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium">
+                            <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium border border-transparent">
                               {t("admin.you")}
                             </span>
                           )}
@@ -508,7 +508,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                               return (
                                 <>
                                   <span className="text-border">•</span>
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-border/50">
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-transparent">
                                     {childName}
                                   </span>
                                 </>
@@ -517,7 +517,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                             return (
                               <>
                                 <span className="text-border">•</span>
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/20">
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-transparent">
                                   {t("admin.unlinked_child_badge")}
                                 </span>
                               </>
@@ -587,6 +587,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 value={createUsername}
                 onChange={(e) => setCreateUsername(e.target.value)}
                 placeholder={t("auth.username_placeholder")}
+                className="bg-muted dark:bg-secondary border-transparent"
                 required
               />
             </div>
@@ -598,6 +599,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 value={createPassword}
                 onChange={(e) => setCreatePassword(e.target.value)}
                 placeholder="••••••••"
+                className="bg-muted dark:bg-secondary border-transparent"
                 required
               />
             </div>
@@ -608,6 +610,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   id="create-fn"
                   value={createFirstName}
                   onChange={(e) => setCreateFirstName(e.target.value)}
+                  className="bg-muted dark:bg-secondary border-transparent"
                 />
               </div>
               <div className="space-y-2">
@@ -616,6 +619,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   id="create-ln"
                   value={createLastName}
                   onChange={(e) => setCreateLastName(e.target.value)}
+                  className="bg-muted dark:bg-secondary border-transparent"
                 />
               </div>
             </div>
@@ -631,7 +635,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   }
                 }}
               >
-                <SelectTrigger id="create-role">
+                <SelectTrigger id="create-role" className="bg-muted dark:bg-secondary border-transparent">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -652,7 +656,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 }}
                 disabled={createRole === "admin"}
               >
-                <SelectTrigger id="create-family-role" disabled={createRole === "admin"}>
+                <SelectTrigger id="create-family-role" className="bg-muted dark:bg-secondary border-transparent" disabled={createRole === "admin"}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -683,7 +687,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                     }
                   }}
                 >
-                  <SelectTrigger id="create-linked-child">
+                  <SelectTrigger id="create-linked-child" className="bg-muted dark:bg-secondary border-transparent">
                     <SelectValue placeholder={t("admin.select_child_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -736,6 +740,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                         id="edit-fn"
                         value={editFirstName}
                         onChange={(e) => setEditFirstName(e.target.value)}
+                        className="bg-muted dark:bg-secondary border-transparent"
                       />
                     </div>
                     <div className="space-y-2">
@@ -744,6 +749,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                         id="edit-ln"
                         value={editLastName}
                         onChange={(e) => setEditLastName(e.target.value)}
+                        className="bg-muted dark:bg-secondary border-transparent"
                       />
                     </div>
                   </div>
@@ -760,7 +766,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                       }}
                       disabled={isEditingDefaultAdmin}
                     >
-                      <SelectTrigger id="edit-role" disabled={isEditingDefaultAdmin}>
+                      <SelectTrigger id="edit-role" className="bg-muted dark:bg-secondary border-transparent" disabled={isEditingDefaultAdmin}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -786,7 +792,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                       }}
                       disabled={editRole === "admin" || isEditingDefaultAdmin}
                     >
-                      <SelectTrigger id="edit-family-role" disabled={editRole === "admin" || isEditingDefaultAdmin}>
+                      <SelectTrigger id="edit-family-role" className="bg-muted dark:bg-secondary border-transparent" disabled={editRole === "admin" || isEditingDefaultAdmin}>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
@@ -810,7 +816,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                           setEditLinkedChildId(childId)
                         }}
                       >
-                        <SelectTrigger id="edit-linked-child">
+                        <SelectTrigger id="edit-linked-child" className="bg-muted dark:bg-secondary border-transparent">
                           <SelectValue placeholder={t("admin.select_child_placeholder")} />
                         </SelectTrigger>
                         <SelectContent>
@@ -865,6 +871,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 value={resetPassword}
                 onChange={(e) => setResetPassword(e.target.value)}
                 placeholder="••••••••"
+                className="bg-muted dark:bg-secondary border-transparent"
                 required
               />
             </div>

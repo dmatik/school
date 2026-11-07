@@ -250,7 +250,7 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
             {/* Child Selector */}
             {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
               <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-border min-w-0">
+                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-transparent min-w-0">
                   <div className="flex items-center gap-2 truncate">
                     <User className="h-4 w-4 text-muted-foreground shrink-0" />
                     <SelectValue placeholder={t("incidents.all_students")} />
@@ -311,7 +311,7 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
                     <span className="text-xs font-semibold text-foreground">
                       {t("incidents.status_title")}
                     </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-blue-500/20">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-600 dark:text-blue-400 border border-transparent">
                       {t("incidents.integration_badge")}
                     </span>
                   </div>
@@ -344,12 +344,12 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
           </Card>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 !mt-4">
           {groupedIncidents.map((group) => (
-            <div key={group.date} className="space-y-3">
+            <div key={group.date} className="space-y-1">
               {/* Floating Chat Date Pill */}
-              <div className="flex justify-center sticky top-0 z-10 py-1.5 pointer-events-none">
-                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-background/95 dark:bg-card/95 border border-border/80 dark:border-border/60 shadow-xs backdrop-blur-md select-none">
+              <div className="flex justify-center sticky top-0 z-10 pt-0.5 pb-0.5 pointer-events-none">
+                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-card/85 dark:bg-card/80 border border-transparent shadow-xs backdrop-blur-md select-none">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
               </div>
@@ -374,7 +374,7 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
                   return (
                     <Card
                       key={inc.id}
-                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
+                      className="shadow-xs border border-transparent hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
                     >
                       {/* Top Row: Subject Icon, Subject Title & Teacher, Student Name badge */}
                       <div className="flex items-start justify-between gap-2.5">
@@ -415,7 +415,7 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
                         {!isChild && childDisplayName && (
                           <span
                             className={cn(
-                              "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}
                           >
@@ -426,7 +426,7 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
 
                       {/* Incident type & description below in clean subtle panel */}
                       {(hasSubject ? (inc.type || inc.description) : inc.description) ? (
-                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 mt-0.5">
+                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-transparent mt-0.5">
                           {hasSubject && inc.type ? (
                             <>
                               <span className="font-bold text-foreground">

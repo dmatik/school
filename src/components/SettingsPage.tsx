@@ -301,7 +301,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-4xl mx-auto space-y-6">
+    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-6 max-w-3xl mx-auto w-full space-y-6">
       {/* Page Header */}
       <div data-page-title className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
@@ -311,8 +311,8 @@ export function SettingsPage({ token }: SettingsPageProps) {
 
       <div className="space-y-4">
         {/* Webtop Integration Card */}
-        <Card className="shadow-xs border border-border dark:border-border/60 rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b">
+        <Card className="shadow-xs border border-transparent rounded-xl">
+          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-transparent">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <GraduationCap className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
@@ -328,12 +328,12 @@ export function SettingsPage({ token }: SettingsPageProps) {
               {loadingWebtop ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : webtopConfig?.configured ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-transparent">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>{t("account.webtop_status_connected")}</span>
                 </div>
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-transparent">
                   <Globe className="w-3.5 h-3.5" />
                   <span>{t("account.webtop_status_not_connected")}</span>
                 </div>
@@ -349,7 +349,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
             ) : webtopConfig?.configured && !isEditingWebtop ? (
               <div className="space-y-5">
                 {/* Connected Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-border/60 dark:border-border/60">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent">
                   <div className="space-y-1">
                     <span className="text-xs text-muted-foreground block">{t("account.webtop_username")}</span>
                     <span className="text-sm font-semibold text-foreground block">{webtopConfig.username}</span>
@@ -399,12 +399,12 @@ export function SettingsPage({ token }: SettingsPageProps) {
                         return (
                           <div
                             key={child.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-border/60 dark:border-border/60 shadow-xs"
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent shadow-xs"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
                               <span
                                 className={cn(
-                                  "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border transition-all",
+                                  "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent transition-all",
                                   childBadgeClass
                                 )}
                               >
@@ -524,6 +524,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
                       value={webtopUsername}
                       onChange={(e) => setWebtopUsername(e.target.value)}
                       placeholder={t("account.webtop_username_placeholder")}
+                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>
@@ -536,6 +537,7 @@ export function SettingsPage({ token }: SettingsPageProps) {
                       value={webtopPassword}
                       onChange={(e) => setWebtopPassword(e.target.value)}
                       placeholder={t("account.webtop_password_placeholder")}
+                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>

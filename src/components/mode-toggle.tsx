@@ -9,15 +9,27 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { cn } from "@/lib/utils"
 
-export function ModeToggle() {
+export interface ModeToggleProps {
+    className?: string
+}
+
+export function ModeToggle({ className }: ModeToggleProps = {}) {
     const { setTheme, theme } = useTheme()
     const { t, i18n } = useTranslation()
 
     return (
         <DropdownMenu dir={i18n.dir()}>
             <DropdownMenuTrigger asChild>
-                <Button variant="outline" size="icon" className="h-9 w-9 rounded-full shadow-xs">
+                <Button
+                    variant="outline"
+                    size="icon"
+                    className={cn(
+                        "h-9 w-9 rounded-full border-transparent shadow-xs md:bg-muted md:hover:bg-muted/80 md:dark:bg-secondary md:dark:hover:bg-secondary/80",
+                        className
+                    )}
+                >
                     {theme === 'system' ? (
                         <SunMoon className="h-[1.2rem] w-[1.2rem]" />
                     ) : (
