@@ -86,9 +86,9 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         <ModeToggle />
       </div>
 
-      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-border/70 dark:border-border/60 bg-card/90 backdrop-blur-md">
+      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-transparent bg-card/90 backdrop-blur-md">
         <CardHeader className="text-center space-y-2 pb-5">
-          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary mb-2 shadow-xs">
+          <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-transparent flex items-center justify-center text-primary mb-2 shadow-xs">
             <UserIcon className="w-6 h-6" />
           </div>
           <CardTitle className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
@@ -115,7 +115,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   id="username"
                   type="text"
                   autoComplete="username"
-                  className="ps-9 h-9 text-sm rounded-full border-border/80 focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent focus-visible:ring-1 focus-visible:ring-primary/40"
                   placeholder={t("auth.username_placeholder")}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -132,7 +132,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className="ps-9 h-9 text-sm rounded-full border-border/80 focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent focus-visible:ring-1 focus-visible:ring-primary/40"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

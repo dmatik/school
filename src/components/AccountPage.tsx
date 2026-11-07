@@ -306,7 +306,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-8 md:pb-8 max-w-4xl mx-auto space-y-6">
+    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-6 max-w-3xl mx-auto w-full space-y-6">
       {/* Page Header */}
       <div data-page-title className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
         <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">{t("account.title")}</h2>
@@ -323,7 +323,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Profile Card */}
-        <Card className="shadow-xs border border-border dark:border-border/60 rounded-xl">
+        <Card className="shadow-xs border border-transparent rounded-xl">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <User className="w-5 h-5 text-primary" />
@@ -334,16 +334,16 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
           <CardContent>
             <form onSubmit={handleSaveProfile} className="space-y-4">
               {/* Avatar Selector */}
-              <div className="flex flex-col items-center justify-center gap-3 pb-4 border-b">
+              <div className="flex flex-col items-center justify-center gap-3 pb-4 border-b border-transparent">
                 <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                   {avatar ? (
                     <img
                       src={avatar}
                       alt={user.username}
-                      className="w-24 h-24 rounded-full object-cover border-2 border-primary/20 shadow-md"
+                      className="w-24 h-24 rounded-full object-cover border-2 border-transparent shadow-md"
                     />
                   ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary/10 flex items-center justify-center text-primary border-2 border-dashed border-primary/30">
+                    <div className="w-24 h-24 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-transparent shadow-md">
                       <User className="w-10 h-10" />
                     </div>
                   )}
@@ -390,20 +390,20 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">{t("auth.username")}</Label>
-                  <div className="flex items-center h-9 px-3.5 rounded-full text-sm font-semibold bg-muted/40 border border-border text-foreground shadow-xs truncate">
+                  <div className="flex items-center h-9 px-3.5 rounded-full text-sm font-semibold bg-muted/40 border border-transparent text-foreground shadow-xs truncate">
                     {user.username}
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">{t("account.role")}</Label>
-                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-border shadow-xs text-foreground">
+                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
                     <Shield className={`w-4 h-4 shrink-0 ${user.role === 'admin' ? 'text-amber-500' : 'text-blue-500'}`} />
                     <span className="truncate">{user.role === 'admin' ? t("account.role_admin") : t("account.role_user")}</span>
                   </div>
                 </div>
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">{t("account.family_role")}</Label>
-                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-border shadow-xs text-foreground">
+                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
                     {user.familyRole === 'child' ? (
                       <Baby className="w-4 h-4 shrink-0 text-emerald-500" />
                     ) : (
@@ -424,6 +424,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   value={firstName}
                   onChange={(e) => setFirstName(e.target.value)}
                   placeholder={t("account.first_name_placeholder")}
+                  className="bg-muted dark:bg-secondary border-transparent"
                 />
               </div>
 
@@ -434,6 +435,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   value={lastName}
                   onChange={(e) => setLastName(e.target.value)}
                   placeholder={t("account.last_name_placeholder")}
+                  className="bg-muted dark:bg-secondary border-transparent"
                 />
               </div>
 
@@ -455,7 +457,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         </Card>
 
         {/* Change Password Card */}
-        <Card className="shadow-sm">
+        <Card className="shadow-sm border border-transparent">
           <CardHeader>
             <CardTitle className="text-lg flex items-center gap-2">
               <Lock className="w-5 h-5 text-primary" />
@@ -473,6 +475,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   autoComplete="current-password"
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
+                  className="bg-muted dark:bg-secondary border-transparent"
                   required
                 />
               </div>
@@ -485,6 +488,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   autoComplete="new-password"
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
+                  className="bg-muted dark:bg-secondary border-transparent"
                   required
                 />
               </div>
@@ -497,6 +501,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   autoComplete="new-password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
+                  className="bg-muted dark:bg-secondary border-transparent"
                   required
                 />
               </div>
@@ -516,7 +521,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         </Card>
 
         {/* Passkeys Card */}
-        <Card className="shadow-sm md:col-span-2">
+        <Card className="shadow-sm border border-transparent md:col-span-2">
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
@@ -563,7 +568,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                 </Button>
               </div>
             ) : (
-              <div className="divide-y border rounded-xl overflow-hidden">
+              <div className="divide-y divide-border/40 border border-transparent rounded-xl overflow-hidden">
                 {passkeys.map((p) => {
                   const lower = p.deviceName.toLowerCase()
                   const IconComponent = (lower.includes('phone') || lower.includes('android') || lower.includes('ios'))
@@ -645,6 +650,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   value={newPasskeyName}
                   onChange={(e) => setNewPasskeyName(e.target.value)}
                   placeholder={t("account.passkey_name_placeholder")}
+                  className="bg-muted dark:bg-secondary border-transparent"
                   required
                   autoFocus
                 />

@@ -234,7 +234,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
             {/* Child Selector */}
             {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
               <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-border min-w-0">
+                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-transparent min-w-0">
                   <div className="flex items-center gap-2 truncate">
                     <User className="h-4 w-4 text-muted-foreground shrink-0" />
                     <SelectValue placeholder={t("homework.all_students")} />
@@ -295,7 +295,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                     <span className="text-xs font-semibold text-foreground">
                       {t("homework.status_title")}
                     </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20">
+                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-transparent">
                       {t("homework.integration_badge")}
                     </span>
                   </div>
@@ -350,12 +350,12 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
           </Card>
         </div>
       ) : (
-        <div className="space-y-6">
+        <div className="space-y-4 !mt-4">
           {groupedHomework.map((group) => (
-            <div key={group.date} className="space-y-3">
+            <div key={group.date} className="space-y-1">
               {/* Floating Chat Date Pill */}
-              <div className="flex justify-center sticky top-0 z-10 py-1.5 pointer-events-none">
-                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-background/95 dark:bg-card/95 border border-border/80 dark:border-border/60 shadow-xs backdrop-blur-md select-none">
+              <div className="flex justify-center sticky top-0 z-10 pt-0.5 pb-0.5 pointer-events-none">
+                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-card/85 dark:bg-card/80 border border-transparent shadow-xs backdrop-blur-md select-none">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
               </div>
@@ -379,7 +379,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                   return (
                     <Card
                       key={hw.id}
-                      className="shadow-xs border border-border dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
+                      className="shadow-xs border border-transparent hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
                     >
                       {/* Top Row: Subject Icon, Subject Title & Teacher, Student Name badge */}
                       <div className="flex items-start justify-between gap-2.5">
@@ -422,7 +422,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                         {!isChild && childDisplayName && (
                           <span
                             className={cn(
-                              "inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-bold border shrink-0 shadow-xs transition-colors mt-0.5",
+                              "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
                               childBadgeClass
                             )}
                           >
@@ -433,7 +433,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
 
                       {/* Homework text below: crisp typography in a clean subtle panel */}
                       {homeworkText ? (
-                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-border/40 dark:border-border/60 mt-0.5">
+                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-transparent mt-0.5">
                           <span className="font-bold me-1.5 text-foreground">
                             {t("homework.homework_prefix")}
                           </span>

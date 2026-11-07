@@ -43,7 +43,7 @@ export function DateBadge({ date, className }: DateBadgeProps) {
   return (
     <div
       className={cn(
-        "flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/60 border border-border/50 shrink-0",
+        "flex items-center gap-2 px-2.5 py-1 rounded-lg bg-muted/60 border border-transparent shrink-0",
         className
       )}
     >

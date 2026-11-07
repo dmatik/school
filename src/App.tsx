@@ -393,10 +393,10 @@ function App() {
                 <img
                   src={currentUser.avatar}
                   alt={currentUser.username}
-                  className="w-9 h-9 rounded-full object-cover border border-border/80 shadow-xs"
+                  className="w-9 h-9 rounded-full object-cover border border-transparent shadow-xs"
                 />
               ) : (
-                <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border border-primary/20 shadow-xs">
+                <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm border border-transparent shadow-xs">
                   {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
                 </div>
               )}
@@ -487,10 +487,10 @@ function App() {
                   <img
                     src={currentUser.avatar}
                     alt={currentUser.username}
-                    className="w-9 h-9 rounded-full object-cover border border-border/80 shadow-xs"
+                    className="w-9 h-9 rounded-full object-cover border border-transparent shadow-xs"
                   />
                 ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm border border-primary/20 shadow-xs">
+                  <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm border border-transparent shadow-xs">
                     {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
                   </div>
                 )}
@@ -610,10 +610,10 @@ function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; o
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border",
+        "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border border-transparent",
         active
-          ? "bg-primary/10 text-primary border-primary/25 dark:border-primary/35 shadow-xs"
-          : "border-transparent text-muted-foreground hover:bg-accent/70 hover:text-foreground"
+          ? "bg-primary/10 text-primary shadow-xs"
+          : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
       )}
     >
       <Icon className={cn("w-4 h-4 shrink-0", active ? "stroke-[2.5px] text-primary" : "text-muted-foreground")} />
