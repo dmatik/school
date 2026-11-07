@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Background: Slate-50 Canvas (Soft Warm/Cool Grey) */
-    --background: 215 28% 96.5%;
+    /* Background: Soft Slate Canvas (Gentle contrast against pure white cards) */
+    --background: 216 22% 94.5%;
 
     /* Foreground: Slate-900 (Deep Text) */
     --foreground: 222.2 47.4% 11.2%;
