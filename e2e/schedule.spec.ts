@@ -72,4 +72,40 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).toBeVisible();
     await expect(page.locator('button[aria-label="Scroll backward"], button[aria-label="גלול אחורה"]')).toBeVisible();
   });
+
+  test('mobile modal renders full screen and keeps input and actions visible', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Switch to mobile viewport (iPhone dimensions)
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    // Navigate to Admin tab on mobile
+    const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
+    // Admin is the last tab (6th) for adminUser
+    await dockButtons.last().click();
+    await expect(page.locator('main h2').first()).toContainText(/ניהול מערכת|Administration/);
+
+    // Click "Add User" button on mobile
+    const addUserBtn = page.locator('button:has-text("הוספת משתמש"), button:has-text("Add User")').first();
+    await addUserBtn.click();
+
+    // Modal dialog should appear
+    const dialogContent = page.locator('[role="dialog"]');
+    await expect(dialogContent).toBeVisible();
+
+    // Verify modal dialog fills entire width on mobile
+    const box = await dialogContent.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      expect(box.width).toBeCloseTo(375, -1);
+      expect(box.x).toBeCloseTo(0, -1);
+    }
+
+    // Verify editable input and action buttons are visible
+    const usernameInput = dialogContent.locator('#create-username');
+    await expect(usernameInput).toBeVisible();
+    await expect(dialogContent.locator('button[type="submit"]')).toBeVisible();
+    await expect(dialogContent.locator('button:has-text("ביטול"), button:has-text("Cancel")')).toBeVisible();
+  });
 });

@@ -631,7 +631,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       {/* Add Passkey Dialog */}
       <Dialog open={showAddPasskeyDialog} onOpenChange={setShowAddPasskeyDialog}>
         <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleConfirmAddPasskey}>
+          <form onSubmit={handleConfirmAddPasskey} className="flex flex-col flex-1">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Fingerprint className="w-5 h-5 text-primary" />

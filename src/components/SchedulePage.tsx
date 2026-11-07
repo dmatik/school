@@ -391,6 +391,25 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     setFormFinishTime(existing)
   }
 
+  // Format HH:MM input cleanly on mobile numeric keypad & desktop
+  const handleFinishTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const raw = e.target.value
+    if (raw.length < formFinishTime.length && formFinishTime.startsWith(raw)) {
+      setFormFinishTime(raw.endsWith(":") ? raw.slice(0, -1) : raw)
+      return
+    }
+    if (/^\d:$/.test(raw)) {
+      setFormFinishTime(`0${raw}`)
+      return
+    }
+    const digits = raw.replace(/\D/g, "").slice(0, 4)
+    if (digits.length <= 2) {
+      setFormFinishTime(digits)
+    } else {
+      setFormFinishTime(`${digits.slice(0, 2)}:${digits.slice(2)}`)
+    }
+  }
+
   // Save Finish Time in local state
   const handleSaveFinishTime = (timeValue: string) => {
     if (editingFinishDay === null) return
@@ -774,7 +793,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSaveLesson} className="space-y-4 py-2">
+          <form onSubmit={handleSaveLesson} className="flex flex-col flex-1 space-y-4 py-2">
             {/* Subject */}
             <div className="space-y-2">
               <div className="flex items-center justify-between">
@@ -831,7 +850,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
 
       {/* School Finish Time Dialog */}
       <Dialog open={editingFinishDay !== null} onOpenChange={(open) => !open && setEditingFinishDay(null)}>
-        <DialogContent className="sm:max-w-sm">
+        <DialogContent
+          className="sm:max-w-sm"
+          onOpenAutoFocus={(e) => e.preventDefault()}
+        >
           <DialogHeader>
             <DialogTitle>{t("schedule.finish_time_modal_title")}</DialogTitle>
             <DialogDescription>
@@ -843,19 +865,20 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-2">
+          <div className="flex flex-col space-y-4 py-2">
             {/* Time input */}
             <div className="space-y-2">
               <Label htmlFor="finish-time-input">{t("schedule.finish_time_label")}</Label>
-              <div className="relative">
-                <Input
-                  id="finish-time-input"
-                  type="time"
-                  value={formFinishTime}
-                  onChange={(e) => setFormFinishTime(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent text-base h-11 font-bold rtl:text-right ltr:text-left rtl:[&::-webkit-date-and-time-value]:text-right ltr:[&::-webkit-date-and-time-value]:text-left px-4"
-                />
-              </div>
+              <Input
+                id="finish-time-input"
+                type="text"
+                inputMode="numeric"
+                placeholder="13:30"
+                maxLength={5}
+                value={formFinishTime}
+                onChange={handleFinishTimeInputChange}
+                className="bg-muted dark:bg-secondary border-transparent font-bold tabular-nums text-start"
+              />
             </div>
 
             {/* Quick Presets */}
@@ -903,7 +926,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 <Button
                   type="button"
                   onClick={() => handleSaveFinishTime(formFinishTime)}
-                  disabled={!formFinishTime}
+                  disabled={!/^([01]\d|2[0-3]):[0-5]\d$/.test(formFinishTime.trim())}
                   className="rounded-full h-9"
                 >
                   {t("common.save")}

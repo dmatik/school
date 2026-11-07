@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next"
 
 import { cn } from "@/lib/utils"
 import { buttonVariants } from "@/components/ui/button"
+import { useMobileModalViewport } from "@/hooks/use-visual-viewport"
 
 const AlertDialog = AlertDialogPrimitive.Root
 
@@ -31,25 +32,47 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName
 
 const AlertDialogContent = ({
     className,
+    style,
     ref,
     ...props
 }: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
     ref?: React.Ref<React.ElementRef<typeof AlertDialogPrimitive.Content>>
 }) => {
     const { i18n } = useTranslation()
+    const [containerNode, setContainerNode] = React.useState<HTMLDivElement | null>(null)
+    const { viewportStyle, isKeyboardOpen } = useMobileModalViewport(containerNode)
+
+    const setRefs = React.useCallback(
+        (node: HTMLDivElement | null) => {
+            setContainerNode(node)
+            if (typeof ref === "function") {
+                ref(node)
+            } else if (ref && "current" in ref) {
+                ;(ref as React.MutableRefObject<HTMLDivElement | null>).current = node
+            }
+        },
+        [ref]
+    )
+
     return (
         <AlertDialogPortal>
             <AlertDialogOverlay />
             <AlertDialogPrimitive.Content
-                ref={ref}
+                ref={setRefs}
                 dir={props.dir ?? (i18n.dir() as "ltr" | "rtl")}
+                style={{ ...viewportStyle, ...style }}
                 className={cn(
-                "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border border-border bg-card p-6 shadow-xl duration-200 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[state=closed]:slide-out-to-left-1/2 data-[state=closed]:slide-out-to-top-[48%] data-[state=open]:slide-in-from-left-1/2 data-[state=open]:slide-in-from-top-[48%] sm:rounded-xl",
-                className
-            )}
-            {...props}
-        />
-    </AlertDialogPortal>
+                    // Mobile: Full screen layout with safe areas and auto-scroll
+                    "fixed inset-0 z-50 flex flex-col w-full h-full max-w-none rounded-none border-0 bg-card p-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl overflow-y-auto overscroll-contain",
+                    "data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+                    // Desktop / Tablet (sm: >= 640px): Centered modal card
+                    "sm:inset-auto sm:left-[50%] sm:top-[50%] sm:grid sm:h-auto sm:max-h-[90dvh] sm:w-full sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:gap-4 sm:rounded-xl sm:border sm:border-border sm:p-6 sm:duration-200 sm:data-[state=closed]:zoom-out-95 sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:slide-out-to-left-1/2 sm:data-[state=closed]:slide-out-to-top-[48%] sm:data-[state=open]:slide-in-from-left-1/2 sm:data-[state=open]:slide-in-from-top-[48%]",
+                    isKeyboardOpen && "pb-[50vh] sm:pb-6",
+                    className
+                )}
+                {...props}
+            />
+        </AlertDialogPortal>
     )
 }
 AlertDialogContent.displayName = AlertDialogPrimitive.Content.displayName
@@ -60,7 +83,7 @@ const AlertDialogHeader = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
     <div
         className={cn(
-            "flex flex-col space-y-2 text-center sm:text-start",
+            "flex flex-col space-y-2 text-start shrink-0",
             className
         )}
         {...props}
@@ -74,7 +97,7 @@ const AlertDialogFooter = ({
 }: React.HTMLAttributes<HTMLDivElement>) => (
     <div
         className={cn(
-            "flex flex-row items-center justify-end gap-2 pt-2",
+            "flex flex-row items-center justify-end gap-2 pt-3 shrink-0",
             className
         )}
         {...props}
