@@ -153,6 +153,35 @@ export function initDb(targetDb = db) {
     CREATE INDEX IF NOT EXISTS idx_exams_user ON exams(user_id);
     CREATE INDEX IF NOT EXISTS idx_exams_date ON exams(date);
     CREATE INDEX IF NOT EXISTS idx_exams_child_id ON exams(child_id);
+
+    CREATE TABLE IF NOT EXISTS schedule_lessons (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'family',
+      child_id TEXT NOT NULL,
+      day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 5),
+      hour_num INTEGER NOT NULL CHECK(hour_num >= 1 AND hour_num <= 12),
+      subject TEXT NOT NULL,
+      teacher TEXT DEFAULT '',
+      room TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(child_id, day_of_week, hour_num)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_lessons_child ON schedule_lessons(child_id);
+
+    CREATE TABLE IF NOT EXISTS schedule_day_settings (
+      id TEXT PRIMARY KEY,
+      user_id TEXT DEFAULT 'family',
+      child_id TEXT NOT NULL,
+      day_of_week INTEGER NOT NULL CHECK(day_of_week >= 0 AND day_of_week <= 5),
+      finish_time TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      UNIQUE(child_id, day_of_week)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_schedule_day_settings_child ON schedule_day_settings(child_id);
   `);
 
   // Migrate existing users table if it lacks family_role or linked_child_id
@@ -532,6 +561,20 @@ export function initDb(targetDb = db) {
             SET child_id = ?
             WHERE user_id = ? AND child_id = ?
           `).run(canonicalItem.id, canonicalItem.user_id, other.id);
+
+          // Update references in schedule_lessons
+          targetDb.prepare(`
+            UPDATE schedule_lessons
+            SET child_id = ?
+            WHERE child_id = ?
+          `).run(canonicalItem.id, other.id);
+
+          // Update references in schedule_day_settings
+          targetDb.prepare(`
+            UPDATE schedule_day_settings
+            SET child_id = ?
+            WHERE child_id = ?
+          `).run(canonicalItem.id, other.id);
 
           // Delete obsolete duplicate child
           targetDb.prepare('DELETE FROM children WHERE user_id = ? AND id = ?').run(
