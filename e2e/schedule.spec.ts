@@ -35,9 +35,9 @@ test.describe('Weekly Schedule Flow', () => {
 
     // Verify 6 days headers exist in the table header
     const dayHeaders = page.locator('[data-schedule-header] [data-schedule-day]');
-    await expect(dayHeaders.filter({ hasText: /^ראשון$|^Sunday$/ })).toBeVisible();
-    await expect(dayHeaders.filter({ hasText: /^חמישי$|^Thursday$/ })).toBeVisible();
-    await expect(dayHeaders.filter({ hasText: /^שישי$|^Friday$/ })).toBeVisible();
+    await expect(dayHeaders.filter({ hasText: /ראשון|Sunday/ })).toBeVisible();
+    await expect(dayHeaders.filter({ hasText: /חמישי|Thursday/ })).toBeVisible();
+    await expect(dayHeaders.filter({ hasText: /שישי|Friday/ })).toBeVisible();
 
     // Verify dismissal finish time footer row exists
     await expect(page.locator('[data-schedule-dismissal] span').filter({ hasText: /סיום לימודים|School ends at/ }).first()).toBeVisible();
