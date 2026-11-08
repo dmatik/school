@@ -83,7 +83,7 @@ export function DatePicker({
                         variant="ghost"
                         size="icon"
                         className={cn(
-                            "h-9 w-9 rounded-full shadow-xs transition-all shrink-0 apple-liquid-dock focus:outline-none focus-visible:outline-none",
+                            "h-10 w-10 rounded-full shadow-xs transition-all shrink-0 apple-liquid-dock focus:outline-none focus-visible:outline-none",
                             date
                                 ? "border border-white/20 dark:border-white/10 !bg-primary text-primary-foreground hover:!bg-primary/90"
                                 : "border border-transparent text-muted-foreground hover:text-foreground",
@@ -93,7 +93,7 @@ export function DatePicker({
                         aria-label={formattedDate}
                         data-date-selected={!!date}
                     >
-                        <CalendarIcon className={cn("w-4 h-4 stroke-[2px]", date ? "text-primary-foreground" : "text-muted-foreground")} />
+                        <CalendarIcon className={cn("w-4.5 h-4.5 stroke-[2px]", date ? "text-primary-foreground" : "text-muted-foreground")} />
                     </Button>
                 </PopoverTrigger>
             ) : (

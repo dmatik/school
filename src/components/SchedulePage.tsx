@@ -476,7 +476,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
               role="tablist"
               aria-label={t("schedule.select_child")}
               data-schedule-child-selector
-              className="inline-flex items-center p-1 h-9 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
+              className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
             >
               {webtopConfig.linkedChildren.map((c) => {
                 const isActive = selectedChildId === c.id
@@ -492,7 +492,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleSelectChild(c.id)}
                     className={cn(
-                      "relative flex items-center justify-center h-7 px-3.5 rounded-full text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
+                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
                       isActive
                         ? "font-bold text-foreground"
                         : "font-semibold text-muted-foreground hover:text-foreground"
@@ -509,7 +509,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                         className="absolute inset-0 rounded-full apple-liquid-pill"
                       />
                     )}
-                    <span className="relative z-10 truncate max-w-[120px]">
+                    <span className="relative z-10 truncate max-w-[140px]">
                       {displayName}
                     </span>
                   </motion.button>
@@ -526,11 +526,11 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 variant="ghost"
                 size="icon"
                 onClick={handleStartEditMode}
-                className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
+                className="h-10 w-10 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
                 title={t("schedule.edit_mode_enable")}
                 aria-label={t("schedule.edit_mode_enable")}
               >
-                <Pencil className="w-4 h-4 stroke-[2px]" />
+                <Pencil className="w-4.5 h-4.5 stroke-[2px]" />
               </Button>
             ) : (
               <>
@@ -541,14 +541,14 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                   size="icon"
                   onClick={handleSaveAndCloseEditMode}
                   disabled={isSavingBatch}
-                  className="h-9 w-9 rounded-full border border-white/20 dark:border-white/10 shadow-xs transition-all shrink-0 apple-liquid-dock !bg-primary text-primary-foreground hover:!bg-primary/90"
+                  className="h-10 w-10 rounded-full border border-white/20 dark:border-white/10 shadow-xs transition-all shrink-0 apple-liquid-dock !bg-primary text-primary-foreground hover:!bg-primary/90"
                   title={t("schedule.edit_mode_save")}
                   aria-label={t("schedule.edit_mode_save")}
                 >
                   {isSavingBatch ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
                   ) : (
-                    <Check className="w-4 h-4 stroke-[2.5px]" />
+                    <Check className="w-4.5 h-4.5 stroke-[2.5px]" />
                   )}
                 </Button>
 
@@ -559,11 +559,11 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                   size="icon"
                   onClick={handleCancelEditMode}
                   disabled={isSavingBatch}
-                  className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
+                  className="h-10 w-10 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
                   title={t("schedule.edit_mode_cancel")}
                   aria-label={t("schedule.edit_mode_cancel")}
                 >
-                  <X className="w-4 h-4 stroke-[2.2px]" />
+                  <X className="w-4.5 h-4.5 stroke-[2.2px]" />
                 </Button>
               </>
             )}
