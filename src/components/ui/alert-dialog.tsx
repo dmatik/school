@@ -34,6 +34,7 @@ const AlertDialogContent = ({
     className,
     style,
     ref,
+    onOpenAutoFocus,
     ...props
 }: React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content> & {
     ref?: React.Ref<React.ElementRef<typeof AlertDialogPrimitive.Content>>
@@ -41,6 +42,15 @@ const AlertDialogContent = ({
     const { i18n } = useTranslation()
     const [containerNode, setContainerNode] = React.useState<HTMLDivElement | null>(null)
     const { viewportStyle, isKeyboardOpen } = useMobileModalViewport(containerNode)
+
+    const handleOpenAutoFocus = React.useCallback(
+        (event: Event) => {
+            // Prevent auto-focusing edit fields so the user sees the full modal first
+            event.preventDefault()
+            onOpenAutoFocus?.(event)
+        },
+        [onOpenAutoFocus]
+    )
 
     const setRefs = React.useCallback(
         (node: HTMLDivElement | null) => {
@@ -61,6 +71,7 @@ const AlertDialogContent = ({
                 ref={setRefs}
                 dir={props.dir ?? (i18n.dir() as "ltr" | "rtl")}
                 style={{ ...viewportStyle, ...style }}
+                onOpenAutoFocus={handleOpenAutoFocus}
                 className={cn(
                     // Mobile: Full screen layout with safe areas and auto-scroll
                     "fixed inset-0 z-50 flex flex-col w-full h-full max-w-none rounded-none border-0 bg-card p-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl overflow-y-auto overscroll-contain",

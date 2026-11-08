@@ -79,4 +79,43 @@ describe("Mobile Full-screen Dialog & AlertDialog Component Tests", () => {
     expect(content.className).toContain("sm:top-[50%]")
     expect(content.className).toContain("sm:rounded-xl")
   })
+
+  it("ensures no edit field is automatically focused when Dialog opens", () => {
+    render(
+      <Dialog open={true}>
+        <DialogContent data-testid="dialog-with-input">
+          <DialogHeader>
+            <DialogTitle>Edit Profile</DialogTitle>
+            <DialogDescription>Description</DialogDescription>
+          </DialogHeader>
+          <input data-testid="test-input" placeholder="Enter name" />
+          <textarea data-testid="test-textarea" placeholder="Enter notes" />
+        </DialogContent>
+      </Dialog>
+    )
+
+    const input = screen.getByTestId("test-input")
+    const textarea = screen.getByTestId("test-textarea")
+
+    // Neither input nor textarea should have focus upon dialog open
+    expect(document.activeElement).not.toBe(input)
+    expect(document.activeElement).not.toBe(textarea)
+  })
+
+  it("ensures no edit field is automatically focused when AlertDialog opens", () => {
+    render(
+      <AlertDialog open={true}>
+        <AlertDialogContent data-testid="alert-with-input">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Action</AlertDialogTitle>
+            <AlertDialogDescription>Description</AlertDialogDescription>
+          </AlertDialogHeader>
+          <input data-testid="alert-input" placeholder="Type CONFIRM" />
+        </AlertDialogContent>
+      </AlertDialog>
+    )
+
+    const input = screen.getByTestId("alert-input")
+    expect(document.activeElement).not.toBe(input)
+  })
 })

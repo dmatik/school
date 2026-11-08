@@ -814,7 +814,6 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 required
                 maxLength={50}
                 className="bg-muted dark:bg-secondary border-transparent"
-                autoFocus
               />
             </div>
 
