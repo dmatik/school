@@ -115,7 +115,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   id="username"
                   type="text"
                   autoComplete="username"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
                   placeholder={t("auth.username_placeholder")}
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
@@ -132,7 +132,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
                   id="password"
                   type="password"
                   autoComplete="current-password"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent focus-visible:ring-1 focus-visible:ring-primary/40"
+                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

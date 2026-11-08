@@ -58,6 +58,20 @@ describe('DatePicker Component', () => {
     const calledDate = handleSetDate.mock.calls[0][0]
     expect(calledDate).toBeInstanceOf(Date)
   })
+
+  it('renders liquid-icon variant as neutral when unselected and highlighted when selected', () => {
+    const { rerender } = render(<DatePicker variant="liquid-icon" setDate={() => {}} />)
+    const btn = screen.getByRole('button')
+    expect(btn).toHaveAttribute('data-date-selected', 'false')
+    expect(btn.className).toContain('text-muted-foreground')
+    expect(btn.className).not.toContain('!bg-primary')
+
+    const testDate = new Date(2026, 9, 28)
+    rerender(<DatePicker variant="liquid-icon" date={testDate} setDate={() => {}} />)
+    expect(btn).toHaveAttribute('data-date-selected', 'true')
+    expect(btn.className).toContain('!bg-primary')
+    expect(btn.className).toContain('text-primary-foreground')
+  })
 })
 
 describe('DateBadge Component', () => {
@@ -660,6 +674,80 @@ describe('Empty Page Views', () => {
       fireEvent.click(clearBtn)
       expect(searchInput.value).toBe('')
       expect(screen.queryByLabelText('common.clear_search')).not.toBeInTheDocument()
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders HomeworkPage with liquid glass child selector and round date picker', async () => {
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: [] })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            configured: true,
+            linkedChildren: [
+              { id: 'k1', firstName: 'נועם', lastName: 'כהן' },
+              { id: 'k2', firstName: 'מאיה', lastName: 'כהן' }
+            ]
+          })
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<HomeworkPage token="test-token" />)
+      expect(await screen.findByRole('tablist', { name: /homework\.filter_child|Filter by student|סינון לפי תלמיד/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /homework\.all_short|All|הכל/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'נועם' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'מאיה' })).toBeInTheDocument()
+      const dateBtn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+      expect(dateBtn).toHaveAttribute('data-date-selected', 'false')
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
+
+  it('renders IncidentsPage with liquid glass child selector and round date picker', async () => {
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/incidents')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ incidents: [] })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            configured: true,
+            linkedChildren: [
+              { id: 'k1', firstName: 'נועם', lastName: 'כהן' },
+              { id: 'k2', firstName: 'מאיה', lastName: 'כהן' }
+            ]
+          })
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    }) as unknown as typeof fetch
+
+    try {
+      render(<IncidentsPage token="test-token" />)
+      expect(await screen.findByRole('tablist', { name: /incidents\.filter_child|Filter by student|סינון לפי תלמיד/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /incidents\.all_short|All|הכל/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'נועם' })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'מאיה' })).toBeInTheDocument()
+      const dateBtn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+      expect(dateBtn).toHaveAttribute('data-date-selected', 'false')
     } finally {
       global.fetch = originalFetch
     }

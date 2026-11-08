@@ -167,20 +167,40 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     expect(screen.getByText('11:50')).toBeInTheDocument()
   })
 
-  it('renders child selector dropdown for parent user and switches child', async () => {
+  it('renders liquid glass child selector for parent user with first names only and switches child', async () => {
     render(<SchedulePage token="test-token" currentUser={parentUser} />)
 
     await waitFor(() => {
-      expect(screen.getByText('David Cohen')).toBeInTheDocument()
+      // First names should be displayed
+      expect(screen.getByText('David')).toBeInTheDocument()
+      expect(screen.getByText('Maya')).toBeInTheDocument()
+      // Full names with last name should NOT be displayed
+      expect(screen.queryByText('David Cohen')).not.toBeInTheDocument()
+      expect(screen.queryByText('Maya Cohen')).not.toBeInTheDocument()
     })
 
-    // Child user does not see student selector dropdown
+    // The selector should have role="tablist"
+    const tablist = screen.getByRole('tablist', { name: 'schedule.select_child' })
+    expect(tablist).toBeInTheDocument()
+
+    const davidTab = screen.getByRole('tab', { name: 'David' })
+    const mayaTab = screen.getByRole('tab', { name: 'Maya' })
+    expect(davidTab).toHaveAttribute('aria-selected', 'true')
+    expect(mayaTab).toHaveAttribute('aria-selected', 'false')
+
+    // Switch child by clicking Maya
+    fireEvent.click(mayaTab)
+    expect(mayaTab).toHaveAttribute('aria-selected', 'true')
+    expect(davidTab).toHaveAttribute('aria-selected', 'false')
+
+    // Child user does not see student selector
     cleanup()
     render(<SchedulePage token="test-token" currentUser={childUser} />)
 
     await waitFor(() => {
       expect(screen.getByText('schedule.title')).toBeInTheDocument()
-      expect(screen.queryByText('David Cohen')).not.toBeInTheDocument()
+      expect(screen.queryByRole('tablist', { name: 'schedule.select_child' })).not.toBeInTheDocument()
+      expect(screen.queryByText('David')).not.toBeInTheDocument()
     })
   })
 
