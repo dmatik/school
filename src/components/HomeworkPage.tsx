@@ -1,9 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import { motion } from "framer-motion"
 import {
   BookOpen,
   Search,
-  User,
   GraduationCap,
   Loader2,
   FileText,
@@ -12,13 +12,6 @@ import {
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
 import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
@@ -214,22 +207,22 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
 
       {/* Search & Filters */}
       {(homework.length > 0 || webtopConfig?.configured) && (
-        <div className="flex flex-col md:flex-row gap-2.5 items-stretch md:items-center justify-between">
+        <div className="flex flex-col gap-2.5 shrink-0">
           {/* Search Input */}
-          <div className="relative w-full sm:w-72">
+          <div className="relative w-full">
             <Search className="absolute start-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder={t("homework.search_placeholder")}
-              className="ps-9 pe-9 h-9 text-sm rounded-full"
+              className="ps-9 pe-9 h-9 text-sm rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
             />
             {searchQuery && (
               <button
                 type="button"
                 onClick={() => setSearchQuery("")}
-                className="absolute end-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-foreground hover:bg-muted/80 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
+                className="absolute end-2.5 top-1/2 -translate-y-1/2 p-1 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
                 aria-label={t("common.clear_search")}
               >
                 <X className="w-3.5 h-3.5 stroke-[2.5px]" />
@@ -237,34 +230,90 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
             )}
           </div>
 
-          {/* Kids Dropdown & Date Filter in the same row */}
-          <div className={cn(
-            "gap-2 w-full md:flex md:w-auto md:items-center",
-            !isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? "grid grid-cols-2" : "flex"
-          )}>
-            {/* Child Selector */}
+          {/* Liquid Glass Filter Row: Child selector at beginning of row, Date Picker round button at end of row */}
+          <div className="flex items-center justify-between gap-2 pt-1 pb-2 shrink-0">
+            {/* 1 - Children Liquid Glass Selector (Parents only) */}
             {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-              <Select value={selectedChildId} onValueChange={setSelectedChildId}>
-                <SelectTrigger className="h-9 text-sm gap-2 px-3 w-full md:w-[175px] bg-card border-transparent min-w-0">
-                  <div className="flex items-center gap-2 truncate">
-                    <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                    <SelectValue placeholder={t("homework.all_students")} />
-                  </div>
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("homework.all_students")}</SelectItem>
-                  {webtopConfig.linkedChildren.map(c => (
-                    <SelectItem key={c.id} value={c.id}>
-                      {c.firstName} {c.lastName}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <div
+                role="tablist"
+                aria-label={t("homework.filter_child")}
+                data-homework-child-selector
+                className="inline-flex items-center p-1 h-9 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
+              >
+                {/* All option */}
+                <motion.button
+                  type="button"
+                  role="tab"
+                  aria-selected={selectedChildId === "all"}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setSelectedChildId("all")}
+                  className={cn(
+                    "relative flex items-center justify-center h-7 px-3.5 rounded-full text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                    selectedChildId === "all"
+                      ? "font-bold text-foreground"
+                      : "font-semibold text-muted-foreground hover:text-foreground"
+                  )}
+                >
+                  {selectedChildId === "all" && (
+                    <motion.div
+                      layoutId="homeworkChildLiquidPill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 35
+                      }}
+                      className="absolute inset-0 rounded-full apple-liquid-pill"
+                    />
+                  )}
+                  <span className="relative z-10 truncate">
+                    {t("homework.all_short")}
+                  </span>
+                </motion.button>
+
+                {/* Children options */}
+                {webtopConfig.linkedChildren.map((c) => {
+                  const isActive = selectedChildId === c.id
+                  const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
+
+                  return (
+                    <motion.button
+                      key={c.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={isActive}
+                      whileTap={{ scale: 0.95 }}
+                      onClick={() => setSelectedChildId(c.id)}
+                      className={cn(
+                        "relative flex items-center justify-center h-7 px-3.5 rounded-full text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                        isActive
+                          ? "font-bold text-foreground"
+                          : "font-semibold text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="homeworkChildLiquidPill"
+                          transition={{
+                            type: "spring",
+                            stiffness: 450,
+                            damping: 35
+                          }}
+                          className="absolute inset-0 rounded-full apple-liquid-pill"
+                        />
+                      )}
+                      <span className="relative z-10 truncate max-w-[120px]">
+                        {displayName}
+                      </span>
+                    </motion.button>
+                  )
+                })}
+              </div>
             )}
 
-            {/* Date Filter */}
-            <div className="w-full md:w-[175px] min-w-0">
+            {/* Date Filter Button (at end of row) */}
+            <div className="ms-auto shrink-0">
               <DatePicker
+                variant="liquid-icon"
                 date={selectedDate}
                 setDate={setSelectedDate}
                 placeholder={t("common.all_dates")}

@@ -23,6 +23,7 @@ interface DatePickerProps {
     disabled?: (date: Date) => boolean
     clearable?: boolean
     formatPattern?: string
+    variant?: "default" | "liquid-icon"
 }
 
 export function DatePicker({
@@ -32,7 +33,8 @@ export function DatePicker({
     className,
     disabled,
     clearable = true,
-    formatPattern = "EEEE, PPP"
+    formatPattern = "EEEE, PPP",
+    variant = "default"
 }: DatePickerProps) {
     const { t, i18n } = useTranslation()
     const isRtl = i18n.dir() === 'rtl'
@@ -74,35 +76,57 @@ export function DatePicker({
 
     return (
         <Popover open={isPopoverOpen} onOpenChange={setIsPopoverOpen}>
-            <div className="relative inline-flex items-center w-full">
+            {variant === "liquid-icon" ? (
                 <PopoverTrigger asChild>
                     <Button
-                        variant={"outline"}
+                        type="button"
+                        variant="ghost"
+                        size="icon"
                         className={cn(
-                            "w-full justify-start text-start font-normal gap-2 h-9 text-sm px-3 border-transparent shadow-xs focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent",
-                            !date && "text-muted-foreground",
-                            clearable && date && "pe-7",
+                            "h-9 w-9 rounded-full shadow-xs transition-all shrink-0 apple-liquid-dock focus:outline-none focus-visible:outline-none",
+                            date
+                                ? "border border-white/20 dark:border-white/10 !bg-primary text-primary-foreground hover:!bg-primary/90"
+                                : "border border-transparent text-muted-foreground hover:text-foreground",
                             className
                         )}
+                        title={formattedDate}
+                        aria-label={formattedDate}
+                        data-date-selected={!!date}
                     >
-                        <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground -translate-y-[1px]" />
-                        <span className="truncate leading-none">
-                            {formattedDate}
-                        </span>
+                        <CalendarIcon className={cn("w-4 h-4 stroke-[2px]", date ? "text-primary-foreground" : "text-muted-foreground")} />
                     </Button>
                 </PopoverTrigger>
-                {clearable && date && (
-                    <button
-                        type="button"
-                        onClick={handleClear}
-                        className="absolute end-2 p-0.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors z-10"
-                        title={t('common.cancel')}
-                    >
-                        <X className="h-3 w-3" />
-                    </button>
-                )}
-            </div>
-            <PopoverContent className="w-auto p-0" align="start">
+            ) : (
+                <div className="relative inline-flex items-center w-full">
+                    <PopoverTrigger asChild>
+                        <Button
+                            variant={"outline"}
+                            className={cn(
+                                "w-full justify-start text-start font-normal gap-2 h-9 text-sm px-3 border-transparent shadow-xs focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent",
+                                !date && "text-muted-foreground",
+                                clearable && date && "pe-7",
+                                className
+                            )}
+                        >
+                            <CalendarIcon className="h-4 w-4 shrink-0 text-muted-foreground -translate-y-[1px]" />
+                            <span className="truncate leading-none">
+                                {formattedDate}
+                            </span>
+                        </Button>
+                    </PopoverTrigger>
+                    {clearable && date && (
+                        <button
+                            type="button"
+                            onClick={handleClear}
+                            className="absolute end-2 p-0.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-muted/80 transition-colors z-10"
+                            title={t('common.cancel')}
+                        >
+                            <X className="h-3 w-3" />
+                        </button>
+                    )}
+                </div>
+            )}
+            <PopoverContent className="w-auto p-0" align={variant === "liquid-icon" ? "end" : "start"}>
                 <Calendar
                     mode="single"
                     selected={date}
