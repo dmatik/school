@@ -107,6 +107,8 @@
     "filter_period": "Period",
     "period_future": "Upcoming",
     "period_past": "Past",
+    "filter_child": "Filter by student",
+    "all_short": "All",
     "all_students": "All Students",
     "search_placeholder": "Search by exam name, grade, or student...",
     "empty_future_title": "No Upcoming Exams",

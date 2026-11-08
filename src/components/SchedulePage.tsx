@@ -492,7 +492,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleSelectChild(c.id)}
                     className={cn(
-                      "relative flex items-center justify-center h-7 px-3.5 rounded-full text-xs sm:text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50",
+                      "relative flex items-center justify-center h-7 px-3.5 rounded-full text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
                       isActive
                         ? "font-bold text-foreground"
                         : "font-semibold text-muted-foreground hover:text-foreground"

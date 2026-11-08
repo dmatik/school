@@ -164,7 +164,7 @@ describe('Exams Feature — Component and Backend Tests', () => {
     expect(screen.queryByText('David')).not.toBeInTheDocument()
   })
 
-  it('defaults to future period and orders dates from today to future dates', async () => {
+  it('defaults to future period and orders dates from today to future dates, and switches to past period via liquid glass selector', async () => {
     render(<ExamsPage token="test-token" currentUser={parentUser} />)
 
     await waitFor(() => {
@@ -178,6 +178,41 @@ describe('Exams Feature — Component and Backend Tests', () => {
 
     // Past exam is NOT shown in future period
     expect(screen.queryByText('History - Ancient Rome')).not.toBeInTheDocument()
+
+    // Switch to Past period tab
+    const pastTab = screen.getByRole('tab', { name: 'exams.period_past' })
+    fireEvent.click(pastTab)
+
+    expect(screen.getByText('History - Ancient Rome')).toBeInTheDocument()
+    expect(screen.queryByText('Math - Fractions')).not.toBeInTheDocument()
+    expect(screen.queryByText('Hebrew - Grammar')).not.toBeInTheDocument()
+  })
+
+  it('renders liquid glass child selector and period selector for parent users', async () => {
+    render(<ExamsPage token="test-token" currentUser={parentUser} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Math - Fractions')).toBeInTheDocument()
+    })
+
+    // Children selector
+    const childSelector = screen.getByRole('tablist', { name: 'exams.filter_child' })
+    expect(childSelector).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'exams.all_short' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'David' })).toHaveAttribute('aria-selected', 'false')
+    expect(screen.getByRole('tab', { name: 'Maya' })).toHaveAttribute('aria-selected', 'false')
+
+    // Switching child tab
+    const davidTab = screen.getByRole('tab', { name: 'David' })
+    fireEvent.click(davidTab)
+    expect(davidTab).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'exams.all_short' })).toHaveAttribute('aria-selected', 'false')
+
+    // Period selector
+    const periodSelector = screen.getByRole('tablist', { name: 'exams.filter_period' })
+    expect(periodSelector).toBeInTheDocument()
+    expect(screen.getByRole('tab', { name: 'exams.period_future' })).toHaveAttribute('aria-selected', 'true')
+    expect(screen.getByRole('tab', { name: 'exams.period_past' })).toHaveAttribute('aria-selected', 'false')
   })
 
   it('opens and closes the Add Exam modal for parent users', async () => {

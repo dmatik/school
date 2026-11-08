@@ -107,6 +107,8 @@
     "filter_period": "תקופה",
     "period_future": "עתידיים",
     "period_past": "עבר",
+    "filter_child": "סינון לפי תלמיד",
+    "all_short": "הכל",
     "all_students": "כל התלמידים",
     "search_placeholder": "חיפוש לפי שם מבחן, ציון או תלמיד...",
     "empty_future_title": "אין מבחנים עתידיים",
