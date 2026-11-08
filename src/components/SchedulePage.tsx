@@ -450,7 +450,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-28 px-2 sm:px-4 md:pt-6 md:pb-16 md:px-6 overflow-y-auto max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col pt-16 pb-28 px-4 md:pt-6 md:pb-16 md:px-6 overflow-y-auto max-w-3xl mx-auto w-full">
       {/* Header Bar */}
       <div
         data-page-title
@@ -530,7 +530,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 title={t("schedule.edit_mode_enable")}
                 aria-label={t("schedule.edit_mode_enable")}
               >
-                <Pencil className="w-4.5 h-4.5 stroke-[2px]" />
+                <Pencil className="w-5 h-5 stroke-[1.85px]" />
               </Button>
             ) : (
               <>
@@ -546,9 +546,9 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                   aria-label={t("schedule.edit_mode_save")}
                 >
                   {isSavingBatch ? (
-                    <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : (
-                    <Check className="w-4.5 h-4.5 stroke-[2.5px]" />
+                    <Check className="w-5 h-5 stroke-[2.2px]" />
                   )}
                 </Button>
 
@@ -563,7 +563,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                   title={t("schedule.edit_mode_cancel")}
                   aria-label={t("schedule.edit_mode_cancel")}
                 >
-                  <X className="w-4.5 h-4.5 stroke-[2.2px]" />
+                  <X className="w-5 h-5 stroke-[2px]" />
                 </Button>
               </>
             )}

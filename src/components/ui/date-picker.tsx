@@ -93,7 +93,7 @@ export function DatePicker({
                         aria-label={formattedDate}
                         data-date-selected={!!date}
                     >
-                        <CalendarIcon className={cn("w-4.5 h-4.5 stroke-[2px]", date ? "text-primary-foreground" : "text-muted-foreground")} />
+                        <CalendarIcon className={cn("w-5 h-5 stroke-[1.85px]", date ? "text-primary-foreground" : "text-muted-foreground")} />
                     </Button>
                 </PopoverTrigger>
             ) : (
