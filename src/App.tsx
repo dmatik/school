@@ -680,7 +680,7 @@ function MobileNavButton({
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
-        <Icon className={cn("stroke-[2px]", isFiveOrMore ? "w-5 h-5" : "w-6 h-6")} />
+        <Icon className="stroke-[2px] w-6 h-6" />
         <span className={cn(
           "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
           isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
