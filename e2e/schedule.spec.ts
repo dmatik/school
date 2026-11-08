@@ -52,8 +52,9 @@ test.describe('Weekly Schedule Flow', () => {
     await scheduleBtn.click();
     await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
 
-    // Child user should NOT see child selector dropdown
+    // Child user should NOT see child selector dropdown or liquid glass selector
     await expect(page.locator('button[role="combobox"]')).not.toBeVisible();
+    await expect(page.locator('[data-schedule-child-selector]')).not.toBeVisible();
   });
 
   test('mobile mode renders schedule with 3 days visible', async ({ page }) => {

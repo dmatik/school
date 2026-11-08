@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import { motion } from "framer-motion"
 import {
-  User,
   Clock,
   Plus,
   Edit2,
@@ -18,13 +18,6 @@ import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from "@/components/ui/select"
 import {
   Dialog,
   DialogContent,
@@ -477,76 +470,104 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
 
       {/* Filter / Actions Bar: Child Selection & Edit Mode (Below Title, Parents only) */}
       {isParent && (
-        <div className="flex items-center gap-2 pt-3 pb-1 shrink-0">
+        <div className="flex items-center justify-between gap-2 pt-3 pb-1 shrink-0">
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <Select value={selectedChildId} onValueChange={handleSelectChild} disabled={isSavingBatch}>
-              <SelectTrigger
-                disabled={isSavingBatch}
-                className="h-9 text-sm gap-2 px-3.5 w-auto min-w-[150px] sm:w-[180px] bg-card border-transparent shadow-xs rounded-full hover:bg-card/90 transition-colors"
-              >
-                <div className="flex items-center gap-2 truncate">
-                  <User className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <SelectValue placeholder={t("schedule.select_child")} />
-                </div>
-              </SelectTrigger>
-              <SelectContent>
-                {webtopConfig.linkedChildren.map((c) => (
-                  <SelectItem key={c.id} value={c.id}>
-                    {c.firstName} {c.lastName}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <div
+              role="tablist"
+              aria-label={t("schedule.select_child")}
+              data-schedule-child-selector
+              className="inline-flex items-center p-1 h-9 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
+            >
+              {webtopConfig.linkedChildren.map((c) => {
+                const isActive = selectedChildId === c.id
+                const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
+
+                return (
+                  <motion.button
+                    key={c.id}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    disabled={isSavingBatch}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleSelectChild(c.id)}
+                    className={cn(
+                      "relative flex items-center justify-center h-7 px-3.5 rounded-full text-xs sm:text-sm transition-colors select-none shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:opacity-50",
+                      isActive
+                        ? "font-bold text-foreground"
+                        : "font-semibold text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="scheduleChildLiquidPill"
+                        transition={{
+                          type: "spring",
+                          stiffness: 450,
+                          damping: 35
+                        }}
+                        className="absolute inset-0 rounded-full apple-liquid-pill"
+                      />
+                    )}
+                    <span className="relative z-10 truncate max-w-[120px]">
+                      {displayName}
+                    </span>
+                  </motion.button>
+                )
+              })}
+            </div>
           )}
 
           {/* Edit Mode Buttons */}
-          {!isEditMode ? (
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              onClick={handleStartEditMode}
-              className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 bg-card text-muted-foreground hover:text-foreground hover:bg-card/90"
-              title={t("schedule.edit_mode_enable")}
-              aria-label={t("schedule.edit_mode_enable")}
-            >
-              <Pencil className="w-4 h-4 stroke-[2px]" />
-            </Button>
-          ) : (
-            <div className="flex items-center gap-1.5 shrink-0">
-              {/* Checkmark Button: Save / Done */}
+          <div className="ms-auto flex items-center gap-1.5 shrink-0">
+            {!isEditMode ? (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon"
-                onClick={handleSaveAndCloseEditMode}
-                disabled={isSavingBatch}
-                className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 bg-primary text-primary-foreground hover:bg-primary/90"
-                title={t("schedule.edit_mode_save")}
-                aria-label={t("schedule.edit_mode_save")}
+                onClick={handleStartEditMode}
+                className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
+                title={t("schedule.edit_mode_enable")}
+                aria-label={t("schedule.edit_mode_enable")}
               >
-                {isSavingBatch ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Check className="w-4 h-4 stroke-[2.5px]" />
-                )}
+                <Pencil className="w-4 h-4 stroke-[2px]" />
               </Button>
+            ) : (
+              <>
+                {/* Checkmark Button: Save / Done */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleSaveAndCloseEditMode}
+                  disabled={isSavingBatch}
+                  className="h-9 w-9 rounded-full border border-white/20 dark:border-white/10 shadow-xs transition-all shrink-0 apple-liquid-dock !bg-primary text-primary-foreground hover:!bg-primary/90"
+                  title={t("schedule.edit_mode_save")}
+                  aria-label={t("schedule.edit_mode_save")}
+                >
+                  {isSavingBatch ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Check className="w-4 h-4 stroke-[2.5px]" />
+                  )}
+                </Button>
 
-              {/* X Button: Cancel anything edited and close edit mode */}
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleCancelEditMode}
-                disabled={isSavingBatch}
-                className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 bg-card text-muted-foreground hover:text-destructive hover:bg-card/90"
-                title={t("schedule.edit_mode_cancel")}
-                aria-label={t("schedule.edit_mode_cancel")}
-              >
-                <X className="w-4 h-4 stroke-[2.2px]" />
-              </Button>
-            </div>
-          )}
+                {/* X Button: Cancel anything edited and close edit mode */}
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleCancelEditMode}
+                  disabled={isSavingBatch}
+                  className="h-9 w-9 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
+                  title={t("schedule.edit_mode_cancel")}
+                  aria-label={t("schedule.edit_mode_cancel")}
+                >
+                  <X className="w-4 h-4 stroke-[2.2px]" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       )}
 
