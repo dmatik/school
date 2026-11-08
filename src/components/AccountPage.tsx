@@ -652,7 +652,6 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   placeholder={t("account.passkey_name_placeholder")}
                   className="bg-muted dark:bg-secondary border-transparent"
                   required
-                  autoFocus
                 />
               </div>
             </div>

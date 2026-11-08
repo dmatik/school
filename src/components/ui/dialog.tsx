@@ -39,6 +39,7 @@ const DialogContent = ({
     children,
     style,
     ref,
+    onOpenAutoFocus,
     ...props
 }: React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content> & {
     ref?: React.Ref<React.ElementRef<typeof DialogPrimitive.Content>>
@@ -46,6 +47,15 @@ const DialogContent = ({
     const { t, i18n } = useTranslation()
     const [containerNode, setContainerNode] = React.useState<HTMLDivElement | null>(null)
     const { viewportStyle, isKeyboardOpen } = useMobileModalViewport(containerNode)
+
+    const handleOpenAutoFocus = React.useCallback(
+        (event: Event) => {
+            // Prevent auto-focusing edit fields so the user sees the full modal first
+            event.preventDefault()
+            onOpenAutoFocus?.(event)
+        },
+        [onOpenAutoFocus]
+    )
 
     // Merge external ref with internal state ref
     const setRefs = React.useCallback(
@@ -67,6 +77,7 @@ const DialogContent = ({
                 ref={setRefs}
                 dir={props.dir ?? (i18n.dir() as "ltr" | "rtl")}
                 style={{ ...viewportStyle, ...style }}
+                onOpenAutoFocus={handleOpenAutoFocus}
                 className={cn(
                     // Mobile: Full screen layout with safe areas and auto-scroll
                     "fixed inset-0 z-50 flex flex-col w-full h-full max-w-none rounded-none border-0 bg-card p-4 pt-[max(1.25rem,env(safe-area-inset-top))] pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-xl overflow-y-auto overscroll-contain",
