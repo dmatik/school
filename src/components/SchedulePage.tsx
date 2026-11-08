@@ -218,7 +218,9 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
   }, [loading, initialTargetDay])
 
-  // Determine hours range: always display 1 hour below the highest populated lesson in any day (min 1, max 12)
+  // Determine hours range:
+  // In edit mode: always display 1 hour below the highest populated lesson in any day (min 1, max 12)
+  // In view mode: do not display the last empty row, only show populated hours
   const hoursToDisplay = useMemo(() => {
     let maxPopulatedHour = 0
     for (const l of lessons) {
@@ -226,13 +228,15 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
         maxPopulatedHour = l.hourNum
       }
     }
-    const maxHour = Math.min(Math.max(maxPopulatedHour + 1, 1), 12)
+    const maxHour = isEditMode
+      ? Math.min(Math.max(maxPopulatedHour + 1, 1), 12)
+      : Math.min(maxPopulatedHour, 12)
     const list: number[] = []
     for (let h = 1; h <= maxHour; h++) {
       list.push(h)
     }
     return list
-  }, [lessons])
+  }, [lessons, isEditMode])
 
   // Map lessons by [dayOfWeek][hourNum]
   const lessonMap = useMemo(() => {

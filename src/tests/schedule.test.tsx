@@ -350,15 +350,45 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     expect(computeTargetDay(6)).toBe(0) // Saturday -> 0
   })
 
-  it('calculates hours rows to display exactly 1 below the highest populated lesson in any day', () => {
-    function computeHoursToDisplay(items: { hourNum: number; subject: string }[]) {
+  it('displays the last empty row only in edit mode and hides it in view mode', async () => {
+    render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+    })
+
+    // In view mode: lessons go up to hour 3, so hours 1, 2, 3 exist but hour 4 does not
+    expect(screen.getByText('1')).toBeInTheDocument()
+    expect(screen.getByText('2')).toBeInTheDocument()
+    expect(screen.getByText('3')).toBeInTheDocument()
+    expect(screen.queryByText('4')).not.toBeInTheDocument()
+
+    // Enable edit mode
+    const editToggle = screen.getByRole('button', { name: 'schedule.edit_mode_enable' })
+    fireEvent.click(editToggle)
+
+    // In edit mode: row 4 (the empty row) is displayed for adding lessons
+    expect(screen.getByText('4')).toBeInTheDocument()
+
+    // Close edit mode via Cancel
+    const cancelBtn = screen.getByRole('button', { name: 'schedule.edit_mode_cancel' })
+    fireEvent.click(cancelBtn)
+
+    // In view mode again: row 4 is hidden
+    expect(screen.queryByText('4')).not.toBeInTheDocument()
+  })
+
+  it('calculates hours rows: hides last empty row in view mode and displays it in edit mode', () => {
+    function computeHoursToDisplay(items: { hourNum: number; subject: string }[], isEditMode = false) {
       let maxPopulatedHour = 0
       for (const l of items) {
         if (l.subject && l.subject.trim() && l.hourNum > maxPopulatedHour) {
           maxPopulatedHour = l.hourNum
         }
       }
-      const maxHour = Math.min(Math.max(maxPopulatedHour + 1, 1), 12)
+      const maxHour = isEditMode
+        ? Math.min(Math.max(maxPopulatedHour + 1, 1), 12)
+        : Math.min(maxPopulatedHour, 12)
       const list: number[] = []
       for (let h = 1; h <= maxHour; h++) {
         list.push(h)
@@ -366,26 +396,43 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       return list
     }
 
-    // No lessons at all -> shows hour 1
-    expect(computeHoursToDisplay([])).toEqual([1])
-
-    // Highest lesson is hour 3 -> shows hours 1..4 (1 below populated)
+    // In view mode (default):
+    // No lessons at all -> shows 0 rows
+    expect(computeHoursToDisplay([], false)).toEqual([])
+    // Highest lesson is hour 3 -> shows hours 1..3 (no trailing empty row)
     expect(computeHoursToDisplay([
       { hourNum: 1, subject: 'Math' },
       { hourNum: 3, subject: 'English' }
-    ])).toEqual([1, 2, 3, 4])
-
-    // Highest lesson is hour 5 -> shows hours 1..6
+    ], false)).toEqual([1, 2, 3])
+    // Highest lesson is hour 5 -> shows hours 1..5
     expect(computeHoursToDisplay([
       { hourNum: 2, subject: 'Hebrew' },
       { hourNum: 5, subject: 'History' }
-    ])).toEqual([1, 2, 3, 4, 5, 6])
-
+    ], false)).toEqual([1, 2, 3, 4, 5])
     // Empty subject strings are ignored
     expect(computeHoursToDisplay([
       { hourNum: 2, subject: 'Art' },
       { hourNum: 7, subject: '   ' }
-    ])).toEqual([1, 2, 3])
+    ], false)).toEqual([1, 2])
+
+    // In edit mode:
+    // No lessons at all -> shows hour 1 to allow adding
+    expect(computeHoursToDisplay([], true)).toEqual([1])
+    // Highest lesson is hour 3 -> shows hours 1..4 (1 below populated)
+    expect(computeHoursToDisplay([
+      { hourNum: 1, subject: 'Math' },
+      { hourNum: 3, subject: 'English' }
+    ], true)).toEqual([1, 2, 3, 4])
+    // Highest lesson is hour 5 -> shows hours 1..6
+    expect(computeHoursToDisplay([
+      { hourNum: 2, subject: 'Hebrew' },
+      { hourNum: 5, subject: 'History' }
+    ], true)).toEqual([1, 2, 3, 4, 5, 6])
+    // Empty subject strings are ignored
+    expect(computeHoursToDisplay([
+      { hourNum: 2, subject: 'Art' },
+      { hourNum: 7, subject: '   ' }
+    ], true)).toEqual([1, 2, 3])
   })
 })
 
