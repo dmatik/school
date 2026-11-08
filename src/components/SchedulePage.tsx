@@ -454,18 +454,11 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       {/* Header Bar */}
       <div
         data-page-title
-        className="flex items-center justify-between gap-3 pb-3 border-b border-border/70 dark:border-border/60 shrink-0"
+        className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0"
       >
-        <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-full bg-primary/10 text-primary flex items-center justify-center shrink-0">
-            <CalendarDays className="w-4 h-4 stroke-[2.2px]" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-              {t("schedule.title")}
-            </h1>
-          </div>
-        </div>
+        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
+          {t("schedule.title")}
+        </h1>
       </div>
 
       {/* Filter / Actions Bar: Child Selection & Edit Mode (Below Title, Parents only) */}
