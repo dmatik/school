@@ -72,6 +72,48 @@ describe('DatePicker Component', () => {
     expect(btn.className).toContain('!bg-primary')
     expect(btn.className).toContain('text-primary-foreground')
   })
+
+  it('renders liquid variant with date text, responsive formatDisplay, and clear button', () => {
+    const handleSetDate = vi.fn()
+    const testDate = new Date(2026, 9, 28)
+
+    // Unselected state
+    const { rerender } = render(
+      <DatePicker
+        variant="liquid"
+        setDate={handleSetDate}
+        placeholder="All Dates"
+      />
+    )
+    const triggerBtn = screen.getByRole('button', { name: /all dates/i })
+    expect(triggerBtn).toHaveAttribute('data-date-selected', 'false')
+    expect(triggerBtn.className).toContain('text-muted-foreground')
+    expect(triggerBtn.className).not.toContain('!bg-primary')
+    expect(screen.getByText('All Dates')).toBeInTheDocument()
+
+    // Selected state with custom formatDisplay
+    rerender(
+      <DatePicker
+        variant="liquid"
+        date={testDate}
+        setDate={handleSetDate}
+        placeholder="All Dates"
+        formatDisplay={() => ({ short: '28/10/2026', full: 'Wednesday, October 28' })}
+        clearable={true}
+      />
+    )
+    expect(triggerBtn).toHaveAttribute('data-date-selected', 'true')
+    expect(triggerBtn.className).toContain('text-foreground')
+    expect(triggerBtn.className).not.toContain('!bg-primary')
+    expect(screen.getByText('28/10/2026')).toHaveClass('md:hidden')
+    expect(screen.getByText('Wednesday, October 28')).toHaveClass('hidden md:inline')
+
+    // Clear button should be present and clickable
+    const clearBtn = screen.getByRole('button', { name: /cancel|ביטול/i })
+    expect(clearBtn).toBeInTheDocument()
+    fireEvent.click(clearBtn)
+    expect(handleSetDate).toHaveBeenCalledWith(undefined)
+  })
 })
 
 describe('DateBadge Component', () => {

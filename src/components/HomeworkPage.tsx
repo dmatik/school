@@ -50,6 +50,15 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
     }
   }, [dateLocale, t])
 
+  const formatDateFilterDisplay = useCallback((d: Date) => {
+    const short = format(d, "dd/MM/yyyy")
+    const full = formatOneLineDate(d) || short
+    if (isChild) {
+      return { short: full, full }
+    }
+    return { short, full }
+  }, [formatOneLineDate, isChild])
+
   const [homework, setHomework] = useState<HomeworkItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const webtopConfigRef = useRef<WebtopConfig | null>(null)
@@ -196,6 +205,8 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
     return groups
   }, [filteredHomework])
 
+  const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
+
   return (
     <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
       {/* Page Header */}
@@ -230,10 +241,10 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
             )}
           </div>
 
-          {/* Liquid Glass Filter Row: Child selector at beginning of row, Date Picker round button at end of row */}
-          <div className="flex items-center justify-between gap-2 pt-1 pb-2 shrink-0">
+          {/* Liquid Glass Filter Row: Child selector at beginning of row, Date Picker at end of row (or start if no child filter) */}
+          <div className={cn("flex items-center gap-2 pt-1 pb-2 shrink-0", hasChildFilter ? "justify-between" : "justify-start")}>
             {/* 1 - Children Liquid Glass Selector (Parents only) */}
-            {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+            {hasChildFilter && (
               <div
                 role="tablist"
                 aria-label={t("homework.filter_child")}
@@ -248,10 +259,10 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedChildId("all")}
                   className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
                     selectedChildId === "all"
-                      ? "font-bold text-foreground"
-                      : "font-semibold text-muted-foreground hover:text-foreground"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {selectedChildId === "all" && (
@@ -271,7 +282,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                 </motion.button>
 
                 {/* Children options */}
-                {webtopConfig.linkedChildren.map((c) => {
+                {webtopConfig?.linkedChildren.map((c) => {
                   const isActive = selectedChildId === c.id
                   const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
 
@@ -284,10 +295,10 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
                       whileTap={{ scale: 0.95 }}
                       onClick={() => setSelectedChildId(c.id)}
                       className={cn(
-                        "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                        "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
                         isActive
-                          ? "font-bold text-foreground"
-                          : "font-semibold text-muted-foreground hover:text-foreground"
+                          ? "text-foreground"
+                          : "text-muted-foreground hover:text-foreground"
                       )}
                     >
                       {isActive && (
@@ -310,16 +321,17 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
               </div>
             )}
 
-            {/* Date Filter Button (at end of row) */}
-            <div className="ms-auto shrink-0">
+            {/* Date Filter Button */}
+            <div className={cn("shrink-0", hasChildFilter && "ms-auto")}>
               <DatePicker
-                variant="liquid-icon"
+                variant="liquid"
                 date={selectedDate}
                 setDate={setSelectedDate}
                 placeholder={t("common.all_dates")}
                 disabled={isFutureDate}
                 clearable={true}
-                formatPattern="dd/MM/yyyy"
+                formatDisplay={formatDateFilterDisplay}
+                align={hasChildFilter ? "end" : "start"}
               />
             </div>
           </div>
@@ -382,7 +394,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               {searchQuery || selectedDate
-                ? t("homework.search_placeholder")
+                ? null
                 : (isChild && !currentUser?.linkedChildId
                     ? t("homework.child_unlinked_desc")
                     : t("homework.empty_desc"))}
