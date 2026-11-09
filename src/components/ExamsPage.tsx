@@ -396,8 +396,9 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
-      {/* Page Header with Title */}
+    <div className="relative h-full w-full overflow-hidden">
+      <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
+        {/* Page Header with Title */}
       <div data-page-title className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
           {t("exams.title")}
@@ -949,18 +950,24 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         </AlertDialogContent>
       </AlertDialog>
 
-      {/* Floating Add Exam Action Button (Parents only) */}
+      </div>
+
+      {/* Floating Add Exam Action Button (Aligned with cards) */}
       {isParent && (
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.92 }}
-          onClick={handleOpenAddModal}
-          className="fixed z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-4 rtl:start-4 md:ltr:end-8 md:rtl:start-8 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-          title={t("exams.add_exam_button")}
-          aria-label={t("exams.add_exam_button")}
-        >
-          <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
-        </motion.button>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
+          <div className="relative h-full w-full">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={handleOpenAddModal}
+              className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+              title={t("exams.add_exam_button")}
+              aria-label={t("exams.add_exam_button")}
+            >
+              <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
+            </motion.button>
+          </div>
+        </div>
       )}
     </div>
   )

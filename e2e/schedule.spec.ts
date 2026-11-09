@@ -119,7 +119,7 @@ test.describe('Weekly Schedule Flow', () => {
     await scheduleBtn.click();
     await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
 
-    // Verify floating Edit button exists on bottom right
+    // Verify floating Edit button exists and is on the page (not over the sidebar)
     const fab = page.locator('button[aria-label="הפעל מצב עריכה"], button[aria-label="Enable edit mode"]');
     await expect(fab).toBeVisible();
 
@@ -128,6 +128,22 @@ test.describe('Weekly Schedule Flow', () => {
     if (box) {
       expect(Math.round(box.width)).toBe(50);
       expect(Math.round(box.height)).toBe(50);
+    }
+
+    const aside = page.locator('aside');
+    const asideBox = await aside.boundingBox();
+    expect(asideBox).not.toBeNull();
+    const dir = await page.locator('html').getAttribute('dir') || 'ltr';
+    if (box && asideBox) {
+      if (dir === 'rtl') {
+        // In RTL desktop mode, the sidebar is on the right.
+        // The floating button must be on the page (to the left of the sidebar).
+        expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
+      } else {
+        // In LTR desktop mode, the sidebar is on the left.
+        // The floating button must be on the page (to the right of the sidebar).
+        expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
+      }
     }
 
     // Click floating Edit button -> turns into V checkmark button with no X button
@@ -150,7 +166,7 @@ test.describe('Weekly Schedule Flow', () => {
     await examsBtn.click();
     await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
 
-    // Verify floating Add Exam button exists on bottom right
+    // Verify floating Add Exam button exists and is on the page (not over the sidebar)
     const addFab = page.locator('button[aria-label="הוסף מבחן"], button[aria-label="Add Exam"]');
     await expect(addFab).toBeVisible();
 
@@ -159,6 +175,56 @@ test.describe('Weekly Schedule Flow', () => {
     if (box) {
       expect(Math.round(box.width)).toBe(50);
       expect(Math.round(box.height)).toBe(50);
+    }
+
+    const aside = page.locator('aside');
+    const asideBox = await aside.boundingBox();
+    expect(asideBox).not.toBeNull();
+    const dir = await page.locator('html').getAttribute('dir') || 'ltr';
+    if (box && asideBox) {
+      if (dir === 'rtl') {
+        // In RTL desktop mode, the sidebar is on the right.
+        // The floating button must be on the page (to the left of the sidebar).
+        expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
+      } else {
+        // In LTR desktop mode, the sidebar is on the left.
+        // The floating button must be on the page (to the right of the sidebar).
+        expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
+      }
+    }
+  });
+
+  test('in Hebrew RTL desktop mode, floating button renders on bottom-left of the page away from sidebar', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Switch to Hebrew
+    await page.evaluate(() => {
+      localStorage.setItem('i18nextLng', 'he');
+    });
+    await page.reload();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+
+    // Navigate to Exams
+    const examsBtn = page.locator('aside nav button').nth(2);
+    await examsBtn.click();
+    await expect(page.locator('main h1')).toContainText('מבחנים');
+
+    const addFab = page.locator('button[aria-label="הוסף מבחן"]');
+    await expect(addFab).toBeVisible();
+
+    const box = await addFab.boundingBox();
+    const aside = page.locator('aside');
+    const asideBox = await aside.boundingBox();
+    expect(box).not.toBeNull();
+    expect(asideBox).not.toBeNull();
+    if (box && asideBox) {
+      // In RTL desktop, sidebar is on the right (x > 0)
+      expect(asideBox.x).toBeGreaterThan(0);
+      // FAB is on the page (to the left of the sidebar)
+      expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
+      // Specifically at the bottom-left of the page
+      expect(box.x).toBeLessThan(200);
     }
   });
 });
