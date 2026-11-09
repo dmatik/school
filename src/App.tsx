@@ -131,12 +131,7 @@ function App() {
   // Track scroll state on mobile for dynamic Apple glass header/footer effects
   const [isScrolled, setIsScrolled] = useState(false)
   const [isScrolling, setIsScrolling] = useState(false)
-  const [isTitleScrolled, setIsTitleScrolled] = useState(false)
   const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => {
-    setIsTitleScrolled(false)
-  }, [activeTab])
 
   useEffect(() => {
     const handleScroll = (e: Event) => {
@@ -146,15 +141,6 @@ function App() {
       const scrolled = target.scrollTop > 8
       setIsScrolled(scrolled)
       setIsScrolling(true)
-
-      const titleEl = document.querySelector('[data-page-title]')
-      if (titleEl) {
-        const rect = titleEl.getBoundingClientRect()
-        // Header height is 56px (h-14). When bottom of the page title scrolls to or behind 56px, it is hidden
-        setIsTitleScrolled(rect.bottom <= 56)
-      } else {
-        setIsTitleScrolled(target.scrollTop > 50)
-      }
 
       if (scrollTimeoutRef.current) {
         clearTimeout(scrollTimeoutRef.current)
@@ -177,7 +163,6 @@ function App() {
     setActiveTab(tab)
     setIsScrolled(false)
     setIsScrolling(false)
-    setIsTitleScrolled(false)
   }
 
   // Webtop sync state & triggers
@@ -469,69 +454,49 @@ function App() {
           {/* Mobile Header */}
           <header
             className={cn(
-              "md:hidden fixed top-0 inset-x-0 z-20 px-4 py-2.5 flex items-center justify-between bg-background transition-all duration-300",
+              "md:hidden fixed top-0 inset-x-0 z-20 px-4 py-2.5 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 bg-background transition-all duration-300",
               (isScrolled || isScrolling)
                 ? "border-b border-border/50 shadow-xs"
                 : "border-b border-transparent shadow-none"
             )}
           >
-            <div className="flex items-center gap-2.5 min-w-0 flex-1 me-2">
-              <button
-                onClick={() => handleTabChange('account')}
-                className={cn(
-                  "relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
-                  activeTab === 'account' ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:opacity-85"
-                )}
-                title={t('common.account')}
-              >
-                {currentUser.avatar ? (
-                  <img
-                    src={currentUser.avatar}
-                    alt={currentUser.username}
-                    className="w-9 h-9 rounded-full object-cover border border-transparent shadow-xs"
-                  />
-                ) : (
-                  <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm border border-transparent shadow-xs">
-                    {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
-                  </div>
-                )}
-              </button>
+            <button
+              onClick={() => handleTabChange('account')}
+              className={cn(
+                "relative w-9 h-9 rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
+                activeTab === 'account' ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:opacity-85"
+              )}
+              title={t('common.account')}
+            >
+              {currentUser.avatar ? (
+                <img
+                  src={currentUser.avatar}
+                  alt={currentUser.username}
+                  className="w-9 h-9 rounded-full object-cover border border-transparent shadow-xs"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm border border-transparent shadow-xs">
+                  {currentUser.username[0]?.toUpperCase() || <UserIcon className="w-4 h-4" />}
+                </div>
+              )}
+            </button>
 
-              <div className="flex flex-row items-baseline gap-2 min-w-0 overflow-hidden">
-                <AnimatePresence mode="wait" initial={false}>
-                  {isTitleScrolled ? (
-                    <motion.h1
-                      key={`scrolled-title-${activeTab}`}
-                      initial={{ opacity: 0, y: 6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
-                      transition={{ duration: 0.15 }}
-                      className="text-lg font-bold tracking-tight text-foreground truncate"
-                    >
-                      {t(`${activeTab}.title`)}
-                    </motion.h1>
-                  ) : (
-                    <motion.div
-                      key="app-title"
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: 6 }}
-                      transition={{ duration: 0.15 }}
-                      className="flex flex-row items-baseline gap-2 min-w-0"
-                    >
-                      <h1 className="text-lg font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight truncate">
-                        {t('common.app_title')}
-                      </h1>
-                      <span className="text-[10px] font-mono text-muted-foreground shrink-0">
-                        v{__APP_VERSION__}
-                      </span>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
+            <div className="min-w-0 flex items-center justify-center overflow-hidden">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.h1
+                  key={`mobile-header-title-${activeTab}`}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.15 }}
+                  className="text-lg font-bold tracking-tight text-foreground truncate text-center"
+                >
+                  {t(`${activeTab}.title`)}
+                </motion.h1>
+              </AnimatePresence>
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center justify-end w-9 h-9 shrink-0">
               {renderWebtopSyncButton()}
             </div>
           </header>

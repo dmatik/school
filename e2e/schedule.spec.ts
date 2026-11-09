@@ -85,10 +85,10 @@ test.describe('Weekly Schedule Flow', () => {
     const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
     // Admin is the last tab (6th) for adminUser
     await dockButtons.last().click();
-    await expect(page.locator('main h2').first()).toContainText(/ניהול מערכת|Administration/);
+    await expect(page.locator('header.md\\:hidden h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
 
     // Click "Add User" button on mobile
-    const addUserBtn = page.locator('button:has-text("הוספת משתמש"), button:has-text("Add User")').first();
+    const addUserBtn = page.locator('button[aria-label="הוספת משתמש"], button[aria-label="Add User"]').first();
     await addUserBtn.click();
 
     // Modal dialog should appear

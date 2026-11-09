@@ -117,5 +117,61 @@ test.describe('Navigation Flow', () => {
     const syncBtn = page.locator('aside').getByRole('button', { name: /סנכרון|Sync/ });
     await expect(syncBtn).toBeVisible();
   });
+
+  test('mobile view displays centered page title in mobile header, hides in-page title headers, has floating Add User button on Admin and bottom Logout on Account', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Switch to mobile viewport (iPhone 13 dimensions)
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    // Mobile header should display the Homework title
+    const mobileHeader = page.locator('header.md\\:hidden');
+    await expect(mobileHeader).toBeVisible();
+    await expect(mobileHeader.locator('h1')).toContainText(/שיעורי בית|Homework/);
+
+    // In-page header with data-page-title should be hidden on mobile
+    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+
+    const headerBox = await mobileHeader.boundingBox();
+    const hwFirst = await page.locator('main input[type="search"]').boundingBox();
+    // Verify compact gap below header on mobile (< 15px instead of previous 31px+)
+    if (headerBox && hwFirst) {
+      const gap = hwFirst.y - (headerBox.y + headerBox.height);
+      expect(gap).toBeLessThan(15);
+      expect(gap).toBeGreaterThanOrEqual(0);
+    }
+
+    // Click Incidents tab in mobile dock
+    const incidentsMobileBtn = page.locator('nav[aria-label="Mobile Navigation"] button').nth(1);
+    await incidentsMobileBtn.click();
+    await expect(mobileHeader.locator('h1')).toContainText(/אירועי משמעת|School Incidents/);
+    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+
+    // Click Admin tab in mobile dock (last button)
+    const adminMobileBtn = page.locator('nav[aria-label="Mobile Navigation"] button').last();
+    await adminMobileBtn.click();
+    await expect(mobileHeader.locator('h1')).toContainText(/ניהול מערכת|Administration/);
+    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+
+    // Floating round Add User button should be visible on AdminPage
+    const floatingAddUserBtn = page.locator('button[aria-label="הוספת משתמש"], button[aria-label="Add User"]').first();
+    await expect(floatingAddUserBtn).toBeVisible();
+    await floatingAddUserBtn.click();
+    // Modal should open
+    await expect(page.locator('[role="dialog"]')).toBeVisible();
+    // Close modal
+    await page.keyboard.press('Escape');
+
+    // Click user avatar in mobile header to go to Account page
+    const avatarBtn = mobileHeader.locator('button').first();
+    await avatarBtn.click();
+    await expect(mobileHeader.locator('h1')).toContainText(/הגדרות חשבון|Account Settings/);
+    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+
+    // Logout button should be at the bottom of the Account page
+    const logoutBtn = page.locator('button', { hasText: /התנתק|Sign Out/ });
+    await expect(logoutBtn).toBeVisible();
+  });
 });
 
