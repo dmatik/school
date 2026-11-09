@@ -54,7 +54,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   // Mobile horizontal scroll ref and column refs
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const dayColRefs = useRef<(HTMLDivElement | null)[]>([])
-  const initialScrollDone = useRef(false)
+  const lastScrolledChildId = useRef<string | null>(null)
 
   // Lesson Edit Modal state
   const [editingLesson, setEditingLesson] = useState<{
@@ -187,25 +187,38 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
   }, [selectedChildId, loadSchedule, syncTrigger])
 
-  // Scroll mobile container to the initial target day
+  // Scroll mobile container to the initial target day on initial load and when switching children
   useEffect(() => {
-    if (loading || initialScrollDone.current) return
-    if (initialTargetDay === 0) {
-      initialScrollDone.current = true
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTo({ left: 0 })
+    if (loading || !selectedChildId) return
+    if (lastScrolledChildId.current === selectedChildId) return
+
+    const scrollToTargetDay = () => {
+      if (initialTargetDay === 0) {
+        lastScrolledChildId.current = selectedChildId
+        if (scrollContainerRef.current) {
+          scrollContainerRef.current.scrollTo({ left: 0 })
+        }
+        return
       }
-      return
+      const targetEl = dayColRefs.current[initialTargetDay]
+      if (targetEl && scrollContainerRef.current) {
+        requestAnimationFrame(() => {
+          targetEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
+          lastScrolledChildId.current = selectedChildId
+        })
+      } else {
+        requestAnimationFrame(() => {
+          const retryEl = dayColRefs.current[initialTargetDay]
+          if (retryEl && scrollContainerRef.current) {
+            retryEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
+            lastScrolledChildId.current = selectedChildId
+          }
+        })
+      }
     }
-    const targetEl = dayColRefs.current[initialTargetDay]
-    if (targetEl && scrollContainerRef.current) {
-      // Use requestAnimationFrame to ensure layout has rendered
-      requestAnimationFrame(() => {
-        targetEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-        initialScrollDone.current = true
-      })
-    }
-  }, [loading, initialTargetDay])
+
+    scrollToTargetDay()
+  }, [loading, selectedChildId, initialTargetDay])
 
   // Determine hours range:
   // In edit mode: always display 1 hour below the highest populated lesson in any day (min 1, max 12)
@@ -253,12 +266,15 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     setFormSubject(existing?.subject || "")
   }
 
-  // Child selection change handler: exit edit mode if active
+  // Child selection change handler: exit edit mode if active and re-trigger auto-scroll
   const handleSelectChild = (childId: string) => {
     if (isEditMode) {
       setIsEditMode(false)
     }
-    setSelectedChildId(childId)
+    if (childId !== selectedChildId) {
+      lastScrolledChildId.current = null
+      setSelectedChildId(childId)
+    }
   }
 
   // Save Lesson: updates local state and immediately persists to backend
