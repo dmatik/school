@@ -18,8 +18,6 @@ import { Button } from "@/components/ui/button"
 import { toast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import type { User } from "@/types"
-import { ModeToggle } from "@/components/mode-toggle"
-import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { LoginView } from "@/components/LoginView"
 import { useTranslation } from "react-i18next"
 import { DirectionProvider } from "@radix-ui/react-direction"
@@ -196,15 +194,13 @@ function App() {
       { tab: 'incidents', icon: AlertCircle, label: t('common.incidents') },
       { tab: 'exams', icon: GraduationCap, label: t('common.exams') },
       { tab: 'schedule', icon: CalendarDays, label: t('common.schedule') },
+      { tab: 'settings', icon: SettingsIcon, label: t('common.settings_short') },
     ]
-    if (currentUser?.familyRole !== 'child') {
-      items.push({ tab: 'settings', icon: SettingsIcon, label: t('common.settings_short') })
-    }
     if (currentUser?.role === 'admin') {
       items.push({ tab: 'admin', icon: Shield, label: t('common.admin_short') })
     }
     return items
-  }, [currentUser?.familyRole, currentUser?.role, t])
+  }, [currentUser?.role, t])
 
   const checkWebtopConfig = useCallback(async () => {
     if (!token) return
@@ -441,14 +437,12 @@ function App() {
               icon={CalendarDays}
               label={t('common.schedule')}
             />
-            {currentUser.familyRole !== 'child' && (
-              <MenuButton
-                active={activeTab === 'settings'}
-                onClick={() => handleTabChange('settings')}
-                icon={SettingsIcon}
-                label={t('common.settings')}
-              />
-            )}
+            <MenuButton
+              active={activeTab === 'settings'}
+              onClick={() => handleTabChange('settings')}
+              icon={SettingsIcon}
+              label={t('common.settings')}
+            />
             {currentUser.role === 'admin' && (
               <MenuButton
                 active={activeTab === 'admin'}
@@ -463,8 +457,6 @@ function App() {
           <div className="p-3 border-t border-border/80 flex items-center justify-between bg-card/60">
             <div className="flex items-center gap-2">
               {renderWebtopSyncButton()}
-              <LanguageSwitcher />
-              <ModeToggle />
             </div>
             <span className="text-[10px] font-mono text-muted-foreground">
               v{__APP_VERSION__}
@@ -541,8 +533,6 @@ function App() {
 
             <div className="flex items-center gap-2 shrink-0">
               {renderWebtopSyncButton()}
-              <LanguageSwitcher />
-              <ModeToggle />
             </div>
           </header>
 
@@ -563,7 +553,7 @@ function App() {
                     {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
                     {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                    {activeTab === 'settings' && currentUser.familyRole !== 'child' && <SettingsPage token={token} />}
+                    {activeTab === 'settings' && <SettingsPage token={token} currentUser={currentUser} />}
                     {activeTab === 'admin' && currentUser.role === 'admin' && (
                       <AdminPage
                         currentUser={currentUser}

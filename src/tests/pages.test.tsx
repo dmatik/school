@@ -8,6 +8,7 @@ import type { User } from '../types'
 describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test Users)', () => {
   let testAdminUser: User
   let testRegularUser: User
+  let testChildUser: User
   let uniqueRunId: string
 
   beforeEach(() => {
@@ -33,6 +34,17 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
       linkedChildId: null,
       firstName: 'TestParentFirst',
       lastName: 'TestParentLast',
+      avatar: ''
+    }
+
+    testChildUser = {
+      id: `test-child-${uniqueRunId}`,
+      username: `child_${uniqueRunId}`,
+      role: 'user',
+      familyRole: 'child',
+      linkedChildId: null,
+      firstName: 'TestChildFirst',
+      lastName: 'TestChildLast',
       avatar: ''
     }
 
@@ -74,6 +86,7 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
     // Nullify references to ensure zero test user data retention
     testAdminUser = null as unknown as User
     testRegularUser = null as unknown as User
+    testChildUser = null as unknown as User
   })
 
   describe('AdminPage Component', () => {
@@ -197,6 +210,67 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
   })
 
   describe('SettingsPage Component', () => {
+    it('renders appearance & language section with liquid glass selectors for language and theme', async () => {
+      render(<SettingsPage token="mock-test-jwt-token" currentUser={testRegularUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('settings.title')).toBeInTheDocument()
+      })
+      expect(screen.getByText('settings.appearance_title')).toBeInTheDocument()
+      expect(screen.getByText('settings.appearance_desc')).toBeInTheDocument()
+
+      // Language liquid glass selector
+      const langSelector = screen.getByRole('tablist', { name: 'settings.language_label' })
+      expect(langSelector).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: 'common.hebrew' })).toBeInTheDocument()
+      const enTab = screen.getByRole('tab', { name: 'common.english' })
+      expect(enTab).toBeInTheDocument()
+
+      // Theme liquid glass selector
+      const themeSelector = screen.getByRole('tablist', { name: 'settings.theme_label' })
+      expect(themeSelector).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /common\.light/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /common\.dark/i })).toBeInTheDocument()
+      expect(screen.getByRole('tab', { name: /common\.system/i })).toBeInTheDocument()
+
+      // Click English option
+      fireEvent.click(enTab)
+
+      // Webtop section is also visible for parent user
+      expect(screen.getByText('account.webtop_title')).toBeInTheDocument()
+    })
+
+    it('renders appearance & language section but hides webtop configuration for child user without fetching webtop config', async () => {
+      const originalFetch = global.fetch
+      const fetchSpy = vi.fn().mockImplementation(() => Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve({})
+      }))
+      global.fetch = fetchSpy as unknown as typeof fetch
+
+      try {
+        render(<SettingsPage token="mock-test-jwt-token" currentUser={testChildUser} />)
+
+        await waitFor(() => {
+          expect(screen.getByText('settings.title')).toBeInTheDocument()
+        })
+        expect(screen.getByText('settings.appearance_title')).toBeInTheDocument()
+        expect(screen.getByRole('tablist', { name: 'settings.language_label' })).toBeInTheDocument()
+        expect(screen.getByRole('tablist', { name: 'settings.theme_label' })).toBeInTheDocument()
+
+        // Webtop configuration must NOT be rendered
+        expect(screen.queryByText('account.webtop_title')).not.toBeInTheDocument()
+        expect(screen.queryByText('account.webtop_desc')).not.toBeInTheDocument()
+
+        // Verify fetch was never called with /api/webtop/config
+        const calls = fetchSpy.mock.calls
+        const webtopCalls = calls.filter((call: any[]) => typeof call[0] === 'string' && call[0].includes('/api/webtop/config'))
+        expect(webtopCalls).toHaveLength(0)
+      } finally {
+        global.fetch = originalFetch
+      }
+    })
+
     it('renders settings page and webtop configuration section correctly', async () => {
       render(<SettingsPage token="mock-test-jwt-token" />)
 

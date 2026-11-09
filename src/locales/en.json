@@ -326,7 +326,13 @@
     "sync_failed": "Sync failed"
   },
   "settings": {
-    "title": "Settings"
+    "title": "Settings",
+    "appearance_title": "Appearance & Language",
+    "appearance_desc": "Customize the application theme and display language",
+    "language_label": "Language",
+    "language_desc": "Select your preferred display language",
+    "theme_label": "Color Theme",
+    "theme_desc": "Choose between light, dark, or system theme"
   },
   "admin": {
     "title": "System Administration",
