@@ -84,21 +84,33 @@ test.describe('Navigation Flow', () => {
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
   });
 
-  test('child user sees Homework, Incidents, Exams, and Schedule, but neither Settings nor Admin tab, and has Sync button', async ({ page }) => {
+  test('child user sees Homework, Incidents, Exams, Schedule, and Settings, can use Settings without Webtop config, and does not see Admin tab', async ({ page }) => {
     regularUser = createTestUser('user', 'child');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 4 (Homework, Incidents, Exams, Schedule)
+    // Nav items count in aside nav should be 5 (Homework, Incidents, Exams, Schedule, Settings)
     const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(4);
+    await expect(navButtons).toHaveCount(5);
 
     // Click Schedule tab (4th tab)
     const scheduleBtn = navButtons.nth(3);
     await scheduleBtn.click();
     await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
 
-    // Settings and Admin should not be present
-    await expect(page.locator('aside nav').getByText(/הגדרות|Settings/)).not.toBeVisible();
+    // Click Settings tab (5th tab)
+    const settingsBtn = navButtons.nth(4);
+    await settingsBtn.click();
+    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
+
+    // Appearance & Language settings must be visible
+    await expect(page.locator('text=/תצוגה ושפה|Appearance & Language/')).toBeVisible();
+    await expect(page.locator('[data-settings-language-selector]')).toBeVisible();
+    await expect(page.locator('[data-settings-theme-selector]')).toBeVisible();
+
+    // Webtop configuration part must NOT be visible to child
+    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
+
+    // Admin should not be present
     await expect(page.locator('aside nav').getByText(/ניהול מערכת|Administration/)).not.toBeVisible();
 
     // Webtop Sync button remains available in aside footer

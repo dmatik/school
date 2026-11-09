@@ -326,7 +326,13 @@
     "sync_failed": "הסנכרון נכשל"
   },
   "settings": {
-    "title": "הגדרות"
+    "title": "הגדרות",
+    "appearance_title": "תצוגה ושפה",
+    "appearance_desc": "התאמה אישית של ערכת הנושא ושפת התצוגה",
+    "language_label": "שפה",
+    "language_desc": "בחירת שפת התצוגה המועדפת",
+    "theme_label": "ערכת נושא",
+    "theme_desc": "בחירה בין מצב בהיר, כהה או מערכת"
   },
   "admin": {
     "title": "ניהול מערכת",

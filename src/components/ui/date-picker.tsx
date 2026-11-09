@@ -144,7 +144,7 @@ export function DatePicker({
                             aria-label={displayDate.full}
                             data-date-selected={!!date}
                         >
-                            <CalendarIcon className={cn("w-4.5 h-4.5 shrink-0 stroke-[1.85px] transition-colors", date ? "text-foreground" : "text-muted-foreground")} />
+                            <CalendarIcon className={cn("w-5 h-5 shrink-0 stroke-[1.85px] transition-colors", date ? "text-foreground" : "text-muted-foreground")} />
                             {displayDate.short !== displayDate.full ? (
                                 <>
                                     <span className="md:hidden text-base whitespace-nowrap translate-y-px">
