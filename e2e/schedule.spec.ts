@@ -109,4 +109,56 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(dialogContent.locator('button[type="submit"]')).toBeVisible();
     await expect(dialogContent.locator('button:has-text("ביטול"), button:has-text("Cancel")')).toBeVisible();
   });
+
+  test('floating round action button renders on bottom-right, has 50x50 size, and toggles edit mode to V', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Navigate to Schedule
+    const scheduleBtn = page.locator('aside nav button').nth(3);
+    await scheduleBtn.click();
+    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+
+    // Verify floating Edit button exists on bottom right
+    const fab = page.locator('button[aria-label="הפעל מצב עריכה"], button[aria-label="Enable edit mode"]');
+    await expect(fab).toBeVisible();
+
+    const box = await fab.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      expect(Math.round(box.width)).toBe(50);
+      expect(Math.round(box.height)).toBe(50);
+    }
+
+    // Click floating Edit button -> turns into V checkmark button with no X button
+    await fab.click();
+    const finishBtn = page.locator('button[aria-label="סיום עריכה"], button[aria-label="Finish editing"]');
+    await expect(finishBtn).toBeVisible();
+    await expect(page.locator('button[aria-label="בטל שינויים"], button[aria-label="Cancel editing"]')).not.toBeVisible();
+
+    // Click finish button -> exits edit mode
+    await finishBtn.click();
+    await expect(fab).toBeVisible();
+  });
+
+  test('exams page renders floating 50x50 Add Exam button on bottom-right for parent', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Navigate to Exams
+    const examsBtn = page.locator('aside nav button').nth(2);
+    await examsBtn.click();
+    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+
+    // Verify floating Add Exam button exists on bottom right
+    const addFab = page.locator('button[aria-label="הוסף מבחן"], button[aria-label="Add Exam"]');
+    await expect(addFab).toBeVisible();
+
+    const box = await addFab.boundingBox();
+    expect(box).not.toBeNull();
+    if (box) {
+      expect(Math.round(box.width)).toBe(50);
+      expect(Math.round(box.height)).toBe(50);
+    }
+  });
 });

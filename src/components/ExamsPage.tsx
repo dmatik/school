@@ -396,24 +396,12 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
-      {/* Page Header with Title and Add Exam Button */}
+    <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
+      {/* Page Header with Title */}
       <div data-page-title className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
           {t("exams.title")}
         </h1>
-
-        {/* Add Exam Button (visible only to parents) */}
-        {isParent && (
-          <Button
-            onClick={handleOpenAddModal}
-            size="sm"
-            className="flex items-center gap-1.5 shrink-0 h-8 px-3 text-xs font-semibold rounded-full shadow-xs"
-          >
-            <Plus className="w-3.5 h-3.5 stroke-[2.5px]" />
-            <span>{t("exams.add_exam_button")}</span>
-          </Button>
-        )}
       </div>
 
       {/* Filter Area: Search, Child Selector & Period Selector (Future vs Past) */}
@@ -606,18 +594,6 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                   ? t("exams.empty_future_desc")
                   : t("exams.empty_past_desc")}
             </p>
-            {isParent && !searchQuery && selectedPeriod === "future" && (
-              <div className="flex items-center justify-center mt-4">
-                <Button
-                  onClick={handleOpenAddModal}
-                  size="sm"
-                  className="text-xs h-8 rounded-full"
-                >
-                  <Plus className="w-3.5 h-3.5 me-1.5" />
-                  {t("exams.add_exam_button")}
-                </Button>
-              </div>
-            )}
           </Card>
         </div>
       ) : (
@@ -972,6 +948,20 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Floating Add Exam Action Button (Parents only) */}
+      {isParent && (
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          onClick={handleOpenAddModal}
+          className="fixed z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-4 rtl:start-4 md:ltr:end-8 md:rtl:start-8 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+          title={t("exams.add_exam_button")}
+          aria-label={t("exams.add_exam_button")}
+        >
+          <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
+        </motion.button>
+      )}
     </div>
   )
 }
