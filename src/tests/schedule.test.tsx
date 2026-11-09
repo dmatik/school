@@ -308,22 +308,21 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     expect(screen.queryByText('schedule.finish_time_modal_title')).not.toBeInTheDocument()
   })
 
-  it('renders both Save and Cancel buttons in edit mode, and Cancel restores original state', async () => {
+  it('toggles edit mode with floating button, saves changes immediately to API, and exits via check button', async () => {
     render(<SchedulePage token="test-token" currentUser={parentUser} />)
 
     await waitFor(() => {
       expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
     })
 
-    // Enable edit mode
+    // Enable edit mode via floating round button
     const editToggle = screen.getByRole('button', { name: 'schedule.edit_mode_enable' })
     fireEvent.click(editToggle)
 
-    // Save and Cancel buttons must be visible
-    const saveBtn = screen.getByRole('button', { name: 'schedule.edit_mode_save' })
-    const cancelBtn = screen.getByRole('button', { name: 'schedule.edit_mode_cancel' })
-    expect(saveBtn).toBeInTheDocument()
-    expect(cancelBtn).toBeInTheDocument()
+    // Floating button turns into Checkmark (V) to finish editing, and no X button exists
+    const finishBtn = screen.getByRole('button', { name: 'schedule.edit_mode_disable' })
+    expect(finishBtn).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'schedule.edit_mode_cancel' })).not.toBeInTheDocument()
 
     // Edit a lesson
     fireEvent.click(screen.getByText('מתמטיקה'))
@@ -341,15 +340,21 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       expect(screen.queryByText('מתמטיקה')).not.toBeInTheDocument()
     })
 
-    // Click Cancel (X) button
-    fireEvent.click(cancelBtn)
+    // Verify PUT /api/schedule/lesson was called immediately with the update
+    expect(global.fetch).toHaveBeenCalledWith(
+      '/api/schedule/lesson',
+      expect.objectContaining({
+        method: 'PUT',
+        body: expect.stringContaining('"subject":"פיזיקה"')
+      })
+    )
 
-    // Table must revert to original state ('מתמטיקה' restored, 'פיזיקה' removed) and edit mode closed
+    // Click Check (V) button to exit edit mode
+    fireEvent.click(finishBtn)
+
     await waitFor(() => {
-      expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
-      expect(screen.queryByText('פיזיקה')).not.toBeInTheDocument()
       expect(screen.getByRole('button', { name: 'schedule.edit_mode_enable' })).toBeInTheDocument()
-      expect(screen.queryByRole('button', { name: 'schedule.edit_mode_cancel' })).not.toBeInTheDocument()
+      expect(screen.queryByRole('button', { name: 'schedule.edit_mode_disable' })).not.toBeInTheDocument()
     })
   })
 
@@ -390,9 +395,9 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     // In edit mode: row 4 (the empty row) is displayed for adding lessons
     expect(screen.getByText('4')).toBeInTheDocument()
 
-    // Close edit mode via Cancel
-    const cancelBtn = screen.getByRole('button', { name: 'schedule.edit_mode_cancel' })
-    fireEvent.click(cancelBtn)
+    // Close edit mode via Check (V) button
+    const finishBtn = screen.getByRole('button', { name: 'schedule.edit_mode_disable' })
+    fireEvent.click(finishBtn)
 
     // In view mode again: row 4 is hidden
     expect(screen.queryByText('4')).not.toBeInTheDocument()

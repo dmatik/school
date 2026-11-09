@@ -11,8 +11,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Pencil,
-  Check,
-  X
+  Check
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -51,9 +50,6 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   const [selectedChildId, setSelectedChildId] = useState<string>("")
   const [loading, setLoading] = useState(true)
   const [isEditMode, setIsEditMode] = useState(false)
-  const [hasPendingChanges, setHasPendingChanges] = useState(false)
-  const [isSavingBatch, setIsSavingBatch] = useState(false)
-  const snapshotRef = useRef<{ lessons: ScheduleLesson[]; finishTimes: ScheduleFinishTime[] } | null>(null)
 
   // Mobile horizontal scroll ref and column refs
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
@@ -257,98 +253,27 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     setFormSubject(existing?.subject || "")
   }
 
-  // Start Edit Mode
-  const handleStartEditMode = () => {
-    if (!isParent) return
-    snapshotRef.current = {
-      lessons: [...lessons],
-      finishTimes: [...finishTimes]
-    }
-    setHasPendingChanges(false)
-    setIsEditMode(true)
-  }
-
-  // Save changes and close Edit Mode
-  const handleSaveAndCloseEditMode = async () => {
-    if (!isParent) return
-    if (!hasPendingChanges) {
-      setIsEditMode(false)
-      snapshotRef.current = null
-      return
-    }
-
-    if (!token || !selectedChildId) {
-      setIsEditMode(false)
-      setHasPendingChanges(false)
-      snapshotRef.current = null
-      return
-    }
-
-    setIsSavingBatch(true)
-    try {
-      const res = await fetch("/api/schedule/batch", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          childId: selectedChildId,
-          lessons,
-          finishTimes
-        })
-      })
-
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.message || data.error || t("schedule.save_failed"))
-      }
-
-      if (data.lessons) setLessons(data.lessons)
-      if (data.finishTimes) setFinishTimes(data.finishTimes)
-
-      setIsEditMode(false)
-      setHasPendingChanges(false)
-      snapshotRef.current = null
-    } catch (err: unknown) {
-      console.error("Failed to save schedule batch:", err)
-      toast({
-        variant: "destructive",
-        title: t("common.error"),
-        description: err instanceof Error ? err.message : t("schedule.save_failed")
-      })
-    } finally {
-      setIsSavingBatch(false)
-    }
-  }
-
-  // Cancel anything edited and close Edit Mode
-  const handleCancelEditMode = () => {
-    if (snapshotRef.current) {
-      setLessons(snapshotRef.current.lessons)
-      setFinishTimes(snapshotRef.current.finishTimes)
-    }
-    setIsEditMode(false)
-    setHasPendingChanges(false)
-    snapshotRef.current = null
-  }
-
-  // Child selection change handler: cancel edit mode if active
+  // Child selection change handler: exit edit mode if active
   const handleSelectChild = (childId: string) => {
     if (isEditMode) {
-      handleCancelEditMode()
+      setIsEditMode(false)
     }
     setSelectedChildId(childId)
   }
 
-  // Save Lesson in local state
-  const handleSaveLesson = (e: React.FormEvent) => {
+  // Save Lesson: updates local state and immediately persists to backend
+  const handleSaveLesson = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!editingLesson) return
+    if (!editingLesson || !token || !selectedChildId) return
     const cleanSubject = formSubject.trim().slice(0, 50)
+    const prevLessons = lessons
+    const targetDay = editingLesson.dayOfWeek
+    const targetHour = editingLesson.hourNum
+
+    // Optimistically update local state
     setLessons((prev) => {
       const filtered = prev.filter(
-        (l) => !(l.dayOfWeek === editingLesson.dayOfWeek && l.hourNum === editingLesson.hourNum)
+        (l) => !(l.dayOfWeek === targetDay && l.hourNum === targetHour)
       )
       if (cleanSubject) {
         return [
@@ -356,28 +281,100 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           {
             id: editingLesson.lesson?.id || `temp-${Date.now()}`,
             childId: selectedChildId,
-            dayOfWeek: editingLesson.dayOfWeek,
-            hourNum: editingLesson.hourNum,
+            dayOfWeek: targetDay,
+            hourNum: targetHour,
             subject: cleanSubject
           }
         ]
       }
       return filtered
     })
-    setHasPendingChanges(true)
     setEditingLesson(null)
+
+    try {
+      const res = await fetch("/api/schedule/lesson", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          childId: selectedChildId,
+          dayOfWeek: targetDay,
+          hourNum: targetHour,
+          subject: cleanSubject
+        })
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || data.error || t("schedule.save_failed"))
+      }
+
+      const data = await res.json()
+      if (data.lesson) {
+        setLessons((prev) =>
+          prev.map((l) =>
+            l.dayOfWeek === targetDay && l.hourNum === targetHour
+              ? data.lesson
+              : l
+          )
+        )
+      }
+    } catch (err: unknown) {
+      console.error("Failed to save schedule lesson:", err)
+      setLessons(prevLessons)
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : t("schedule.save_failed")
+      })
+    }
   }
 
-  // Clear Lesson in local state
-  const handleClearLesson = () => {
-    if (!editingLesson) return
+  // Clear Lesson: updates local state and immediately persists to backend
+  const handleClearLesson = async () => {
+    if (!editingLesson || !token || !selectedChildId) return
+    const prevLessons = lessons
+    const targetDay = editingLesson.dayOfWeek
+    const targetHour = editingLesson.hourNum
+
+    // Optimistically update local state
     setLessons((prev) =>
       prev.filter(
-        (l) => !(l.dayOfWeek === editingLesson.dayOfWeek && l.hourNum === editingLesson.hourNum)
+        (l) => !(l.dayOfWeek === targetDay && l.hourNum === targetHour)
       )
     )
-    setHasPendingChanges(true)
     setEditingLesson(null)
+
+    try {
+      const res = await fetch("/api/schedule/lesson", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          childId: selectedChildId,
+          dayOfWeek: targetDay,
+          hourNum: targetHour,
+          subject: ""
+        })
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || data.error || t("schedule.save_failed"))
+      }
+    } catch (err: unknown) {
+      console.error("Failed to clear schedule lesson:", err)
+      setLessons(prevLessons)
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : t("schedule.save_failed")
+      })
+    }
   }
 
   // Open Finish Time Modal
@@ -407,27 +404,65 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
   }
 
-  // Save Finish Time in local state
-  const handleSaveFinishTime = (timeValue: string) => {
-    if (editingFinishDay === null) return
+  // Save Finish Time: updates local state and immediately persists to backend
+  const handleSaveFinishTime = async (timeValue: string) => {
+    if (editingFinishDay === null || !token || !selectedChildId) return
     const cleanTime = timeValue.trim()
+    const targetDay = editingFinishDay
+    const prevFinishTimes = finishTimes
+
+    // Optimistically update local state
     setFinishTimes((prev) => {
-      const filtered = prev.filter((f) => f.dayOfWeek !== editingFinishDay)
+      const filtered = prev.filter((f) => f.dayOfWeek !== targetDay)
       if (cleanTime) {
         return [
           ...filtered,
           {
             id: `temp-finish-${Date.now()}`,
             childId: selectedChildId,
-            dayOfWeek: editingFinishDay,
+            dayOfWeek: targetDay,
             finishTime: cleanTime
           }
         ]
       }
       return filtered
     })
-    setHasPendingChanges(true)
     setEditingFinishDay(null)
+
+    try {
+      const res = await fetch("/api/schedule/finish-time", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          childId: selectedChildId,
+          dayOfWeek: targetDay,
+          finishTime: cleanTime
+        })
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.message || data.error || t("schedule.save_failed"))
+      }
+
+      const data = await res.json()
+      if (data.finishTime) {
+        setFinishTimes((prev) =>
+          prev.map((f) => (f.dayOfWeek === targetDay ? data.finishTime : f))
+        )
+      }
+    } catch (err: unknown) {
+      console.error("Failed to save finish time:", err)
+      setFinishTimes(prevFinishTimes)
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : t("schedule.save_failed")
+      })
+    }
   }
 
   const scrollDay = (direction: "prev" | "next") => {
@@ -450,7 +485,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-28 px-4 md:pt-6 md:pb-16 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
       {/* Header Bar */}
       <div
         data-page-title
@@ -461,105 +496,51 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
         </h1>
       </div>
 
-      {/* Filter / Actions Bar: Child Selection & Edit Mode (Below Title, Parents only) */}
-      {isParent && (
+      {/* Filter Bar: Child Selection (Below Title, Parents only) */}
+      {isParent && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
         <div className="flex items-center justify-between gap-2 pt-1 pb-2 shrink-0">
-          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <div
-              role="tablist"
-              aria-label={t("schedule.select_child")}
-              data-schedule-child-selector
-              className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
-            >
-              {webtopConfig.linkedChildren.map((c) => {
-                const isActive = selectedChildId === c.id
-                const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
+          <div
+            role="tablist"
+            aria-label={t("schedule.select_child")}
+            data-schedule-child-selector
+            className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
+          >
+            {webtopConfig.linkedChildren.map((c) => {
+              const isActive = selectedChildId === c.id
+              const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
 
-                return (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    disabled={isSavingBatch}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => handleSelectChild(c.id)}
-                    className={cn(
-                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="scheduleChildLiquidPill"
-                        transition={{
-                          type: "spring",
-                          stiffness: 450,
-                          damping: 35
-                        }}
-                        className="absolute inset-0 rounded-full apple-liquid-pill"
-                      />
-                    )}
-                    <span className="relative z-10 truncate max-w-[140px]">
-                      {displayName}
-                    </span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* Edit Mode Buttons */}
-          <div className="ms-auto flex items-center gap-1.5 shrink-0">
-            {!isEditMode ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={handleStartEditMode}
-                className="h-10 w-10 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
-                title={t("schedule.edit_mode_enable")}
-                aria-label={t("schedule.edit_mode_enable")}
-              >
-                <Pencil className="w-5 h-5 stroke-[1.85px]" />
-              </Button>
-            ) : (
-              <>
-                {/* Checkmark Button: Save / Done */}
-                <Button
+              return (
+                <motion.button
+                  key={c.id}
                   type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleSaveAndCloseEditMode}
-                  disabled={isSavingBatch}
-                  className="h-10 w-10 rounded-full border border-white/20 dark:border-white/10 shadow-xs transition-all shrink-0 apple-liquid-dock !bg-primary text-primary-foreground hover:!bg-primary/90"
-                  title={t("schedule.edit_mode_save")}
-                  aria-label={t("schedule.edit_mode_save")}
-                >
-                  {isSavingBatch ? (
-                    <Loader2 className="w-5 h-5 animate-spin" />
-                  ) : (
-                    <Check className="w-5 h-5 stroke-[2.2px]" />
+                  role="tab"
+                  aria-selected={isActive}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => handleSelectChild(c.id)}
+                  className={cn(
+                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                    isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
-                </Button>
-
-                {/* X Button: Cancel anything edited and close edit mode */}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleCancelEditMode}
-                  disabled={isSavingBatch}
-                  className="h-10 w-10 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock text-muted-foreground hover:text-foreground"
-                  title={t("schedule.edit_mode_cancel")}
-                  aria-label={t("schedule.edit_mode_cancel")}
                 >
-                  <X className="w-5 h-5 stroke-[2px]" />
-                </Button>
-              </>
-            )}
+                  {isActive && (
+                    <motion.div
+                      layoutId="scheduleChildLiquidPill"
+                      transition={{
+                        type: "spring",
+                        stiffness: 450,
+                        damping: 35
+                      }}
+                      className="absolute inset-0 rounded-full apple-liquid-pill"
+                    />
+                  )}
+                  <span className="relative z-10 truncate max-w-[140px]">
+                    {displayName}
+                  </span>
+                </motion.button>
+              )
+            })}
           </div>
         </div>
       )}
@@ -953,6 +934,24 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Floating Edit / Done Action Button (Parents only) */}
+      {isParent && selectedChildId && (
+        <motion.button
+          type="button"
+          whileTap={{ scale: 0.92 }}
+          onClick={() => setIsEditMode((prev) => !prev)}
+          className="fixed z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-4 rtl:start-4 md:ltr:end-8 md:rtl:start-8 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+          title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+          aria-label={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+        >
+          {isEditMode ? (
+            <Check className="w-[22px] h-[22px] stroke-[2.5px]" />
+          ) : (
+            <Pencil className="w-[22px] h-[22px] stroke-[2px]" />
+          )}
+        </motion.button>
+      )}
     </div>
   )
 }
