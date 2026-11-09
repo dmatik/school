@@ -306,19 +306,10 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   }
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-6 max-w-3xl mx-auto w-full space-y-6">
-      {/* Page Header */}
-      <div data-page-title className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
+    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+      {/* Page Header (Desktop only) */}
+      <div data-page-title className="hidden md:flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
         <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">{t("account.title")}</h2>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={onLogout}
-          className="text-destructive hover:text-destructive flex items-center gap-1.5 shrink-0 h-8 px-3 text-xs font-semibold rounded-full border-border/80 shadow-xs hover:border-destructive/30"
-        >
-          <LogOut className="w-3.5 h-3.5" />
-          <span>{t("auth.logout")}</span>
-        </Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -626,6 +617,18 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
             )}
           </CardContent>
         </Card>
+      </div>
+
+      {/* Logout Button at bottom of Account Page */}
+      <div className="pt-2 flex justify-center">
+        <Button
+          variant="outline"
+          onClick={onLogout}
+          className="w-full sm:w-auto min-w-[200px] text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center justify-center gap-2 h-10 px-6 text-sm font-semibold rounded-full border-border/80 shadow-xs hover:border-destructive/30"
+        >
+          <LogOut className="w-4 h-4" />
+          <span>{t("auth.logout")}</span>
+        </Button>
       </div>
 
       {/* Add Passkey Dialog */}

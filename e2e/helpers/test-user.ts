@@ -89,6 +89,6 @@ export async function loginWithUser(page: Page, user: TestUser) {
   await page.fill('#password', user.password);
   await page.click('button[type="submit"]');
 
-  // Wait until logged in (desktop sidebar button visible)
-  await expect(page.locator('aside button').first()).toBeVisible();
+  // Wait until logged in (desktop sidebar or mobile header avatar visible)
+  await expect(page.locator('aside button:visible, header button:visible').first()).toBeVisible();
 }

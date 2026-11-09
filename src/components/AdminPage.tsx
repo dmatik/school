@@ -1,7 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
+import { motion } from "framer-motion"
 import {
-  UserPlus,
+  Plus,
   Shield,
   Key,
   Trash2,
@@ -403,19 +404,16 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   }, [users, searchQuery])
 
   return (
-    <div className="h-full overflow-y-auto overscroll-y-contain pt-16 pb-24 px-4 md:p-6 max-w-3xl mx-auto w-full space-y-6">
-      {/* Page Header */}
-      <div data-page-title className="flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-        <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
-          {t("admin.title")}
-        </h2>
-        <Button onClick={() => setIsCreateOpen(true)} size="sm" className="flex items-center gap-1.5 shrink-0 h-8 px-3 text-xs font-semibold rounded-full shadow-xs">
-          <UserPlus className="w-3.5 h-3.5" />
-          <span>{t("admin.add_user_button")}</span>
-        </Button>
-      </div>
+    <div className="relative h-full w-full overflow-hidden">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+        {/* Page Header (Desktop only) */}
+        <div data-page-title className="hidden md:flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
+          <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
+            {t("admin.title")}
+          </h2>
+        </div>
 
-      {/* Search & Stats */}
+        {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
         <div className="relative w-full sm:w-72">
           <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
@@ -919,6 +917,23 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      </div>
+
+      {/* Floating Add User Action Button (Aligned with cards, identical to ExamsPage) */}
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
+        <div className="relative h-full w-full">
+          <motion.button
+            type="button"
+            whileTap={{ scale: 0.92 }}
+            onClick={() => setIsCreateOpen(true)}
+            className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+            title={t("admin.add_user_button")}
+            aria-label={t("admin.add_user_button")}
+          >
+            <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
+          </motion.button>
+        </div>
+      </div>
     </div>
   )
 }

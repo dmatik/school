@@ -208,9 +208,9 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
   const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-24 px-4 md:p-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
-      {/* Page Header */}
-      <div data-page-title className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
+    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+      {/* Page Header (Desktop only) */}
+      <div data-page-title className="hidden md:flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
         <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
           {t("homework.title")}
         </h1>
