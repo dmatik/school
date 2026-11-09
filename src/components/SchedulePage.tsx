@@ -450,7 +450,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-28 px-4 md:pt-6 md:pb-16 md:px-6 overflow-y-auto max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col pt-16 pb-28 px-4 md:pt-6 md:pb-16 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
       {/* Header Bar */}
       <div
         data-page-title
@@ -463,7 +463,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
 
       {/* Filter / Actions Bar: Child Selection & Edit Mode (Below Title, Parents only) */}
       {isParent && (
-        <div className="flex items-center justify-between gap-2 pt-3 pb-1 shrink-0">
+        <div className="flex items-center justify-between gap-2 pt-1 pb-2 shrink-0">
           {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <div
               role="tablist"
@@ -485,10 +485,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                     whileTap={{ scale: 0.95 }}
                     onClick={() => handleSelectChild(c.id)}
                     className={cn(
-                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
+                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none disabled:opacity-50",
                       isActive
-                        ? "font-bold text-foreground"
-                        : "font-semibold text-muted-foreground hover:text-foreground"
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {isActive && (
@@ -594,7 +594,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           </Card>
         </div>
       ) : (
-        <div className="flex flex-col pt-2">
+        <div className="flex flex-col">
           {/* Mobile navigation hints (Left/Right scroll controls) */}
           <div className="md:hidden flex items-center justify-between pb-2 px-1 text-xs text-muted-foreground font-medium">
             <button

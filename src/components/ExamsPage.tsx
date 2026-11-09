@@ -458,10 +458,10 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setSelectedChildId("all")}
                 className={cn(
-                  "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                  "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
                   selectedChildId === "all"
-                    ? "font-bold text-foreground"
-                    : "font-semibold text-muted-foreground hover:text-foreground"
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 )}
               >
                 {selectedChildId === "all" && (
@@ -494,10 +494,10 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                     whileTap={{ scale: 0.95 }}
                     onClick={() => setSelectedChildId(c.id)}
                     className={cn(
-                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
                       isActive
-                        ? "font-bold text-foreground"
-                        : "font-semibold text-muted-foreground hover:text-foreground"
+                        ? "text-foreground"
+                        : "text-muted-foreground hover:text-foreground"
                     )}
                   >
                     {isActive && (
@@ -540,10 +540,10 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedPeriod(period)}
                   className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
                     isActive
-                      ? "font-bold text-foreground"
-                      : "font-semibold text-muted-foreground hover:text-foreground"
+                      ? "text-foreground"
+                      : "text-muted-foreground hover:text-foreground"
                   )}
                 >
                   {isActive && (
@@ -601,7 +601,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
             </h3>
             <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
               {searchQuery
-                ? t("exams.search_placeholder")
+                ? null
                 : selectedPeriod === "future"
                   ? t("exams.empty_future_desc")
                   : t("exams.empty_past_desc")}
