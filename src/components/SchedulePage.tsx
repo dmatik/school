@@ -485,8 +485,9 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   }
 
   return (
-    <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
-      {/* Header Bar */}
+    <div className="relative h-full w-full overflow-hidden">
+      <div className="h-full flex flex-col pt-16 pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto space-y-6 max-w-3xl mx-auto w-full">
+        {/* Header Bar */}
       <div
         data-page-title
         className="flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0"
@@ -935,22 +936,28 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
         </DialogContent>
       </Dialog>
 
-      {/* Floating Edit / Done Action Button (Parents only) */}
+      </div>
+
+      {/* Floating Edit / Done Action Button (Aligned with cards) */}
       {isParent && selectedChildId && (
-        <motion.button
-          type="button"
-          whileTap={{ scale: 0.92 }}
-          onClick={() => setIsEditMode((prev) => !prev)}
-          className="fixed z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-4 rtl:start-4 md:ltr:end-8 md:rtl:start-8 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-          title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
-          aria-label={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
-        >
-          {isEditMode ? (
-            <Check className="w-[22px] h-[22px] stroke-[2.5px]" />
-          ) : (
-            <Pencil className="w-[22px] h-[22px] stroke-[2px]" />
-          )}
-        </motion.button>
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
+          <div className="relative h-full w-full">
+            <motion.button
+              type="button"
+              whileTap={{ scale: 0.92 }}
+              onClick={() => setIsEditMode((prev) => !prev)}
+              className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+              title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+              aria-label={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+            >
+              {isEditMode ? (
+                <Check className="w-[22px] h-[22px] stroke-[2.5px]" />
+              ) : (
+                <Pencil className="w-[22px] h-[22px] stroke-[2px]" />
+              )}
+            </motion.button>
+          </div>
+        </div>
       )}
     </div>
   )
