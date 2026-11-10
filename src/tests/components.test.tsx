@@ -194,8 +194,8 @@ describe('Empty Page Views', () => {
       expect(screen.getByText(/incidents\.lesson_hour/)).toBeInTheDocument()
       expect(screen.queryByText(/• incidents\.lesson_hour/)).not.toBeInTheDocument()
 
-      // Vertical child accent bar rendered for default user
-      expect(screen.getByTestId('incidents-card-accent')).toBeInTheDocument()
+      // Vertical child accent bar is removed from cards
+      expect(screen.queryByTestId('incidents-card-accent')).not.toBeInTheDocument()
 
       // No calendar icon inside the card
       const card = incType.closest('.rounded-2xl')
@@ -262,7 +262,7 @@ describe('Empty Page Views', () => {
       // 1. Render as Parent: student name badge is visible
       const { unmount } = render(<IncidentsPage token="test-token" currentUser={parentUser} />)
       expect(await screen.findByText('דניאל')).toBeInTheDocument()
-      expect(screen.getByTestId('incidents-card-accent')).toBeInTheDocument()
+      expect(screen.queryByTestId('incidents-card-accent')).not.toBeInTheDocument()
       unmount()
 
       // 2. Render as Child: student name badge is hidden
@@ -663,13 +663,13 @@ describe('Empty Page Views', () => {
     }
 
     try {
-      // 1. Render as Parent: student name badge & accent bar are visible
+      // 1. Render as Parent: student name badge is visible
       const { unmount } = render(<HomeworkPage token="test-token" currentUser={parentUser} />)
       expect(await screen.findByText('דניאל')).toBeInTheDocument()
-      expect(screen.getByTestId('homework-card-accent')).toBeInTheDocument()
+      expect(screen.queryByTestId('homework-card-accent')).not.toBeInTheDocument()
       unmount()
 
-      // 2. Render as Child: student name badge & accent bar are hidden
+      // 2. Render as Child: student name badge is hidden
       render(<HomeworkPage token="test-token" currentUser={childUser} />)
       await screen.findByText('חשבון')
       expect(screen.queryByText('דניאל')).not.toBeInTheDocument()

@@ -142,8 +142,8 @@ describe('Exams Feature — Component and Backend Tests', () => {
     expect(screen.getAllByText('David').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Maya').length).toBeGreaterThan(0)
 
-    // Parents see vertical child accent bars on cards
-    expect(screen.getAllByTestId('exams-card-accent').length).toBeGreaterThan(0)
+    // No vertical accent bars on cards
+    expect(screen.queryByTestId('exams-card-accent')).not.toBeInTheDocument()
 
     // Parents see edit buttons
     const editButtons = screen.getAllByTitle('exams.edit_exam_button')
