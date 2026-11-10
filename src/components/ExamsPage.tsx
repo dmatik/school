@@ -628,14 +628,6 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                       key={exam.id}
                       className="relative overflow-hidden shadow-xs border border-border/40 dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3.5 sm:p-4 gap-2.5 rounded-2xl bg-card"
                     >
-                      {/* Vertical Accent Color Bar at beginning of card (for parent users) */}
-                      {!isChild && (
-                        <div
-                          data-testid="exams-card-accent"
-                          className={cn("absolute inset-y-0 start-0 w-1.5", childAccentClass)}
-                        />
-                      )}
-
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3 min-w-0 flex-1">
                           {/* Subject Icon: rounded-corner square */}
