@@ -208,9 +208,9 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
   const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
 
   return (
-    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-0 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
-      <div data-page-title className="hidden md:flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
+      <div data-page-title className="hidden md:flex md:sticky md:top-0 md:z-30 md:bg-background md:pt-6 items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0">
         <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
           {t("homework.title")}
         </h1>
@@ -218,9 +218,9 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
 
       {/* Search & Filters */}
       {(homework.length > 0 || webtopConfig?.configured) && (
-        <div className="flex flex-col gap-2.5 shrink-0">
+        <>
           {/* Search Input */}
-          <div className="relative w-full">
+          <div className="relative w-full shrink-0 -mb-1.5 md:-mb-3.5">
             <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
             <Input
               type="search"
@@ -242,7 +242,13 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
           </div>
 
           {/* Liquid Glass Filter Row: Child selector at beginning of row, Date Picker at end of row (or start if no child filter) */}
-          <div className={cn("flex items-center gap-2 pt-0.5 pb-0.5 shrink-0", hasChildFilter ? "justify-between" : "justify-start")}>
+          <div
+            data-sticky-filters
+            className={cn(
+              "sticky top-0 md:top-[61px] z-20 flex items-center gap-2 pt-0.5 pb-0.5 shrink-0",
+              hasChildFilter ? "justify-between" : "justify-start"
+            )}
+          >
             {/* 1 - Children Liquid Glass Selector (Parents only) */}
             {hasChildFilter && (
               <div
@@ -335,7 +341,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
               />
             </div>
           </div>
-        </div>
+        </>
       )}
 
       {/* Main Content Area */}

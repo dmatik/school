@@ -801,6 +801,65 @@ describe('Empty Page Views', () => {
       global.fetch = originalFetch
     }
   })
+
+  it('renders sticky selector filter row and non-sticky search field in HomeworkPage and IncidentsPage', async () => {
+    const originalFetch = global.fetch
+    global.fetch = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/api/homework')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ homework: [] })
+        })
+      }
+      if (url.includes('/api/incidents')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({ incidents: [] })
+        })
+      }
+      if (url.includes('/api/webtop/config')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve({
+            configured: true,
+            linkedChildren: [{ id: 'c1', firstName: 'נועם', lastName: 'כהן' }]
+          })
+        })
+      }
+      return Promise.resolve({ ok: true, json: () => Promise.resolve({}) })
+    }) as unknown as typeof fetch
+
+    try {
+      // 1. HomeworkPage
+      const { unmount: unmountHw } = render(<HomeworkPage token="test-token" />)
+      const hwSearchInput = await screen.findByPlaceholderText('homework.search_placeholder')
+      const hwSearchWrapper = hwSearchInput.closest('.relative')
+      expect(hwSearchWrapper?.className).not.toContain('sticky')
+
+      const hwStickyFilters = document.querySelector('[data-sticky-filters]')
+      expect(hwStickyFilters).toBeInTheDocument()
+      expect(hwStickyFilters?.className).toContain('sticky')
+      expect(hwStickyFilters?.className).toContain('top-0')
+      expect(hwStickyFilters?.className).toContain('md:top-[61px]')
+      expect(hwStickyFilters?.className).toContain('z-20')
+      unmountHw()
+
+      // 2. IncidentsPage
+      render(<IncidentsPage token="test-token" />)
+      const incSearchInput = await screen.findByPlaceholderText('incidents.search_placeholder')
+      const incSearchWrapper = incSearchInput.closest('.relative')
+      expect(incSearchWrapper?.className).not.toContain('sticky')
+
+      const incStickyFilters = document.querySelector('[data-sticky-filters]')
+      expect(incStickyFilters).toBeInTheDocument()
+      expect(incStickyFilters?.className).toContain('sticky')
+      expect(incStickyFilters?.className).toContain('top-0')
+      expect(incStickyFilters?.className).toContain('md:top-[61px]')
+      expect(incStickyFilters?.className).toContain('z-20')
+    } finally {
+      global.fetch = originalFetch
+    }
+  })
 })
 
 describe('Toast & ToastClose Component', () => {

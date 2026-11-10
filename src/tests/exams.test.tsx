@@ -266,6 +266,25 @@ describe('Exams Feature — Component and Backend Tests', () => {
     expect(screen.queryByText('Math - Fractions')).not.toBeInTheDocument()
     expect(screen.queryByText('Hebrew - Grammar')).not.toBeInTheDocument()
   })
+
+  it('renders sticky selector filter row and non-sticky search field in ExamsPage', async () => {
+    render(<ExamsPage token="test-token" currentUser={parentUser} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Math - Fractions')).toBeInTheDocument()
+    })
+
+    const searchInput = screen.getByPlaceholderText('exams.search_placeholder')
+    const searchWrapper = searchInput.closest('.relative')
+    expect(searchWrapper?.className).not.toContain('sticky')
+
+    const stickyFilters = document.querySelector('[data-sticky-filters]')
+    expect(stickyFilters).toBeInTheDocument()
+    expect(stickyFilters?.className).toContain('sticky')
+    expect(stickyFilters?.className).toContain('top-0')
+    expect(stickyFilters?.className).toContain('md:top-[61px]')
+    expect(stickyFilters?.className).toContain('z-20')
+  })
 })
 
 describe('Exams Database Schema & Scoping (Isolated In-Memory SQLite)', () => {
