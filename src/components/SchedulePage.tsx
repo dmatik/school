@@ -49,6 +49,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const [selectedChildId, setSelectedChildId] = useState<string>("")
   const [loading, setLoading] = useState(true)
+  const [configLoaded, setConfigLoaded] = useState(false)
   const [isEditMode, setIsEditMode] = useState(false)
 
   // Mobile horizontal scroll ref and column refs
@@ -106,6 +107,8 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       if (isChild) {
         if (currentUser?.linkedChildId) {
           setSelectedChildId(currentUser.linkedChildId)
+        } else {
+          setLoading(false)
         }
       } else if (cfg?.linkedChildren && cfg.linkedChildren.length > 0) {
         setSelectedChildId((prev) => {
@@ -117,7 +120,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           }
           return cfg.linkedChildren[0].id
         })
+      } else {
+        setLoading(false)
       }
+      setConfigLoaded(true)
     })
   }, [loadConfig, isChild, currentUser?.linkedChildId])
 
@@ -180,36 +186,41 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   }, [token, t])
 
   useEffect(() => {
+    if (!configLoaded) return
     if (selectedChildId) {
       loadSchedule(selectedChildId)
     } else {
       setLoading(false)
     }
-  }, [selectedChildId, loadSchedule, syncTrigger])
+  }, [configLoaded, selectedChildId, loadSchedule, syncTrigger])
 
   // Scroll mobile container to the initial target day on initial load and when switching children
   useEffect(() => {
     if (loading || !selectedChildId) return
     if (lastScrolledChildId.current === selectedChildId) return
 
+    let cancelled = false
+
     const scrollToTargetDay = () => {
+      if (cancelled) return
+      const container = scrollContainerRef.current
+      if (!container) return
+
       if (initialTargetDay === 0) {
         lastScrolledChildId.current = selectedChildId
-        if (scrollContainerRef.current) {
-          scrollContainerRef.current.scrollTo({ left: 0 })
-        }
+        container.scrollTo({ left: 0, behavior: "instant" })
         return
       }
+
       const targetEl = dayColRefs.current[initialTargetDay]
-      if (targetEl && scrollContainerRef.current) {
-        requestAnimationFrame(() => {
-          targetEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-          lastScrolledChildId.current = selectedChildId
-        })
+      if (targetEl) {
+        targetEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
+        lastScrolledChildId.current = selectedChildId
       } else {
         requestAnimationFrame(() => {
+          if (cancelled) return
           const retryEl = dayColRefs.current[initialTargetDay]
-          if (retryEl && scrollContainerRef.current) {
+          if (retryEl) {
             retryEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
             lastScrolledChildId.current = selectedChildId
           }
@@ -217,7 +228,14 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       }
     }
 
-    scrollToTargetDay()
+    const rafId = requestAnimationFrame(() => {
+      scrollToTargetDay()
+    })
+
+    return () => {
+      cancelled = true
+      cancelAnimationFrame(rafId)
+    }
   }, [loading, selectedChildId, initialTargetDay])
 
   // Determine hours range:
@@ -273,6 +291,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
     if (childId !== selectedChildId) {
       lastScrolledChildId.current = null
+      setLoading(true)
       setSelectedChildId(childId)
     }
   }
