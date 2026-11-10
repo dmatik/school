@@ -212,6 +212,21 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     })
   })
 
+  it('renders sticky child selector filter bar for parent user in SchedulePage', async () => {
+    render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('David')).toBeInTheDocument()
+    })
+
+    const stickyFilters = document.querySelector('[data-sticky-filters]')
+    expect(stickyFilters).toBeInTheDocument()
+    expect(stickyFilters?.className).toContain('sticky')
+    expect(stickyFilters?.className).toContain('top-0')
+    expect(stickyFilters?.className).toContain('md:top-[61px]')
+    expect(stickyFilters?.className).toContain('z-20')
+  })
+
   it('shows child unlinked warning if child user has no linked child id', async () => {
     const unlinkedChild: User = {
       ...childUser,

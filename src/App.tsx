@@ -454,7 +454,7 @@ function App() {
           {/* Mobile Header */}
           <header
             className={cn(
-              "md:hidden fixed top-0 inset-x-0 z-20 px-4 py-2.5 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 bg-background transition-all duration-300",
+              "md:hidden fixed top-0 inset-x-0 z-30 px-4 py-2.5 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 bg-background transition-all duration-300",
               (isScrolled || isScrolling)
                 ? "border-b border-border/50 shadow-xs"
                 : "border-b border-transparent shadow-none"
@@ -577,11 +577,11 @@ function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; o
       className={cn(
         "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border border-transparent",
         active
-          ? "bg-primary/10 text-primary shadow-xs"
+          ? "bg-[#555DB0]/10 text-[#555DB0] dark:bg-[#555DB0]/20 dark:text-[#8E94DB] shadow-xs"
           : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
       )}
     >
-      <Icon className={cn("w-4 h-4 shrink-0", active ? "stroke-[2.5px] text-primary" : "text-muted-foreground")} />
+      <Icon className={cn("w-4 h-4 shrink-0", active ? "stroke-[2.5px] text-[#555DB0] dark:text-[#8E94DB]" : "text-muted-foreground")} />
       <span className="truncate">{label}</span>
     </motion.button>
   )
@@ -618,9 +618,9 @@ function MobileNavButton({
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#555DB0]/40",
         isFiveOrMore ? "w-[68px]" : "w-[85px]",
-        active ? "text-primary" : "text-foreground"
+        active ? "text-[#555DB0] dark:text-[#8E94DB]" : "text-foreground"
       )}
     >
       {active && (
@@ -639,7 +639,7 @@ function MobileNavButton({
         <span className={cn(
           "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
           isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
-          active ? "text-primary" : "text-foreground"
+          active ? "text-[#555DB0] dark:text-[#8E94DB]" : "text-foreground"
         )}>
           {label}
         </span>

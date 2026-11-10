@@ -397,40 +397,42 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header with Title (Desktop only) */}
-        <div data-page-title className="hidden md:flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
+        <div data-page-title className="hidden md:flex md:sticky md:top-0 md:z-30 md:bg-background md:pt-6 items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0">
           <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
             {t("exams.title")}
           </h1>
         </div>
 
       {/* Filter Area: Search, Child Selector & Period Selector (Future vs Past) */}
-      <div className="flex flex-col gap-2.5 shrink-0">
-        {/* Search Input (iOS 26/27 greyish background) */}
-        <div className="relative w-full">
-          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t("exams.search_placeholder")}
-            className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-              aria-label={t("common.clear_search")}
-            >
-              <X className="w-4 h-4 stroke-[2.5px]" />
-            </button>
-          )}
-        </div>
+      {/* Search Input (iOS 26/27 greyish background) */}
+      <div className="relative w-full shrink-0 -mb-1.5 md:-mb-3.5">
+        <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
+        <Input
+          type="search"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          placeholder={t("exams.search_placeholder")}
+          className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
+        />
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery("")}
+            className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
+            aria-label={t("common.clear_search")}
+          >
+            <X className="w-4 h-4 stroke-[2.5px]" />
+          </button>
+        )}
+      </div>
 
-        {/* Liquid Glass Filter Row: Child selector at beginning of row, Period selector at end of row */}
-        <div className="flex items-center justify-between gap-2 pt-0.5 pb-0.5 shrink-0">
+      {/* Liquid Glass Filter Row: Child selector at beginning of row, Period selector at end of row */}
+      <div
+        data-sticky-filters
+        className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-0.5 pb-0.5 shrink-0"
+      >
           {/* 1 - Children Liquid Glass Selector (Parents only) */}
           {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <div
@@ -554,7 +556,6 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
             })}
           </div>
         </div>
-      </div>
 
       {/* Main Content Area */}
       {loading ? (
