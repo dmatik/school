@@ -13,8 +13,9 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
   let mockFinishTimes: ScheduleFinishTime[]
 
   beforeEach(() => {
-    // Mock scrollIntoView
+    // Mock scrollIntoView and scrollTo
     window.HTMLElement.prototype.scrollIntoView = vi.fn()
+    window.HTMLElement.prototype.scrollTo = vi.fn()
 
     parentUser = {
       id: 'test-parent-1',
@@ -147,6 +148,7 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
 
     await waitFor(() => {
       expect(screen.getByText('schedule.title')).toBeInTheDocument()
+      expect(screen.getByText('schedule.days.day_0')).toBeInTheDocument()
     })
 
     // Verify all 6 days headers exist with inverted white text
@@ -464,6 +466,173 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       { hourNum: 2, subject: 'Art' },
       { hourNum: 7, subject: '   ' }
     ], true)).toEqual([1, 2, 3])
+  })
+
+  it('automatically scrolls to today when opening schedule on early weekdays (e.g. Monday)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-09T10:00:00Z')) // Monday (day 1)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const mondayHeader = document.querySelector('[data-schedule-day="1"]')
+      expect(mondayHeader).toBeInTheDocument()
+      await waitFor(() => {
+        expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({
+            behavior: 'smooth',
+            inline: 'start',
+            block: 'nearest'
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('clamps auto-scroll to Wednesday (day 3) when opening on Thursday (day 4) or Friday (day 5)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-12T10:00:00Z')) // Thursday (day 4)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const wednesdayHeader = document.querySelector('[data-schedule-day="3"]')
+      expect(wednesdayHeader).toBeInTheDocument()
+      await waitFor(() => {
+        expect(wednesdayHeader?.scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({
+            behavior: 'smooth',
+            inline: 'start',
+            block: 'nearest'
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+
+    cleanup()
+
+    // Test Friday (day 5)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-13T10:00:00Z')) // Friday (day 5)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const wednesdayHeader = document.querySelector('[data-schedule-day="3"]')
+      expect(wednesdayHeader).toBeInTheDocument()
+      await waitFor(() => {
+        expect(wednesdayHeader?.scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({
+            behavior: 'smooth',
+            inline: 'start',
+            block: 'nearest'
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('scrolls to Sunday (day 0) when opening on Sunday (day 0) or Saturday (day 6)', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-08T10:00:00Z')) // Sunday (day 0)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      await waitFor(() => {
+        expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            left: 0
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+
+    cleanup()
+
+    // Test Saturday (day 6) -> starts at Sunday (0)
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-14T10:00:00Z')) // Saturday (day 6)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      await waitFor(() => {
+        expect(window.HTMLElement.prototype.scrollTo).toHaveBeenCalledWith(
+          expect.objectContaining({
+            left: 0
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('re-triggers auto-scroll when switching between children', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-10T10:00:00Z')) // Tuesday (day 2)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const tuesdayHeader = document.querySelector('[data-schedule-day="2"]')
+      expect(tuesdayHeader).toBeInTheDocument()
+      await waitFor(() => {
+        expect(tuesdayHeader?.scrollIntoView).toHaveBeenCalled()
+      })
+
+      // Clear spy call history before switching children
+      vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear()
+
+      // Switch to Maya
+      const mayaTab = screen.getByRole('tab', { name: 'Maya' })
+      fireEvent.click(mayaTab)
+
+      await waitFor(() => {
+        expect(window.HTMLElement.prototype.scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({
+            behavior: 'smooth',
+            inline: 'start',
+            block: 'nearest'
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })
 
