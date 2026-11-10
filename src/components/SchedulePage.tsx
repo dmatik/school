@@ -570,7 +570,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       ) : isChild && !currentUser?.linkedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mx-auto mb-3">
               <CalendarDays className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">{t("schedule.title")}</h3>
@@ -582,7 +582,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       ) : !selectedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
               <CalendarDays className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">{t("schedule.title")}</h3>
@@ -624,7 +624,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
               <div
                 className={cn(
                   "h-10 border-b border-border/80 flex items-center justify-center font-bold text-xs transition-colors",
-                  childColor ? cn(childColor.badgeBg, childColor.badgeText) : "bg-muted/80 dark:bg-secondary/80 text-muted-foreground"
+                  childColor ? cn(childColor.bg, "text-white") : "bg-primary text-primary-foreground"
                 )}
               >
                 {t("schedule.hour_col_header")}
@@ -663,8 +663,8 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                 <div
                   data-schedule-header
                   className={cn(
-                    "h-10 backdrop-blur-md border-b border-border/80 flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70 transition-colors",
-                    childColor ? childColor.badgeBg : "bg-muted/80 dark:bg-secondary/80"
+                    "h-10 backdrop-blur-md border-b border-border/80 flex shrink-0 divide-x rtl:divide-x-reverse transition-colors",
+                    childColor ? cn(childColor.bg, "text-white divide-white/20") : "bg-primary text-primary-foreground divide-primary-foreground/20"
                   )}
                 >
                   {DAYS.map((day) => {
@@ -679,15 +679,15 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
                         className={cn(
                           "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start",
                           "flex flex-col items-center justify-center py-2 px-1 text-center transition-colors min-w-0 max-w-full overflow-hidden",
-                          isToday && (childColor ? "bg-black/5 dark:bg-white/10" : "bg-primary/5 text-primary")
+                          isToday && (childColor ? "bg-black/15 dark:bg-black/25" : "bg-black/15 text-primary-foreground")
                         )}
                       >
                         <div className="flex items-center gap-1 min-w-0 max-w-full">
-                          <span className={cn("font-bold text-xs sm:text-sm truncate", childColor ? childColor.badgeText : "")}>
+                          <span className="font-bold text-xs sm:text-sm truncate text-white">
                             {t(`schedule.days.day_${day}`)}
                           </span>
                           {isToday && (
-                            <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-primary text-primary-foreground leading-tight shrink-0">
+                            <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-zinc-900 shadow-xs leading-tight shrink-0">
                               {t("schedule.today_badge")}
                             </span>
                           )}
@@ -962,7 +962,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
               type="button"
               whileTap={{ scale: 0.92 }}
               onClick={() => setIsEditMode((prev) => !prev)}
-              className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
+              className={cn(
+                "pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full flex items-center justify-center select-none shadow-md transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8",
+                childColor ? cn(childColor.bg, "text-white") : "bg-primary text-primary-foreground shadow-primary/30"
+              )}
               title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
               aria-label={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
             >

@@ -47,7 +47,7 @@ import { he, enUS } from "date-fns/locale"
 import { DatePicker } from "@/components/ui/date-picker"
 import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses } from "@/lib/child-colors"
+import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
 import type { ExamItem, WebtopConfig, User as UserType } from "@/types"
 
@@ -430,7 +430,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         </div>
 
         {/* Liquid Glass Filter Row: Child selector at beginning of row, Period selector at end of row */}
-        <div className="flex items-center justify-between gap-2 pt-1 pb-2 shrink-0">
+        <div className="flex items-center justify-between gap-2 pt-0.5 pb-0.5 shrink-0">
           {/* 1 - Children Liquid Glass Selector (Parents only) */}
           {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
             <div
@@ -564,7 +564,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
       ) : isChild && !currentUser?.linkedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mx-auto mb-3">
               <GraduationCap className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
@@ -578,7 +578,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
       ) : filteredExams.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
           <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 flex items-center justify-center mx-auto mb-3">
+            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
               <GraduationCap className="w-6 h-6" />
             </div>
             <h3 className="font-semibold text-base text-foreground">
@@ -598,12 +598,12 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
           </Card>
         </div>
       ) : (
-        <div className="space-y-4 !mt-4">
+        <div className="space-y-3.5 !mt-0">
           {groupedExams.map((group) => (
             <div key={group.date} className="space-y-1">
-              {/* Floating Chat Date Pill */}
-              <div className="flex justify-center sticky top-0 z-10 pt-0.5 pb-0.5 pointer-events-none">
-                <h2 className="pointer-events-auto px-3.5 py-1 rounded-full text-xs font-semibold text-muted-foreground tracking-tight bg-card/85 dark:bg-card/80 border border-transparent shadow-xs backdrop-blur-md select-none">
+              {/* Date Section Header: No badge, aligned to beginning of the row */}
+              <div className="flex justify-start pt-1 pb-1 px-1">
+                <h2 className="text-sm sm:text-base font-semibold text-muted-foreground tracking-tight select-none text-start">
                   {formatOneLineDate(group.date) || group.date}
                 </h2>
               </div>
@@ -613,41 +613,48 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                 {group.items.map((exam) => {
                   const subjectConfig = getSubjectConfig(exam.name)
                   const SubjectIcon = subjectConfig.icon
-                  const subjectBadgeClass = subjectConfig.badgeClass
+                  const subjectBadgeClass = subjectConfig.solidBadgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) =>
                       (exam.childId && (c.id === exam.childId || c.externalId === exam.childId)) ||
                       (exam.studentName && `${c.firstName} ${c.lastName}`.trim() === exam.studentName.trim())
                   )
                   const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
+                  const childAccentClass = getChildAccentColor(matchedChild?.color)
                   const childDisplayName = getChildFirstName(exam.studentName, matchedChild) || exam.studentName
 
                   return (
                     <Card
                       key={exam.id}
-                      className="shadow-xs border border-transparent hover:shadow-sm transition-all duration-200 flex flex-col p-3 sm:p-3.5 gap-2.5 rounded-xl sm:rounded-2xl bg-card"
+                      className="relative overflow-hidden shadow-xs border border-border/40 dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3.5 sm:p-4 gap-2.5 rounded-2xl bg-card"
                     >
-                      <div className="flex items-start justify-between gap-2.5">
-                        <div className="flex items-start gap-2.5 min-w-0 flex-1">
-                          {/* Subject Icon */}
+                      {/* Vertical Accent Color Bar at beginning of card (for parent users) */}
+                      {!isChild && (
+                        <div
+                          data-testid="exams-card-accent"
+                          className={cn("absolute inset-y-0 start-0 w-1.5", childAccentClass)}
+                        />
+                      )}
+
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Subject Icon: rounded-corner square */}
                           <div
                             className={cn(
-                              "w-11 h-11 rounded-full border flex items-center justify-center shrink-0 shadow-xs",
+                              "w-11 h-11 rounded-[14px] border flex items-center justify-center shrink-0",
                               subjectBadgeClass
                             )}
                           >
-                            <SubjectIcon className="w-5 h-5 shrink-0" />
+                            <SubjectIcon className="w-5 h-5 shrink-0 stroke-[2.25]" />
                           </div>
 
                           {/* Exam Name, Date, and Grade */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center min-h-[44px]">
-                            <div className="flex items-center gap-1.5 min-w-0 flex-wrap">
-                              <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight">
-                                {exam.name}
-                              </span>
-                            </div>
+                          <div className="min-w-0 flex-1 flex flex-col justify-center">
+                            <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight text-start">
+                              {exam.name}
+                            </span>
 
-                            <div className="flex items-center gap-2 flex-wrap text-sm text-muted-foreground font-medium mt-0.5">
+                            <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm text-muted-foreground font-medium text-start mt-0.5">
                               {/* Date info */}
                               <span className="inline-flex items-center gap-1.5">
                                 <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0 -translate-y-[1px]" />
@@ -656,7 +663,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
 
                               {/* Grade badge if present */}
                               {exam.grade ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-transparent">
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] border border-transparent">
                                   <Award className="w-3 h-3 shrink-0" />
                                   {t("exams.grade_badge", { grade: exam.grade })}
                                 </span>
@@ -667,14 +674,15 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
 
                         {/* Top-End actions: Student Name badge (parents only) & Edit button (parents only) */}
                         <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Child Badge (visible ONLY to parents) */}
+                          {/* Child Badge (visible ONLY to parents) with color dot indicator */}
                           {!isChild && childDisplayName && (
                             <span
                               className={cn(
-                                "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent shrink-0 shadow-xs transition-colors",
+                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
                                 childBadgeClass
                               )}
                             >
+                              <span className={cn("w-2 h-2 rounded-full shrink-0", childAccentClass)} />
                               <span className="truncate max-w-[120px] sm:max-w-none">{childDisplayName}</span>
                             </span>
                           )}
@@ -695,9 +703,9 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                         </div>
                       </div>
 
-                      {/* Description below date: formatted nicely without prefix */}
+                      {/* Description below date: unboxed, separated by hairline divider */}
                       {exam.description ? (
-                        <div className="text-sm sm:text-base text-start leading-relaxed text-foreground whitespace-pre-line bg-muted/40 dark:bg-secondary/80 p-2.5 rounded-lg border border-transparent mt-0.5">
+                        <div className="text-base font-normal text-start leading-relaxed text-foreground whitespace-pre-line pt-2.5 border-t border-border/60 dark:border-border/50">
                           {exam.description}
                         </div>
                       ) : null}
@@ -735,7 +743,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
+                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
                   {t("exams.no_children_warning")}
                 </p>
               )}
@@ -837,7 +845,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
                   </SelectContent>
                 </Select>
               ) : (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
+                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
                   {t("exams.no_children_warning")}
                 </p>
               )}

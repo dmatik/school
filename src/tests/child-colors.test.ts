@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { CHILD_COLORS, getChildBadgeClasses, getChildColor, getChildTextColor } from '../lib/child-colors';
+import { CHILD_COLORS, getChildBadgeClasses, getChildColor, getChildTextColor, getChildAccentColor } from '../lib/child-colors';
 
 describe('Child Colors Utility', () => {
   it('exports predefined list of vibrant colors', () => {
@@ -25,20 +25,20 @@ describe('Child Colors Utility', () => {
 
   it('returns appropriate accent classes when a valid colorId is provided', () => {
     const blueClasses = getChildBadgeClasses('blue');
-    expect(blueClasses).toContain('bg-blue-500');
-    expect(blueClasses).toContain('text-blue-700');
+    expect(blueClasses).toContain('bg-[#D4E6F9]');
+    expect(blueClasses).toContain('text-[#16324F]');
     expect(blueClasses).toContain('border-transparent');
 
     const emeraldClasses = getChildBadgeClasses('emerald');
-    expect(emeraldClasses).toContain('bg-emerald-500');
-    expect(emeraldClasses).toContain('text-emerald-700');
+    expect(emeraldClasses).toContain('bg-[#CBEEE8]');
+    expect(emeraldClasses).toContain('text-[#143D35]');
   });
 
   it('retrieves child color option using getChildColor', () => {
     const color = getChildColor('purple');
     expect(color).toBeDefined();
     expect(color?.id).toBe('purple');
-    expect(color?.bg).toBe('bg-purple-500');
+    expect(color?.bg).toBe('bg-[#8A63B8]');
 
     expect(getChildColor('unknown')).toBeUndefined();
   });
@@ -48,8 +48,18 @@ describe('Child Colors Utility', () => {
     expect(getChildTextColor(null)).toBe('text-primary');
     expect(getChildTextColor('unknown')).toBe('text-primary');
 
-    expect(getChildTextColor('blue')).toContain('text-blue-700');
-    expect(getChildTextColor('emerald')).toContain('text-emerald-700');
+    expect(getChildTextColor('blue')).toContain('text-[#16324F]');
+    expect(getChildTextColor('emerald')).toContain('text-[#143D35]');
+  });
+
+  it('retrieves child solid accent color class using getChildAccentColor', () => {
+    expect(getChildAccentColor()).toBe('bg-muted-foreground/40');
+    expect(getChildAccentColor(null)).toBe('bg-muted-foreground/40');
+    expect(getChildAccentColor('unknown')).toBe('bg-muted-foreground/40');
+
+    expect(getChildAccentColor('blue')).toBe('bg-[#3B82C4]');
+    expect(getChildAccentColor('emerald')).toBe('bg-[#2CA58D]');
+    expect(getChildAccentColor('purple')).toBe('bg-[#8A63B8]');
   });
 });
 

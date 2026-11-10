@@ -140,7 +140,7 @@ describe('Empty Page Views', () => {
     expect(screen.getByText('incidents.integration_badge')).toBeInTheDocument()
   })
 
-  it('renders IncidentsPage with date sections, black incident type, lesson number in brackets, and no date inside card', async () => {
+  it('renders IncidentsPage with date sections, black incident type, unbracketed lesson number, and no date inside card', async () => {
     const today = new Date()
     const todayStr = format(today, 'yyyy-MM-dd')
     const mockIncidents = [
@@ -190,12 +190,15 @@ describe('Empty Page Views', () => {
       expect(dateHeading).toBeInTheDocument()
       expect(dateHeading).toHaveClass('text-muted-foreground')
 
-      // Lesson hour in brackets next to subject
-      expect(screen.getByText(/\(incidents\.lesson_hour\)/)).toBeInTheDocument()
+      // Lesson hour indicator stacked under subject
+      expect(screen.getByText(/incidents\.lesson_hour/)).toBeInTheDocument()
       expect(screen.queryByText(/• incidents\.lesson_hour/)).not.toBeInTheDocument()
 
+      // Vertical child accent bar rendered for default user
+      expect(screen.getByTestId('incidents-card-accent')).toBeInTheDocument()
+
       // No calendar icon inside the card
-      const card = incType.closest('.rounded-xl')
+      const card = incType.closest('.rounded-2xl')
       expect(card?.querySelector('svg[class*="lucide-calendar"]')).toBeNull()
     } finally {
       global.fetch = originalFetch
@@ -259,12 +262,14 @@ describe('Empty Page Views', () => {
       // 1. Render as Parent: student name badge is visible
       const { unmount } = render(<IncidentsPage token="test-token" currentUser={parentUser} />)
       expect(await screen.findByText('דניאל')).toBeInTheDocument()
+      expect(screen.getByTestId('incidents-card-accent')).toBeInTheDocument()
       unmount()
 
       // 2. Render as Child: student name badge is hidden
       render(<IncidentsPage token="test-token" currentUser={childUser} />)
       await screen.findByText('הפרעה')
       expect(screen.queryByText('דניאל')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('incidents-card-accent')).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }
@@ -380,13 +385,13 @@ describe('Empty Page Views', () => {
 
       const prefix = await screen.findByText('homework.homework_prefix')
       expect(prefix).toBeInTheDocument()
-      expect(prefix).toHaveClass('font-bold')
+      expect(prefix).not.toHaveClass('font-bold')
 
       const hwText = screen.getByText('עמוד 20 תרגילים 1-5')
       expect(hwText).toBeInTheDocument()
       expect(hwText).toHaveClass('font-normal')
-      expect(hwText.parentElement).toHaveClass('bg-muted/40')
-      expect(hwText.parentElement).toHaveClass('dark:bg-secondary/80')
+      expect(hwText.parentElement).not.toHaveClass('bg-muted/40')
+      expect(hwText.parentElement).toHaveClass('border-t')
     } finally {
       global.fetch = originalFetch
     }
@@ -448,9 +453,9 @@ describe('Empty Page Views', () => {
       })
 
       // The consolidated hours indicator (homework.lesson_hours) should be rendered
-      expect(screen.getByText(/\(homework\.lesson_hours\)/)).toBeInTheDocument()
+      expect(screen.getByText(/homework\.lesson_hours\b/)).toBeInTheDocument()
       // The single hour indicator should NOT be rendered
-      expect(screen.queryByText(/\(homework\.lesson_hour\)/)).not.toBeInTheDocument()
+      expect(screen.queryByText(/homework\.lesson_hour\b/)).not.toBeInTheDocument()
 
       // The homework text should appear only once
       expect(screen.getAllByText('עמוד 45 שאלות 1-10')).toHaveLength(1)
@@ -515,8 +520,8 @@ describe('Empty Page Views', () => {
       })
 
       // Both should have single hour indicators
-      expect(screen.getAllByText(/\(homework\.lesson_hour\)/)).toHaveLength(2)
-      expect(screen.queryByText(/\(homework\.lesson_hours\)/)).not.toBeInTheDocument()
+      expect(screen.getAllByText(/homework\.lesson_hour\b/)).toHaveLength(2)
+      expect(screen.queryByText(/homework\.lesson_hours\b/)).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }
@@ -658,15 +663,17 @@ describe('Empty Page Views', () => {
     }
 
     try {
-      // 1. Render as Parent: student name badge is visible
+      // 1. Render as Parent: student name badge & accent bar are visible
       const { unmount } = render(<HomeworkPage token="test-token" currentUser={parentUser} />)
       expect(await screen.findByText('דניאל')).toBeInTheDocument()
+      expect(screen.getByTestId('homework-card-accent')).toBeInTheDocument()
       unmount()
 
-      // 2. Render as Child: student name badge is hidden
+      // 2. Render as Child: student name badge & accent bar are hidden
       render(<HomeworkPage token="test-token" currentUser={childUser} />)
       await screen.findByText('חשבון')
       expect(screen.queryByText('דניאל')).not.toBeInTheDocument()
+      expect(screen.queryByTestId('homework-card-accent')).not.toBeInTheDocument()
     } finally {
       global.fetch = originalFetch
     }

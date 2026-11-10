@@ -142,6 +142,9 @@ describe('Exams Feature — Component and Backend Tests', () => {
     expect(screen.getAllByText('David').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Maya').length).toBeGreaterThan(0)
 
+    // Parents see vertical child accent bars on cards
+    expect(screen.getAllByTestId('exams-card-accent').length).toBeGreaterThan(0)
+
     // Parents see edit buttons
     const editButtons = screen.getAllByTitle('exams.edit_exam_button')
     expect(editButtons.length).toBeGreaterThan(0)
@@ -160,8 +163,9 @@ describe('Exams Feature — Component and Backend Tests', () => {
     // Child user cannot see Edit Exam buttons
     expect(screen.queryByTitle('exams.edit_exam_button')).not.toBeInTheDocument()
 
-    // Child user cannot see child badge container
+    // Child user cannot see child badge container or vertical accent bar
     expect(screen.queryByText('David')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('exams-card-accent')).not.toBeInTheDocument()
   })
 
   it('defaults to future period and orders dates from today to future dates, and switches to past period via liquid glass selector', async () => {

@@ -328,7 +328,7 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-transparent">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Palette className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <Palette className="w-5 h-5 text-primary shrink-0" />
                 <span>{t("settings.appearance_title")}</span>
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
@@ -460,7 +460,7 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
           <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-transparent">
             <div className="space-y-1 min-w-0">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+                <GraduationCap className="w-5 h-5 text-primary shrink-0" />
                 <span>{t("account.webtop_title")}</span>
               </CardTitle>
               <CardDescription className="text-xs sm:text-sm">
@@ -473,7 +473,7 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
               {loadingWebtop ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : webtopConfig?.configured ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-transparent">
+                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8] border border-transparent">
                   <CheckCircle2 className="w-3.5 h-3.5" />
                   <span>{t("account.webtop_status_connected")}</span>
                 </div>
@@ -619,12 +619,12 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                       disabled={syncingWebtop}
                       className={cn(
                         "text-xs flex items-center gap-1.5 transition-colors",
-                        syncSuccessWebtop && "border-emerald-500/50 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
+                        syncSuccessWebtop && "border-[#2CA58D]/50 bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8]"
                       )}
                     >
                       {syncSuccessWebtop ? (
                         <>
-                          <Check className="w-3.5 h-3.5 stroke-[2.5px] text-emerald-600 dark:text-emerald-400 animate-in zoom-in-75 duration-200" />
+                          <Check className="w-3.5 h-3.5 stroke-[2.5px] text-[#2CA58D] dark:text-[#9EE8D8] animate-in zoom-in-75 duration-200" />
                           <span>{t("account.webtop_synced")}</span>
                         </>
                       ) : (

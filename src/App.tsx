@@ -387,7 +387,7 @@ function App() {
             </button>
 
             <div className="min-w-0 flex-1">
-              <h1 className="text-lg font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent truncate tracking-tight">
+              <h1 className="text-lg font-extrabold bg-gradient-to-r from-[#3B82C4] to-[#555DB0] dark:from-[#6BA3D8] dark:to-[#8E94DB] bg-clip-text text-transparent truncate tracking-tight">
                 {t('common.app_title')}
               </h1>
               <div className="text-xs text-muted-foreground truncate font-medium">
