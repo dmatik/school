@@ -149,10 +149,16 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       expect(screen.getByText('schedule.title')).toBeInTheDocument()
     })
 
-    // Verify all 6 days headers exist
+    // Verify all 6 days headers exist with inverted white text
     for (let day = 0; day <= 5; day++) {
-      expect(screen.getByText(`schedule.days.day_${day}`)).toBeInTheDocument()
+      const dayHeader = screen.getByText(`schedule.days.day_${day}`)
+      expect(dayHeader).toBeInTheDocument()
+      expect(dayHeader).toHaveClass('text-white')
     }
+
+    const headerRow = document.querySelector('[data-schedule-header]')
+    expect(headerRow).toBeInTheDocument()
+    expect(headerRow?.className).toContain('text-white')
 
     // Verify existing lessons are displayed
     await waitFor(() => {

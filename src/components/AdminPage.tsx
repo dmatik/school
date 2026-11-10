@@ -44,6 +44,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
+import { cn } from "@/lib/utils"
+import { getChildColor } from "@/lib/child-colors"
 import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
 
 interface AdminPageProps {
@@ -467,13 +469,22 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                         <img
                           src={u.avatar}
                           alt={u.username}
-                          className="w-10 h-10 rounded-full object-cover border border-transparent"
+                          className="w-10 h-10 rounded-full object-cover border border-transparent shadow-xs"
                         />
-                      ) : (
-                        <div className="w-10 h-10 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold border border-transparent">
-                          {u.username[0]?.toUpperCase() || "U"}
-                        </div>
-                      )}
+                      ) : (() => {
+                        const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
+                        const userChildColor = linkedChild ? getChildColor(linkedChild.color) : null
+                        return (
+                          <div
+                            className={cn(
+                              "w-10 h-10 rounded-full flex items-center justify-center font-bold border border-transparent shadow-xs",
+                              userChildColor ? cn(userChildColor.bg, "text-white") : "bg-primary text-primary-foreground"
+                            )}
+                          >
+                            {u.username[0]?.toUpperCase() || "U"}
+                          </div>
+                        )
+                      })()}
                       <div>
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-foreground">
@@ -490,18 +501,20 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                         </div>
                         <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
                           <span
-                            className={`inline-flex items-center gap-1 font-medium ${
-                              u.role === "admin" ? "text-amber-600 dark:text-amber-400" : "text-blue-600 dark:text-blue-400"
-                            }`}
+                            className={cn(
+                              "inline-flex items-center gap-1 font-medium",
+                              u.role === "admin" ? "text-[#D4973B] dark:text-[#F5D59E]" : "text-[#3B82C4] dark:text-[#AED4F8]"
+                            )}
                           >
                             <Shield className="w-3 h-3" />
                             {u.role === "admin" ? t("account.role_admin") : t("account.role_user")}
                           </span>
                           <span className="text-border">•</span>
                           <span
-                            className={`inline-flex items-center gap-1 font-medium ${
-                              u.familyRole === "child" ? "text-emerald-600 dark:text-emerald-400" : "text-purple-600 dark:text-purple-400"
-                            }`}
+                            className={cn(
+                              "inline-flex items-center gap-1 font-medium",
+                              u.familyRole === "child" ? "text-[#2CA58D] dark:text-[#9EE8D8]" : "text-[#8A63B8] dark:text-[#D8C2F2]"
+                            )}
                           >
                             {u.familyRole === "child" ? (
                               <Baby className="w-3 h-3" />

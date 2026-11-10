@@ -388,7 +388,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                 <div className="space-y-1.5">
                   <Label className="text-xs text-muted-foreground">{t("account.role")}</Label>
                   <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
-                    <Shield className={`w-4 h-4 shrink-0 ${user.role === 'admin' ? 'text-amber-500' : 'text-blue-500'}`} />
+                    <Shield className={`w-4 h-4 shrink-0 ${user.role === 'admin' ? 'text-[#D4973B]' : 'text-[#3B82C4]'}`} />
                     <span className="truncate">{user.role === 'admin' ? t("account.role_admin") : t("account.role_user")}</span>
                   </div>
                 </div>
@@ -396,9 +396,9 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
                   <Label className="text-xs text-muted-foreground">{t("account.family_role")}</Label>
                   <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
                     {user.familyRole === 'child' ? (
-                      <Baby className="w-4 h-4 shrink-0 text-emerald-500" />
+                      <Baby className="w-4 h-4 shrink-0 text-[#2CA58D]" />
                     ) : (
-                      <Users className="w-4 h-4 shrink-0 text-purple-500" />
+                      <Users className="w-4 h-4 shrink-0 text-[#8A63B8]" />
                     )}
                     <span className="truncate">
                       {user.familyRole === 'child' ? t("account.role_child") : t("account.role_parent")}

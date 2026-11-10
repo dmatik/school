@@ -55,10 +55,16 @@ describe("Subject Icon Mapping", () => {
     const math = getSubjectConfig("מתמטיקה")
     const english = getSubjectConfig("אנגלית")
     const science = getSubjectConfig("מדעים")
+    const hebrew = getSubjectConfig("עברית")
 
     expect(math.badgeClass).toContain("blue-500")
     expect(english.badgeClass).toContain("purple-500")
     expect(science.badgeClass).toContain("emerald-500")
+
+    expect(math.solidBadgeClass).toContain("bg-[#3B82C4]")
+    expect(english.solidBadgeClass).toContain("bg-[#8A63B8]")
+    expect(science.solidBadgeClass).toContain("bg-[#2CA58D]")
+    expect(hebrew.solidBadgeClass).toContain("bg-[#555DB0]")
   })
 })
 

@@ -91,7 +91,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-transparent flex items-center justify-center text-primary mb-2 shadow-xs">
             <UserIcon className="w-6 h-6" />
           </div>
-          <CardTitle className="text-2xl font-extrabold bg-gradient-to-r from-blue-600 via-indigo-600 to-indigo-700 dark:from-blue-400 dark:to-indigo-400 bg-clip-text text-transparent tracking-tight">
+          <CardTitle className="text-2xl font-extrabold bg-gradient-to-r from-[#3B82C4] to-[#555DB0] dark:from-[#6BA3D8] dark:to-[#8E94DB] bg-clip-text text-transparent tracking-tight">
             {t("common.app_title")}
           </CardTitle>
           <CardDescription className="text-xs text-muted-foreground font-medium">

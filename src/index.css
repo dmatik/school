@@ -4,8 +4,8 @@
 
 @layer base {
   :root {
-    /* Background: Soft Slate Canvas (Gentle contrast against pure white cards) */
-    --background: 216 22% 94.5%;
+    /* Background: Crisp Airy Off-White Canvas (#f6f7fc from design screenshot) */
+    --background: 225 50% 97.6%;
 
     /* Foreground: Slate-900 (Deep Text) */
     --foreground: 222.2 47.4% 11.2%;
@@ -18,8 +18,8 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
 
-    /* Primary Action: Vibrant Indigo-Blue */
-    --primary: 226 78% 57%;
+    /* Primary Action: Vibrant Blue matching child palette (#3B82C4) */
+    --primary: 209 54% 50%;
     --primary-foreground: 0 0% 100%;
 
     /* Secondary */
@@ -41,7 +41,7 @@
     /* Borders: Crisp slate micro-border */
     --border: 215 20% 86%;
     --input: 215 20% 86%;
-    --ring: 226 78% 57%;
+    --ring: 209 54% 50%;
 
     --radius: 0.75rem;
   }
@@ -59,9 +59,9 @@
     --popover: 222 28% 14.5%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary: Vibrant Indigo-Blue (high contrast in dark) */
-    --primary: 226 84% 64%;
-    --primary-foreground: 224 35% 8%;
+    /* Primary: Soft Vibrant Blue (high contrast in dark mode) */
+    --primary: 209 64% 60%;
+    --primary-foreground: 224 45% 6%;
 
     /* Secondary */
     --secondary: 222 26% 19%;
@@ -82,7 +82,7 @@
     /* Borders: Crisp visible micro-borders */
     --border: 222 22% 23%;
     --input: 222 22% 23%;
-    --ring: 226 84% 64%;
+    --ring: 209 64% 60%;
   }
 }
 
