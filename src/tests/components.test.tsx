@@ -12,6 +12,7 @@ import { SyncButton } from '../components/ui/sync-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
 import { SectionDateHeader } from '../components/ui/section-date-header'
+import { HomeworkCard } from '../components/ui/homework-card'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -458,6 +459,53 @@ describe('SectionDateHeader Component', () => {
   it('renders nothing when date is null or empty', () => {
     const { container } = render(<SectionDateHeader date={null} />)
     expect(container.firstChild).toBeNull()
+  })
+})
+
+describe('HomeworkCard Component', () => {
+  it('renders subject, lesson hour subtitle, teacher, child badge, and homework text', () => {
+    render(
+      <HomeworkCard
+        subject="Mathematics"
+        lessonHour={3}
+        teacher="Rachel Levi"
+        childName="Itay"
+        childColorId="blue"
+        homeworkText="Solve exercises 1 to 10 on page 45"
+      />
+    )
+
+    expect(screen.getByText('Mathematics')).toBeInTheDocument()
+    expect(screen.getByText(/homework\.lesson_hour|3/i)).toBeInTheDocument()
+    expect(screen.getByText('Rachel Levi')).toBeInTheDocument()
+    expect(screen.getByText('Itay')).toBeInTheDocument()
+    expect(screen.getByText(/Solve exercises 1 to 10 on page 45/)).toBeInTheDocument()
+  })
+
+  it('renders merged lesson hours', () => {
+    render(
+      <HomeworkCard
+        subject="English"
+        lessonHours={[2, 3]}
+        teacher="Sarah Cohen"
+      />
+    )
+
+    expect(screen.getByText('English')).toBeInTheDocument()
+    expect(screen.getByText(/homework\.lesson_hours|2, 3/i)).toBeInTheDocument()
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <HomeworkCard
+        subject="History"
+        childName={null}
+        homeworkText="Read pages 10-12"
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('History')).toBeInTheDocument()
   })
 })
 

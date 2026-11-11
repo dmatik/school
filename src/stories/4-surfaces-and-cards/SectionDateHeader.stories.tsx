@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react"
 import { addDays, subDays } from "date-fns"
 import { SectionDateHeader } from "@/components/ui/section-date-header"
-import { FeedItemCard } from "@/components/ui/feed-item-card"
+import { HomeworkCard } from "@/components/ui/homework-card"
 
 const meta: Meta<typeof SectionDateHeader> = {
   title: "4. Surfaces & Modals/SectionDateHeader",
@@ -68,29 +68,27 @@ export const FeedContext: Story = {
     return (
       <div className="max-w-xl space-y-4">
         <div className="text-sm font-medium text-muted-foreground">
-          שילוב כותרת מקטע בפיד אמיתי לצד כרטיסי תוכן (FeedItemCard):
+          שילוב כותרת מקטע בפיד אמיתי לצד כרטיסי שיעורי בית (HomeworkCard):
         </div>
 
         <div className="space-y-2">
           <SectionDateHeader date={today} />
           <div className="space-y-2.5">
-            <FeedItemCard
+            <HomeworkCard
               subject="מתמטיקה"
-              title="מתמטיקה"
-              subtitle="שיעור 2"
+              lessonHour={2}
               teacher="רחל לוי"
               childName="איתי"
               childColorId="blue"
-              content="עמודים 45-48, תרגילים 1 עד 10."
+              homeworkText="עמודים 45-48, תרגילים 1 עד 10."
             />
-            <FeedItemCard
+            <HomeworkCard
               subject="אנגלית"
-              title="אנגלית"
-              subtitle="שיעור 4"
+              lessonHour={4}
               teacher="שרה כהן"
               childName="מאיה"
               childColorId="purple"
-              content="Read pages 20-22 and answer questions in workbook."
+              homeworkText="Read pages 20-22 and answer questions in workbook."
             />
           </div>
         </div>
@@ -98,14 +96,13 @@ export const FeedContext: Story = {
         <div className="space-y-2 pt-2">
           <SectionDateHeader date={yesterday} />
           <div className="space-y-2.5">
-            <FeedItemCard
+            <HomeworkCard
               subject="היסטוריה"
-              title="היסטוריה"
-              subtitle="שיעור 1"
+              lessonHour={1}
               teacher="דוד ישראלי"
               childName="איתי"
               childColorId="blue"
-              content="סיכום פרק ג' במחברת."
+              homeworkText="סיכום פרק ג' במחברת."
             />
           </div>
         </div>

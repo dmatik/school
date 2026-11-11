@@ -14,9 +14,8 @@ import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { LiquidDatePicker } from "@/components/ui/liquid-date-picker"
 import { SectionDateHeader } from "@/components/ui/section-date-header"
+import { HomeworkCard } from "@/components/ui/homework-card"
 import { cn, getHomeworkText, consolidateHomework, getChildFirstName } from "@/lib/utils"
-import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
 import type { HomeworkItem, ConsolidatedHomeworkItem, WebtopConfig, User as UserType } from "@/types"
 
@@ -322,88 +321,26 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
               {/* Chat-style Continuing Feed */}
               <div className="flex flex-col gap-2.5 sm:gap-3">
                 {group.items.map((hw) => {
-                  const subjectConfig = getSubjectConfig(hw.subject)
-                  const SubjectIcon = subjectConfig.icon
-                  const subjectBadgeClass = subjectConfig.solidBadgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) =>
                       (hw.childId && c.id === hw.childId) ||
                       (hw.studentId && (c.id === hw.studentId || (c.externalId && c.externalId === hw.studentId))) ||
                       (hw.studentName && `${c.firstName} ${c.lastName}`.trim() === hw.studentName.trim())
                   )
-                  const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
-                  const childAccentClass = getChildAccentColor(matchedChild?.color)
                   const childDisplayName = getChildFirstName(hw.studentName, matchedChild) || hw.studentName
                   const homeworkText = getHomeworkText(hw)
 
                   return (
-                    <Card
+                    <HomeworkCard
                       key={hw.id}
-                      className="relative overflow-hidden shadow-xs border border-border/40 dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3.5 sm:p-4 gap-2.5 rounded-2xl bg-card"
-                    >
-                      {/* Top Row: Subject Icon + Title & Lesson (Start), Child Name badge (End) */}
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {/* Subject icon badge: rounded-corner square */}
-                          <div
-                            className={cn(
-                              "w-11 h-11 rounded-[14px] border flex items-center justify-center shrink-0",
-                              subjectBadgeClass
-                            )}
-                          >
-                            <SubjectIcon className="w-5 h-5 shrink-0 stroke-[2.25]" />
-                          </div>
-
-                          {/* Subject Title & Lesson number stacked */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center">
-                            <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight text-start">
-                              {hw.subject}
-                            </span>
-                            {hw.hourNums && hw.hourNums.length > 1 ? (
-                              <span className="font-normal text-xs sm:text-sm text-muted-foreground truncate text-start">
-                                {t("homework.lesson_hours", { hours: hw.hourNums.join(", ") })}
-                              </span>
-                            ) : (hw.hourNums && hw.hourNums.length === 1) || hw.hourNum ? (
-                              <span className="font-normal text-xs sm:text-sm text-muted-foreground truncate text-start">
-                                {t("homework.lesson_hour", { hour: (hw.hourNums && hw.hourNums[0]) ?? hw.hourNum })}
-                              </span>
-                            ) : null}
-                          </div>
-                        </div>
-
-                        {/* Student Name badge with child color and dot indicator (hidden for child users) */}
-                        {!isChild && childDisplayName && (
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
-                              childBadgeClass
-                            )}
-                          >
-                            <span className={cn("w-2 h-2 rounded-full shrink-0", childAccentClass)} />
-                            <span className="truncate max-w-[120px] sm:max-w-none">{childDisplayName}</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Teacher name */}
-                      {hw.teacher && (
-                        <div className="text-sm text-muted-foreground font-medium text-start truncate">
-                          {hw.teacher}
-                        </div>
-                      )}
-
-                      {/* Homework text area: no box, separated by hairline divider */}
-                      {homeworkText ? (
-                        <div className="text-base font-normal text-start leading-relaxed text-foreground whitespace-pre-line pt-2.5 border-t border-border/60 dark:border-border/50">
-                          <span className="me-1.5">
-                            {t("homework.homework_prefix")}
-                          </span>
-                          <span className="font-normal">
-                            {homeworkText}
-                          </span>
-                        </div>
-                      ) : null}
-                    </Card>
+                      subject={hw.subject}
+                      lessonHour={hw.hourNum}
+                      lessonHours={hw.hourNums}
+                      teacher={hw.teacher}
+                      childName={!isChild ? childDisplayName : null}
+                      childColorId={!isChild ? matchedChild?.color : null}
+                      homeworkText={homeworkText}
+                    />
                   )
                 })}
               </div>
