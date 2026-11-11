@@ -7,6 +7,7 @@ export interface PageHeaderProps extends Omit<React.HTMLAttributes<HTMLDivElemen
   actions?: React.ReactNode
   sticky?: boolean
   border?: boolean
+  as?: "h1" | "h2"
   className?: string
 }
 
@@ -16,6 +17,7 @@ export function PageHeader({
   actions,
   sticky = true,
   border = true,
+  as: Heading = "h1",
   className,
   ...props
 }: PageHeaderProps) {
@@ -31,9 +33,9 @@ export function PageHeader({
       {...props}
     >
       <div className="min-w-0 flex-1">
-        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
+        <Heading className="text-lg font-bold tracking-tight text-foreground truncate">
           {title}
-        </h1>
+        </Heading>
         {description && (
           <p className="text-xs text-muted-foreground mt-0.5 truncate">
             {description}
