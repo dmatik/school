@@ -15,6 +15,7 @@ import { SectionDateHeader } from '../components/ui/section-date-header'
 import { HomeworkCard } from '../components/ui/homework-card'
 import { IncidentCard } from '../components/ui/incident-card'
 import { ExamCard } from '../components/ui/exam-card'
+import { ScheduleTable } from '../components/ui/schedule-table'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -608,6 +609,64 @@ describe('ExamCard Component', () => {
 
     expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
     expect(screen.getByText('Science Quiz')).toBeInTheDocument()
+  })
+})
+
+describe('ScheduleTable Component', () => {
+  const lessons = [
+    { dayOfWeek: 0, hourNum: 1, subject: 'Math' },
+    { dayOfWeek: 1, hourNum: 3, subject: 'English' },
+  ]
+  const finishTimes = [{ dayOfWeek: 0, finishTime: '13:30' }]
+
+  it('renders 6 day headers, lesson subjects, finish times and only populated hours in view mode', () => {
+    const { container } = render(
+      <ScheduleTable lessons={lessons} finishTimes={finishTimes} currentDayOfWeek={0} />
+    )
+    expect(container.querySelectorAll('[data-schedule-day]')).toHaveLength(6)
+    expect(screen.getByText('Math')).toBeInTheDocument()
+    expect(screen.getByText('English')).toBeInTheDocument()
+    expect(screen.getByText('13:30')).toBeInTheDocument()
+    expect(screen.getAllByText('--:--')).toHaveLength(5)
+    // Hours 1..3 rendered (highest populated is 3), no extra row
+    const dismissal = container.querySelector('[data-schedule-dismissal]')
+    expect(dismissal).toBeTruthy()
+    const lessonRows = dismissal!.previousElementSibling!.children
+    expect(lessonRows).toHaveLength(3)
+  })
+
+  it('renders one extra empty row in edit mode', () => {
+    const { container } = render(
+      <ScheduleTable lessons={lessons} finishTimes={finishTimes} isEditMode canEdit />
+    )
+    const lessonRows = container.querySelector('[data-schedule-dismissal]')!.previousElementSibling!.children
+    expect(lessonRows).toHaveLength(4)
+  })
+
+  it('marks today column with a badge only for the current day', () => {
+    render(<ScheduleTable lessons={lessons} finishTimes={finishTimes} currentDayOfWeek={2} />)
+    expect(screen.getAllByText(/schedule\.today_badge|היום|Today/i)).toHaveLength(1)
+  })
+
+  it('invokes onLessonClick and onFinishTimeClick with the correct day/hour', () => {
+    const onLessonClick = vi.fn()
+    const onFinishTimeClick = vi.fn()
+    const { container } = render(
+      <ScheduleTable
+        lessons={lessons}
+        finishTimes={finishTimes}
+        isEditMode
+        canEdit
+        onLessonClick={onLessonClick}
+        onFinishTimeClick={onFinishTimeClick}
+      />
+    )
+    fireEvent.click(screen.getByText('English'))
+    expect(onLessonClick).toHaveBeenCalledWith(1, 3)
+
+    const dismissalCells = container.querySelector('[data-schedule-dismissal]')!.children
+    fireEvent.click(dismissalCells[4])
+    expect(onFinishTimeClick).toHaveBeenCalledWith(4)
   })
 })
 
