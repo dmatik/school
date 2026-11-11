@@ -13,6 +13,8 @@ import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
 import { SectionDateHeader } from '../components/ui/section-date-header'
 import { HomeworkCard } from '../components/ui/homework-card'
+import { IncidentCard } from '../components/ui/incident-card'
+import { ExamCard } from '../components/ui/exam-card'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -506,6 +508,106 @@ describe('HomeworkCard Component', () => {
 
     expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
     expect(screen.getByText('History')).toBeInTheDocument()
+  })
+})
+
+describe('IncidentCard Component', () => {
+  it('renders subject, type, lesson hour, teacher, child badge, and description', () => {
+    render(
+      <IncidentCard
+        subject="Science"
+        type="Missing Homework"
+        hourNum={4}
+        teacher="Yossi Avraham"
+        childName="Maya"
+        childColorId="emerald"
+        description="Did not submit the science report"
+      />
+    )
+
+    expect(screen.getByText('Science')).toBeInTheDocument()
+    expect(screen.getByText(/incidents\.lesson_hour|4/i)).toBeInTheDocument()
+    expect(screen.getByText('Yossi Avraham')).toBeInTheDocument()
+    expect(screen.getByText('Maya')).toBeInTheDocument()
+    expect(screen.getByText('Missing Homework')).toBeInTheDocument()
+    expect(screen.getByText(/Did not submit the science report/)).toBeInTheDocument()
+  })
+
+  it('renders type as title when subject is omitted', () => {
+    render(
+      <IncidentCard
+        type="Late Arrival"
+        hourNum={1}
+        teacher="Sara Israeli"
+        description="Arrived 15 minutes late"
+      />
+    )
+
+    expect(screen.getByText('Late Arrival')).toBeInTheDocument()
+    expect(screen.getByText(/Arrived 15 minutes late/)).toBeInTheDocument()
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <IncidentCard
+        subject="English"
+        type="Disruption"
+        childName={null}
+        description="Talking without permission"
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('English')).toBeInTheDocument()
+  })
+})
+
+describe('ExamCard Component', () => {
+  it('renders name, formatted date, grade badge, child badge, and description', () => {
+    render(
+      <ExamCard
+        name="Mathematics Exam"
+        date="2026-11-20"
+        grade="95"
+        childName="Itay"
+        childColorId="blue"
+        description="Fractions and geometry"
+      />
+    )
+
+    expect(screen.getByText('Mathematics Exam')).toBeInTheDocument()
+    expect(screen.getByText('20/11/2026')).toBeInTheDocument()
+    expect(screen.getByText(/exams\.grade_badge|95/i)).toBeInTheDocument()
+    expect(screen.getByText('Itay')).toBeInTheDocument()
+    expect(screen.getByText('Fractions and geometry')).toBeInTheDocument()
+  })
+
+  it('renders edit button and calls onEdit when clicked', () => {
+    const handleEdit = vi.fn()
+    render(
+      <ExamCard
+        name="History Exam"
+        date="2026-11-25"
+        onEdit={handleEdit}
+      />
+    )
+
+    expect(screen.getByText('History Exam')).toBeInTheDocument()
+    const editBtn = screen.getByRole('button')
+    fireEvent.click(editBtn)
+    expect(handleEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <ExamCard
+        name="Science Quiz"
+        childName={null}
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('Science Quiz')).toBeInTheDocument()
   })
 })
 

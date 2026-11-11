@@ -6,11 +6,8 @@ import { LiquidTabs, type LiquidTabItem } from "@/components/ui/liquid-tabs"
 import { SearchInput } from "@/components/ui/search-input"
 import {
   Plus,
-  Edit2,
   Trash2,
   Loader2,
-  Calendar as CalendarIcon,
-  Award,
   GraduationCap
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
@@ -46,9 +43,8 @@ import {
 import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
 import { SectionDateHeader } from "@/components/ui/section-date-header"
-import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
-import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
+import { ExamCard } from "@/components/ui/exam-card"
+import { parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import type { ExamItem, WebtopConfig, User as UserType } from "@/types"
 
@@ -484,97 +480,24 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
               {/* Feed Cards */}
               <div className="flex flex-col gap-2.5 sm:gap-3">
                 {group.items.map((exam) => {
-                  const subjectConfig = getSubjectConfig(exam.name)
-                  const SubjectIcon = subjectConfig.icon
-                  const subjectBadgeClass = subjectConfig.solidBadgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) =>
                       (exam.childId && (c.id === exam.childId || c.externalId === exam.childId)) ||
                       (exam.studentName && `${c.firstName} ${c.lastName}`.trim() === exam.studentName.trim())
                   )
-                  const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
-                  const childAccentClass = getChildAccentColor(matchedChild?.color)
                   const childDisplayName = getChildFirstName(exam.studentName, matchedChild) || exam.studentName
 
                   return (
-                    <Card
+                    <ExamCard
                       key={exam.id}
-                      className="relative overflow-hidden shadow-xs border border-border/40 dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3.5 sm:p-4 gap-2.5 rounded-2xl bg-card"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {/* Subject Icon: rounded-corner square */}
-                          <div
-                            className={cn(
-                              "w-11 h-11 rounded-[14px] border flex items-center justify-center shrink-0",
-                              subjectBadgeClass
-                            )}
-                          >
-                            <SubjectIcon className="w-5 h-5 shrink-0 stroke-[2.25]" />
-                          </div>
-
-                          {/* Exam Name, Date, and Grade */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center">
-                            <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight text-start">
-                              {exam.name}
-                            </span>
-
-                            <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm text-muted-foreground font-medium text-start mt-0.5">
-                              {/* Date info */}
-                              <span className="inline-flex items-center gap-1.5">
-                                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0 -translate-y-[1px]" />
-                                <span className="leading-none">{format(parseLocalDate(exam.date), "dd/MM/yyyy")}</span>
-                              </span>
-
-                              {/* Grade badge if present */}
-                              {exam.grade ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] border border-transparent">
-                                  <Award className="w-3 h-3 shrink-0" />
-                                  {t("exams.grade_badge", { grade: exam.grade })}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Top-End actions: Student Name badge (parents only) & Edit button (parents only) */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Child Badge (visible ONLY to parents) with color dot indicator */}
-                          {!isChild && childDisplayName && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
-                                childBadgeClass
-                              )}
-                            >
-                              <span className={cn("w-2 h-2 rounded-full shrink-0", childAccentClass)} />
-                              <span className="truncate max-w-[120px] sm:max-w-none">{childDisplayName}</span>
-                            </span>
-                          )}
-
-                          {/* Edit Exam Button (parents only) */}
-                          {isParent && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenEditModal(exam)}
-                              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                              title={t("exams.edit_exam_button")}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              <span className="sr-only">{t("exams.edit_exam_button")}</span>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description below date: unboxed, separated by hairline divider */}
-                      {exam.description ? (
-                        <div className="text-base font-normal text-start leading-relaxed text-foreground whitespace-pre-line pt-2.5 border-t border-border/60 dark:border-border/50">
-                          {exam.description}
-                        </div>
-                      ) : null}
-                    </Card>
+                      name={exam.name}
+                      date={exam.date}
+                      grade={exam.grade}
+                      childName={!isChild ? childDisplayName : null}
+                      childColorId={!isChild ? matchedChild?.color : null}
+                      description={exam.description}
+                      onEdit={isParent ? () => handleOpenEditModal(exam) : undefined}
+                    />
                   )
                 })}
               </div>
