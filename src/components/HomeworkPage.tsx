@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
+import { PageHeader } from "@/components/ui/page-header"
 import { LiquidTabs } from "@/components/ui/liquid-tabs"
 import { SearchInput } from "@/components/ui/search-input"
 import {
@@ -201,11 +202,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
   return (
     <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-0 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
-      <div data-page-title className="hidden md:flex md:sticky md:top-0 md:z-30 md:bg-background md:pt-6 items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0">
-        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-          {t("homework.title")}
-        </h1>
-      </div>
+      <PageHeader title={t("homework.title")} />
 
       {/* Search & Filters */}
       {(homework.length > 0 || webtopConfig?.configured) && (

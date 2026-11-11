@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { PageHeader } from "@/components/ui/page-header"
 import { SearchInput } from "@/components/ui/search-input"
 import {
   Plus,
@@ -408,11 +409,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header (Desktop only) */}
-        <div data-page-title className="hidden md:flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-          <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
-            {t("admin.title")}
-          </h2>
-        </div>
+        <PageHeader sticky={false} title={t("admin.title")} />
 
         {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">

@@ -6,6 +6,10 @@ import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
 import { LiquidDatePicker } from '../components/ui/liquid-date-picker'
+import { PageHeader } from '../components/ui/page-header'
+import { MobileHeader } from '../components/ui/mobile-header'
+import { SyncButton } from '../components/ui/sync-button'
+import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -141,6 +145,190 @@ describe('LiquidDatePicker Component', () => {
     expect(clearBtn).toBeInTheDocument()
     fireEvent.click(clearBtn)
     expect(handleSetDate).toHaveBeenCalledWith(undefined)
+  })
+})
+
+describe('PageHeader Component', () => {
+  it('renders title and data-page-title attribute', () => {
+    const { container } = render(<PageHeader title="Test Title" />)
+    const header = container.querySelector('[data-page-title]')
+    expect(header).toBeInTheDocument()
+    expect(screen.getByText('Test Title')).toBeInTheDocument()
+  })
+
+  it('renders description and action slot when provided', () => {
+    render(
+      <PageHeader
+        title="Main Title"
+        description="Subtitle info"
+        actions={<button type="button">Action</button>}
+      />
+    )
+    expect(screen.getByText('Subtitle info')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument()
+  })
+})
+
+describe('MobileHeader Component', () => {
+  it('renders title, avatar button, and action slot', () => {
+    const handleAvatarClick = vi.fn()
+    render(
+      <MobileHeader
+        title="Mobile Page"
+        username="Test User"
+        onAvatarClick={handleAvatarClick}
+        action={<button type="button">Sync</button>}
+      />
+    )
+
+    expect(screen.getByText('Mobile Page')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sync' })).toBeInTheDocument()
+
+    const avatarBtn = screen.getByRole('button', { name: /common\.account|חשבון/i })
+    expect(avatarBtn).toBeInTheDocument()
+    fireEvent.click(avatarBtn)
+    expect(handleAvatarClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies border styling when scrolled', () => {
+    const { container, rerender } = render(<MobileHeader title="Page" isScrolled={false} />)
+    expect(container.querySelector('header')?.className).toContain('border-transparent')
+
+    rerender(<MobileHeader title="Page" isScrolled={true} />)
+    expect(container.querySelector('header')?.className).toContain('border-border/50')
+  })
+})
+
+describe('SyncButton Component', () => {
+  it('renders idle sync button and triggers onClick', () => {
+    const handleClick = vi.fn()
+    render(<SyncButton onClick={handleClick} />)
+    const btn = screen.getByRole('button', { name: /common\.sync_now|סנכרן/i })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders spinning icon and disabled state when syncing', () => {
+    render(<SyncButton syncing={true} />)
+    const btn = screen.getByRole('button', { name: /common\.syncing|מסנכרן/i })
+    expect(btn).toBeDisabled()
+    expect(btn.querySelector('.animate-spin')).toBeInTheDocument()
+  })
+
+  it('renders checkmark and success classes when success=true', () => {
+    render(<SyncButton success={true} summary="Synced 5 items" />)
+    const btn = screen.getByRole('button', { name: /Synced 5 items|common\.sync_success|סונכרן/i })
+    expect(btn.className).toContain('text-emerald-600')
+  })
+})
+
+describe('AppSidebar Component', () => {
+  const DummyIcon = ({ className }: { className?: string }) => <svg data-testid="dummy-icon" className={className} />
+  const mockNavItems: SidebarNavItem[] = [
+    { tab: 'homework', label: 'Homework', icon: DummyIcon },
+    { tab: 'incidents', label: 'Incidents', icon: DummyIcon, badge: <span data-testid="test-badge">3</span> },
+    { tab: 'settings', label: 'Settings', icon: DummyIcon },
+  ]
+
+  const mockUser = {
+    username: 'johndoe',
+    firstName: 'John',
+    lastName: 'Doe',
+    avatar: null,
+    role: 'user',
+  }
+
+  it('renders app title, user display name, nav items, and version', () => {
+    render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={vi.fn()}
+        navItems={mockNavItems}
+        version="1.4.2"
+        syncAction={<button type="button">Sync Now</button>}
+      />
+    )
+
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByText('Homework')).toBeInTheDocument()
+    expect(screen.getByText('Incidents')).toBeInTheDocument()
+    expect(screen.getByTestId('test-badge')).toBeInTheDocument()
+    expect(screen.getByText('v1.4.2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sync Now' })).toBeInTheDocument()
+  })
+
+  it('triggers onTabChange when nav item is clicked', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        navItems={mockNavItems}
+      />
+    )
+
+    const incidentsBtn = screen.getByRole('button', { name: /Incidents/i })
+    fireEvent.click(incidentsBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('incidents')
+  })
+
+  it('triggers onProfileClick or onTabChange("account") when avatar button is clicked', () => {
+    const handleTabChange = vi.fn()
+    const { rerender } = render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        navItems={mockNavItems}
+      />
+    )
+
+    const avatarBtn = screen.getByRole('button', { name: /common\.account|חשבון/i })
+    fireEvent.click(avatarBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('account')
+
+    const customProfileClick = vi.fn()
+    rerender(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        onProfileClick={customProfileClick}
+        navItems={mockNavItems}
+      />
+    )
+
+    fireEvent.click(avatarBtn)
+    expect(customProfileClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders SidebarNavButton with active and inactive styles', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <SidebarNavButton
+        active={false}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Test Item"
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Test Item' })
+    expect(btn.className).toContain('text-muted-foreground')
+
+    rerender(
+      <SidebarNavButton
+        active={true}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Test Item"
+      />
+    )
+
+    expect(btn.className).toContain('bg-primary/10')
   })
 })
 

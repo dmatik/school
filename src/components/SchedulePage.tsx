@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { PageHeader } from "@/components/ui/page-header"
 import { LiquidTabs } from "@/components/ui/liquid-tabs"
 import {
   Clock,
@@ -531,14 +532,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Header Bar (Desktop only) */}
-        <div
-          data-page-title
-          className="hidden md:flex md:sticky md:top-0 md:z-30 md:bg-background md:pt-6 items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0"
-        >
-          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-            {t("schedule.title")}
-          </h1>
-        </div>
+        <PageHeader title={t("schedule.title")} />
 
       {/* Filter Bar: Child Selection (Below Title, Parents only) */}
       {isParent && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (

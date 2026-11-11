@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
+import { PageHeader } from "@/components/ui/page-header"
 import { User, Lock, Upload, LogOut, Check, Shield, Loader2, Camera, Trash2, Fingerprint, Plus, Smartphone, Laptop, Key, Users, Baby } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -308,9 +309,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   return (
     <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
-      <div data-page-title className="hidden md:flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-        <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">{t("account.title")}</h2>
-      </div>
+      <PageHeader sticky={false} title={t("account.title")} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Profile Card */}

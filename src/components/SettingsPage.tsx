@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
+import { PageHeader } from "@/components/ui/page-header"
 import {
   GraduationCap,
   Loader2,
@@ -319,11 +320,7 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
   return (
     <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
-      <div data-page-title className="hidden md:flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
-        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-          {t("settings.title")}
-        </h1>
-      </div>
+      <PageHeader sticky={false} title={t("settings.title")} />
 
       <div className="space-y-4">
         {/* Appearance & Language Card */}
