@@ -8,7 +8,6 @@ import {
   Loader2,
   FileCheck,
   CalendarDays,
-  type LucideIcon
 } from "lucide-react"
 import { Toaster } from "@/components/ui/toaster"
 import {
@@ -21,9 +20,9 @@ import {
   FileCheckFull,
 } from "@/components/ui/app-sidebar"
 import { MobileHeader } from "@/components/ui/mobile-header"
+import { LiquidDock, type DockItem } from "@/components/ui/liquid-dock"
 import { SyncButton } from "@/components/ui/sync-button"
 import { toast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
 import type { User } from "@/types"
 import { LoginView } from "@/components/LoginView"
 import { useTranslation } from "react-i18next"
@@ -180,13 +179,8 @@ function App() {
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
 
-  const mobileNavItems = useMemo(() => {
-    const items: {
-      tab: AppTab;
-      icon: LucideIcon | React.ComponentType<{ className?: string }>;
-      activeIcon?: React.ComponentType<{ className?: string }>;
-      label: string;
-    }[] = [
+  const mobileNavItems = useMemo<DockItem<AppTab>[]>(() => {
+    const items: DockItem<AppTab>[] = [
       { tab: 'homework', icon: BookOpen, activeIcon: BookOpenFull, label: t('common.homework') },
       { tab: 'incidents', icon: AlertCircle, activeIcon: AlertCircleFull, label: t('common.incidents') },
       { tab: 'exams', icon: FileCheck, activeIcon: FileCheckFull, label: t('common.exams') },
@@ -435,98 +429,15 @@ function App() {
           </main>
 
           {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}
-          <nav
-            aria-label="Mobile Navigation"
-            className={cn(
-              "md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 mx-auto z-30 p-1.5 rounded-full apple-liquid-dock transition-all duration-300",
-              mobileNavItems.length > 5
-                ? "w-[min(352px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
-                : "w-fit max-w-[calc(100vw-1.5rem)]"
-            )}
-          >
-            <div className={cn("flex items-center relative", mobileNavItems.length >= 5 && "w-max")}>
-              {mobileNavItems.map((item) => (
-                <MobileNavButton
-                  key={item.tab}
-                  active={activeTab === item.tab}
-                  onClick={() => handleTabChange(item.tab)}
-                  icon={item.icon}
-                  activeIcon={item.activeIcon}
-                  label={item.label}
-                  isFiveOrMore={mobileNavItems.length >= 5}
-                />
-              ))}
-            </div>
-          </nav>
+          <LiquidDock
+            items={mobileNavItems}
+            activeTab={activeTab}
+            onTabChange={handleTabChange}
+          />
         </div>
         <Toaster />
       </div>
     </DirectionProvider>
-  )
-}
-
-function MobileNavButton({
-  active,
-  onClick,
-  icon: Icon,
-  activeIcon: ActiveIcon,
-  label,
-  isFiveOrMore
-}: {
-  active: boolean;
-  onClick: () => void;
-  icon: LucideIcon | React.ComponentType<{ className?: string }>;
-  activeIcon?: React.ComponentType<{ className?: string }>;
-  label: string;
-  isFiveOrMore?: boolean;
-}) {
-  const buttonRef = useRef<HTMLButtonElement | null>(null)
-
-  useEffect(() => {
-    if (active && buttonRef.current) {
-      buttonRef.current.scrollIntoView({
-        behavior: 'smooth',
-        block: 'nearest',
-        inline: 'center'
-      })
-    }
-  }, [active])
-
-  const IconComponent = (active && ActiveIcon) ? ActiveIcon : Icon
-
-  return (
-    <motion.button
-      ref={buttonRef}
-      whileTap={{ scale: 0.92 }}
-      onClick={onClick}
-      className={cn(
-        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        isFiveOrMore ? "w-[68px]" : "w-[85px]",
-        active ? "text-primary" : "text-foreground"
-      )}
-    >
-      {active && (
-        <motion.div
-          layoutId="liquidGlassPill"
-          transition={{
-            type: "spring",
-            stiffness: 450,
-            damping: 35,
-          }}
-          className="absolute -inset-0.5 rounded-full apple-liquid-pill"
-        />
-      )}
-      <div className="relative z-10 flex flex-col items-center justify-center">
-        <IconComponent className={cn("stroke-[2px] w-6 h-6 transition-all", active ? "dock-icon-full text-primary" : "fill-none")} />
-        <span className={cn(
-          "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
-          isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
-          active ? "text-primary font-semibold" : "text-foreground"
-        )}>
-          {label}
-        </span>
-      </div>
-    </motion.button>
   )
 }
 

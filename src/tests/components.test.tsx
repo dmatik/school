@@ -10,6 +10,7 @@ import { PageHeader } from '../components/ui/page-header'
 import { MobileHeader } from '../components/ui/mobile-header'
 import { SyncButton } from '../components/ui/sync-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
+import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -329,6 +330,98 @@ describe('AppSidebar Component', () => {
     )
 
     expect(btn.className).toContain('bg-primary/10')
+  })
+})
+
+describe('LiquidDock Component', () => {
+  const DummyIcon = ({ className }: { className?: string }) => <svg data-testid="dock-dummy-icon" className={className} />
+  const mockDockItems: DockItem[] = [
+    { tab: 'homework', label: 'Homework', icon: DummyIcon },
+    { tab: 'incidents', label: 'Incidents', icon: DummyIcon, badge: <span data-testid="dock-badge">5</span> },
+    { tab: 'exams', label: 'Exams', icon: DummyIcon },
+    { tab: 'schedule', label: 'Schedule', icon: DummyIcon },
+    { tab: 'settings', label: 'Settings', icon: DummyIcon },
+  ]
+
+  it('renders all navigation items, labels, and badges', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+      />
+    )
+
+    expect(screen.getByText('Homework')).toBeInTheDocument()
+    expect(screen.getByText('Incidents')).toBeInTheDocument()
+    expect(screen.getByText('Exams')).toBeInTheDocument()
+    expect(screen.getByText('Schedule')).toBeInTheDocument()
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByTestId('dock-badge')).toBeInTheDocument()
+  })
+
+  it('triggers onTabChange when dock button is clicked', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+      />
+    )
+
+    const incidentsBtn = screen.getByRole('button', { name: /Incidents/i })
+    fireEvent.click(incidentsBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('incidents')
+  })
+
+  it('renders active pill on active item and inactive styling on others', () => {
+    const { container } = render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={vi.fn()}
+      />
+    )
+
+    const activePill = container.querySelector('.apple-liquid-pill')
+    expect(activePill).toBeInTheDocument()
+
+    const activeBtn = screen.getByRole('button', { name: /Homework/i })
+    expect(activeBtn.className).toContain('text-primary')
+
+    const inactiveBtn = screen.getByRole('button', { name: /Exams/i })
+    expect(inactiveBtn.className).toContain('text-foreground')
+  })
+
+  it('renders LiquidDockItem independently with correct sizing for 5+ items', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <LiquidDockItem
+        active={false}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Tab"
+        isFiveOrMore={false}
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Tab' })
+    expect(btn.className).toContain('w-[85px]')
+
+    rerender(
+      <LiquidDockItem
+        active={true}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Tab"
+        isFiveOrMore={true}
+      />
+    )
+
+    expect(btn.className).toContain('w-[68px]')
+    expect(btn.className).toContain('text-primary')
   })
 })
 
