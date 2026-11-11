@@ -8,7 +8,8 @@ export interface LiquidTabItem<T extends string = string> {
   title?: string
 }
 
-export interface LiquidTabsProps<T extends string = string> {
+export interface LiquidTabsProps<T extends string = string>
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "onSelect"> {
   items: LiquidTabItem<T>[]
   selectedId: T
   onSelect: (id: T) => void
@@ -29,7 +30,8 @@ export function LiquidTabs<T extends string = string>({
   className,
   tabClassName,
   maxItemWidth = "max-w-[140px]",
-  size = "default"
+  size = "default",
+  ...props
 }: LiquidTabsProps<T>) {
   return (
     <div
@@ -40,6 +42,7 @@ export function LiquidTabs<T extends string = string>({
         size === "sm" ? "h-8.5" : "h-10",
         className
       )}
+      {...props}
     >
       {items.map((item) => {
         const isActive = selectedId === item.id
@@ -57,7 +60,7 @@ export function LiquidTabs<T extends string = string>({
               "relative flex items-center justify-center rounded-full font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
               size === "sm" ? "h-6.5 px-3 text-sm" : "h-8 px-4 text-base",
               isActive
-                ? "text-foreground font-semibold"
+                ? "text-foreground"
                 : "text-muted-foreground hover:text-foreground",
               tabClassName
             )}

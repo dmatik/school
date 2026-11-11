@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { DatePicker } from "@/components/ui/date-picker"
+import { LiquidDatePicker } from "@/components/ui/liquid-date-picker"
 import { Calendar } from "@/components/ui/calendar"
 import { Label } from "@/components/ui/label"
 
@@ -45,13 +46,10 @@ export const LiquidFilterPill: Story = {
         <div className="text-sm font-medium text-muted-foreground">
           סינון תאריכים זכוכית נוזלית (Apple Liquid Glass) המשמש ב-Homework וב-Incidents:
         </div>
-        <div className="inline-flex items-center p-1 rounded-full apple-liquid-dock">
-          <DatePicker
-            variant="liquid"
+        <div>
+          <LiquidDatePicker
             date={date}
             setDate={setDate}
-            placeholder="כל התאריכים"
-            clearable={true}
           />
         </div>
         <div className="text-xs text-muted-foreground">

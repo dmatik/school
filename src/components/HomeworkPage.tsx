@@ -1,20 +1,18 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
+import { LiquidTabs } from "@/components/ui/liquid-tabs"
+import { SearchInput } from "@/components/ui/search-input"
 import {
   BookOpen,
-  Search,
   GraduationCap,
   Loader2,
-  FileText,
-  X
+  FileText
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { format, isToday, isYesterday } from "date-fns"
 import { he, enUS } from "date-fns/locale"
-import { DatePicker } from "@/components/ui/date-picker"
+import { LiquidDatePicker } from "@/components/ui/liquid-date-picker"
 import { cn, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
@@ -50,15 +48,6 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
     }
   }, [dateLocale, t])
 
-  const formatDateFilterDisplay = useCallback((d: Date) => {
-    const short = format(d, "dd/MM/yyyy")
-    const full = formatOneLineDate(d) || short
-    if (isChild) {
-      return { short: full, full }
-    }
-    return { short, full }
-  }, [formatOneLineDate, isChild])
-
   const [homework, setHomework] = useState<HomeworkItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
   const webtopConfigRef = useRef<WebtopConfig | null>(null)
@@ -66,12 +55,6 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
   const [selectedChildId, setSelectedChildId] = useState<string>("all")
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined)
   const [searchQuery, setSearchQuery] = useState("")
-
-  const isFutureDate = (d: Date) => {
-    const endOfToday = new Date()
-    endOfToday.setHours(23, 59, 59, 999)
-    return d > endOfToday
-  }
 
   const loadData = useCallback(async () => {
     if (!token) {
@@ -207,6 +190,14 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
 
   const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
 
+  const childTabItems = useMemo(() => [
+    { id: "all", label: t("homework.all_short") },
+    ...(webtopConfig?.linkedChildren.map((c) => ({
+      id: c.id,
+      label: c.firstName?.trim() || c.lastName?.trim() || ""
+    })) || [])
+  ], [webtopConfig?.linkedChildren, t])
+
   return (
     <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-0 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
@@ -220,26 +211,12 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
       {(homework.length > 0 || webtopConfig?.configured) && (
         <>
           {/* Search Input */}
-          <div className="relative w-full shrink-0 -mb-1.5 md:-mb-3.5">
-            <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-            <Input
-              type="search"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t("homework.search_placeholder")}
-              className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
-            />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery("")}
-                className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-                aria-label={t("common.clear_search")}
-              >
-                <X className="w-4 h-4 stroke-[2.5px]" />
-              </button>
-            )}
-          </div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder={t("homework.search_placeholder")}
+            wrapperClassName="-mb-1.5 md:-mb-3.5"
+          />
 
           {/* Liquid Glass Filter Row: Child selector at beginning of row, Date Picker at end of row (or start if no child filter) */}
           <div
@@ -251,92 +228,22 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
           >
             {/* 1 - Children Liquid Glass Selector (Parents only) */}
             {hasChildFilter && (
-              <div
-                role="tablist"
-                aria-label={t("homework.filter_child")}
+              <LiquidTabs
                 data-homework-child-selector
-                className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
-              >
-                {/* All option */}
-                <motion.button
-                  type="button"
-                  role="tab"
-                  aria-selected={selectedChildId === "all"}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedChildId("all")}
-                  className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                    selectedChildId === "all"
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {selectedChildId === "all" && (
-                    <motion.div
-                      layoutId="homeworkChildLiquidPill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 35
-                      }}
-                      className="absolute inset-0 rounded-full apple-liquid-pill"
-                    />
-                  )}
-                  <span className="relative z-10 truncate">
-                    {t("homework.all_short")}
-                  </span>
-                </motion.button>
-
-                {/* Children options */}
-                {webtopConfig?.linkedChildren.map((c) => {
-                  const isActive = selectedChildId === c.id
-                  const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
-
-                  return (
-                    <motion.button
-                      key={c.id}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setSelectedChildId(c.id)}
-                      className={cn(
-                        "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="homeworkChildLiquidPill"
-                          transition={{
-                            type: "spring",
-                            stiffness: 450,
-                            damping: 35
-                          }}
-                          className="absolute inset-0 rounded-full apple-liquid-pill"
-                        />
-                      )}
-                      <span className="relative z-10 truncate max-w-[140px]">
-                        {displayName}
-                      </span>
-                    </motion.button>
-                  )
-                })}
-              </div>
+                aria-label={t("homework.filter_child")}
+                items={childTabItems}
+                selectedId={selectedChildId}
+                onSelect={setSelectedChildId}
+                layoutId="homeworkChildLiquidPill"
+              />
             )}
 
             {/* Date Filter Button */}
             <div className={cn("shrink-0", hasChildFilter && "ms-auto")}>
-              <DatePicker
-                variant="liquid"
+              <LiquidDatePicker
                 date={selectedDate}
                 setDate={setSelectedDate}
-                placeholder={t("common.all_dates")}
-                disabled={isFutureDate}
-                clearable={true}
-                formatDisplay={formatDateFilterDisplay}
+                isChild={isChild}
                 align={hasChildFilter ? "end" : "start"}
               />
             </div>

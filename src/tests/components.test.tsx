@@ -5,6 +5,7 @@ import { IncidentsPage } from '../components/IncidentsPage'
 import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
+import { LiquidDatePicker } from '../components/ui/liquid-date-picker'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -109,6 +110,33 @@ describe('DatePicker Component', () => {
     expect(screen.getByText('Wednesday, October 28')).toHaveClass('hidden md:inline')
 
     // Clear button should be present and clickable
+    const clearBtn = screen.getByRole('button', { name: /cancel|ביטול/i })
+    expect(clearBtn).toBeInTheDocument()
+    fireEvent.click(clearBtn)
+    expect(handleSetDate).toHaveBeenCalledWith(undefined)
+  })
+})
+
+describe('LiquidDatePicker Component', () => {
+  it('renders default placeholder and data-date-selected="false" when no date is set', () => {
+    render(<LiquidDatePicker setDate={() => {}} />)
+    const btn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn).toHaveAttribute('data-date-selected', 'false')
+  })
+
+  it('renders localized date with responsive short/full labels when date is set', () => {
+    const testDate = new Date(2026, 9, 28)
+    render(<LiquidDatePicker date={testDate} setDate={() => {}} />)
+    const btn = screen.getByRole('button', { name: /Wednesday.*October 28|יום רביעי.*28 באוקטובר/i })
+    expect(btn).toHaveAttribute('data-date-selected', 'true')
+    expect(screen.getByText('28/10/2026')).toHaveClass('md:hidden')
+  })
+
+  it('handles clearing selected date', () => {
+    const handleSetDate = vi.fn()
+    const testDate = new Date(2026, 9, 28)
+    render(<LiquidDatePicker date={testDate} setDate={handleSetDate} />)
     const clearBtn = screen.getByRole('button', { name: /cancel|ביטול/i })
     expect(clearBtn).toBeInTheDocument()
     fireEvent.click(clearBtn)

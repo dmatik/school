@@ -1,16 +1,16 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { LiquidTabs, type LiquidTabItem } from "@/components/ui/liquid-tabs"
+import { SearchInput } from "@/components/ui/search-input"
 import {
-  Search,
   Plus,
   Edit2,
   Trash2,
   Loader2,
   Calendar as CalendarIcon,
   Award,
-  GraduationCap,
-  X
+  GraduationCap
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -395,6 +395,21 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
     }
   }
 
+  const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
+
+  const childTabItems = useMemo(() => [
+    { id: "all", label: t("exams.all_short") },
+    ...(webtopConfig?.linkedChildren.map((c) => ({
+      id: c.id,
+      label: c.firstName?.trim() || c.lastName?.trim() || ""
+    })) || [])
+  ], [webtopConfig?.linkedChildren, t])
+
+  const periodTabItems = useMemo<LiquidTabItem<PeriodFilter>[]>(() => [
+    { id: "future", label: t("exams.period_future") },
+    { id: "past", label: t("exams.period_past") }
+  ], [t])
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
@@ -406,156 +421,42 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         </div>
 
       {/* Filter Area: Search, Child Selector & Period Selector (Future vs Past) */}
-      {/* Search Input (iOS 26/27 greyish background) */}
-      <div className="relative w-full shrink-0 -mb-1.5 md:-mb-3.5">
-        <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-        <Input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("exams.search_placeholder")}
-          className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-            aria-label={t("common.clear_search")}
-          >
-            <X className="w-4 h-4 stroke-[2.5px]" />
-          </button>
-        )}
-      </div>
+      {/* Search Input */}
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder={t("exams.search_placeholder")}
+        wrapperClassName="-mb-1.5 md:-mb-3.5"
+      />
 
       {/* Liquid Glass Filter Row: Child selector at beginning of row, Period selector at end of row */}
       <div
         data-sticky-filters
         className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-0.5 pb-0.5 shrink-0"
       >
-          {/* 1 - Children Liquid Glass Selector (Parents only) */}
-          {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <div
-              role="tablist"
-              aria-label={t("exams.filter_child")}
-              data-exams-child-selector
-              className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
-            >
-              {/* All option */}
-              <motion.button
-                type="button"
-                role="tab"
-                aria-selected={selectedChildId === "all"}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedChildId("all")}
-                className={cn(
-                  "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                  selectedChildId === "all"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {selectedChildId === "all" && (
-                  <motion.div
-                    layoutId="examsChildLiquidPill"
-                    transition={{
-                      type: "spring",
-                      stiffness: 450,
-                      damping: 35
-                    }}
-                    className="absolute inset-0 rounded-full apple-liquid-pill"
-                  />
-                )}
-                <span className="relative z-10 truncate">
-                  {t("exams.all_short")}
-                </span>
-              </motion.button>
+        {/* 1 - Children Liquid Glass Selector (Parents only) */}
+        {hasChildFilter && (
+          <LiquidTabs
+            data-exams-child-selector
+            aria-label={t("exams.filter_child")}
+            items={childTabItems}
+            selectedId={selectedChildId}
+            onSelect={setSelectedChildId}
+            layoutId="examsChildLiquidPill"
+          />
+        )}
 
-              {/* Children options */}
-              {webtopConfig.linkedChildren.map((c) => {
-                const isActive = selectedChildId === c.id
-                const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
-
-                return (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedChildId(c.id)}
-                    className={cn(
-                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="examsChildLiquidPill"
-                        transition={{
-                          type: "spring",
-                          stiffness: 450,
-                          damping: 35
-                        }}
-                        className="absolute inset-0 rounded-full apple-liquid-pill"
-                      />
-                    )}
-                    <span className="relative z-10 truncate max-w-[140px]">
-                      {displayName}
-                    </span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* 2 - Future / Past Liquid Glass Selector (at the end of the row) */}
-          <div
-            role="tablist"
-            aria-label={t("exams.filter_period")}
-            data-exams-period-selector
-            className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock ms-auto shrink-0"
-          >
-            {(["future", "past"] as const).map((period) => {
-              const isActive = selectedPeriod === period
-              const label = period === "future" ? t("exams.period_future") : t("exams.period_past")
-
-              return (
-                <motion.button
-                  key={period}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedPeriod(period)}
-                  className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="examsPeriodLiquidPill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 35
-                      }}
-                      className="absolute inset-0 rounded-full apple-liquid-pill"
-                    />
-                  )}
-                  <span className="relative z-10 truncate">
-                    {label}
-                  </span>
-                </motion.button>
-              )
-            })}
-          </div>
-        </div>
+        {/* 2 - Future / Past Liquid Glass Selector (at the end of the row) */}
+        <LiquidTabs<PeriodFilter>
+          data-exams-period-selector
+          aria-label={t("exams.filter_period")}
+          items={periodTabItems}
+          selectedId={selectedPeriod}
+          onSelect={setSelectedPeriod}
+          layoutId="examsPeriodLiquidPill"
+          className="ms-auto shrink-0"
+        />
+      </div>
 
       {/* Main Content Area */}
       {loading ? (

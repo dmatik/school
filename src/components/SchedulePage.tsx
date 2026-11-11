@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { LiquidTabs } from "@/components/ui/liquid-tabs"
 import {
   Clock,
   Plus,
@@ -519,6 +520,13 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     })
   }
 
+  const childTabItems = useMemo(() => (
+    webtopConfig?.linkedChildren?.map((c) => ({
+      id: c.id,
+      label: c.firstName?.trim() || c.lastName?.trim() || ""
+    })) || []
+  ), [webtopConfig?.linkedChildren])
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
@@ -538,49 +546,14 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           data-sticky-filters
           className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-1 pb-2 shrink-0"
         >
-          <div
-            role="tablist"
-            aria-label={t("schedule.select_child")}
+          <LiquidTabs
             data-schedule-child-selector
-            className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full"
-          >
-            {webtopConfig.linkedChildren.map((c) => {
-              const isActive = selectedChildId === c.id
-              const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
-
-              return (
-                <motion.button
-                  key={c.id}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => handleSelectChild(c.id)}
-                  className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="scheduleChildLiquidPill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 35
-                      }}
-                      className="absolute inset-0 rounded-full apple-liquid-pill"
-                    />
-                  )}
-                  <span className="relative z-10 truncate max-w-[140px]">
-                    {displayName}
-                  </span>
-                </motion.button>
-              )
-            })}
-          </div>
+            aria-label={t("schedule.select_child")}
+            items={childTabItems}
+            selectedId={selectedChildId}
+            onSelect={handleSelectChild}
+            layoutId="scheduleChildLiquidPill"
+          />
         </div>
       )}
 

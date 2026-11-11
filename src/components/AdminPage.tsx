@@ -1,18 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
 import { motion } from "framer-motion"
+import { SearchInput } from "@/components/ui/search-input"
 import {
   Plus,
   Shield,
   Key,
   Trash2,
   Edit2,
-  Search,
   Loader2,
   AlertTriangle,
   Users,
-  Baby,
-  X
+  Baby
 } from "lucide-react"
 import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -417,26 +416,12 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
         {/* Search & Stats */}
       <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder={t("admin.search_placeholder")}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
-          />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-              aria-label={t("common.clear_search")}
-            >
-              <X className="w-4 h-4 stroke-[2.5px]" />
-            </button>
-          )}
-        </div>
+        <SearchInput
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder={t("admin.search_placeholder")}
+          wrapperClassName="w-full sm:w-72"
+        />
         <div className="text-sm text-muted-foreground self-end sm:self-center">
           {t("admin.total_users", { count: users.length })}
         </div>
