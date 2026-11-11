@@ -43,9 +43,9 @@ import {
   AlertDialogHeader,
   AlertDialogTitle
 } from "@/components/ui/alert-dialog"
-import { format, isToday, isYesterday, isTomorrow } from "date-fns"
-import { he, enUS } from "date-fns/locale"
+import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
+import { SectionDateHeader } from "@/components/ui/section-date-header"
 import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
@@ -61,31 +61,9 @@ interface ExamsPageProps {
 type PeriodFilter = "future" | "past"
 
 export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const isChild = currentUser?.familyRole === "child"
   const isParent = !isChild
-  const isRtl = i18n.dir() === "rtl"
-  const dateLocale = isRtl ? he : enUS
-
-  const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
-    if (!dateInput || dateInput === "no-date") return ""
-    try {
-      const d = parseLocalDate(dateInput)
-      if (isNaN(d.getTime())) return ""
-      if (isToday(d)) {
-        return t("common.today")
-      }
-      if (isTomorrow(d)) {
-        return t("common.tomorrow")
-      }
-      if (isYesterday(d)) {
-        return t("common.yesterday")
-      }
-      return format(d, "EEEE, PPP", { locale: dateLocale })
-    } catch {
-      return ""
-    }
-  }, [dateLocale, t])
 
   const [exams, setExams] = useState<ExamItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
@@ -500,12 +478,8 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         <div className="space-y-3.5 !mt-0">
           {groupedExams.map((group) => (
             <div key={group.date} className="space-y-1">
-              {/* Date Section Header: No badge, aligned to beginning of the row */}
-              <div className="flex justify-start pt-1 pb-1 px-1">
-                <h2 className="text-sm sm:text-base font-semibold text-muted-foreground tracking-tight select-none text-start">
-                  {formatOneLineDate(group.date) || group.date}
-                </h2>
-              </div>
+              {/* Date Section Header */}
+              <SectionDateHeader date={group.date} />
 
               {/* Feed Cards */}
               <div className="flex flex-col gap-2.5 sm:gap-3">

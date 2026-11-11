@@ -11,6 +11,7 @@ import { MobileHeader } from '../components/ui/mobile-header'
 import { SyncButton } from '../components/ui/sync-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
+import { SectionDateHeader } from '../components/ui/section-date-header'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -422,6 +423,41 @@ describe('LiquidDock Component', () => {
 
     expect(btn.className).toContain('w-[68px]')
     expect(btn.className).toContain('text-primary')
+  })
+})
+
+describe('SectionDateHeader Component', () => {
+  it('renders today, yesterday, and tomorrow relative dates', () => {
+    const today = new Date()
+    const yesterday = new Date(Date.now() - 86400000)
+    const tomorrow = new Date(Date.now() + 86400000)
+
+    const { rerender } = render(<SectionDateHeader date={today} />)
+    expect(screen.getByText(/common\.today|היום|Today/i)).toBeInTheDocument()
+
+    rerender(<SectionDateHeader date={yesterday} />)
+    expect(screen.getByText(/common\.yesterday|אתמול|Yesterday/i)).toBeInTheDocument()
+
+    rerender(<SectionDateHeader date={tomorrow} />)
+    expect(screen.getByText(/common\.tomorrow|מחר|Tomorrow/i)).toBeInTheDocument()
+  })
+
+  it('renders localized weekday and date for specific date string', () => {
+    // 2026-10-28 was a Wednesday
+    render(<SectionDateHeader date="2026-10-28" />)
+    expect(screen.getByText(/Wednesday|רביעי/i)).toBeInTheDocument()
+    expect(screen.getByText(/28/)).toBeInTheDocument()
+  })
+
+  it('renders custom element tag when "as" prop is provided', () => {
+    const { container } = render(<SectionDateHeader date="2026-10-28" as="h3" />)
+    const h3 = container.querySelector('h3')
+    expect(h3).toBeInTheDocument()
+  })
+
+  it('renders nothing when date is null or empty', () => {
+    const { container } = render(<SectionDateHeader date={null} />)
+    expect(container.firstChild).toBeNull()
   })
 })
 

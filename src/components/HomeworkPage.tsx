@@ -11,10 +11,10 @@ import {
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { format, isToday, isYesterday } from "date-fns"
-import { he, enUS } from "date-fns/locale"
+import { format } from "date-fns"
 import { LiquidDatePicker } from "@/components/ui/liquid-date-picker"
-import { cn, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from "@/lib/utils"
+import { SectionDateHeader } from "@/components/ui/section-date-header"
+import { cn, getHomeworkText, consolidateHomework, getChildFirstName } from "@/lib/utils"
 import { getSubjectConfig } from "@/lib/subject-icons"
 import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
 import { toast } from "@/hooks/use-toast"
@@ -27,27 +27,8 @@ interface HomeworkPageProps {
 }
 
 export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPageProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const isChild = currentUser?.familyRole === "child"
-  const isRtl = i18n.dir() === "rtl"
-  const dateLocale = isRtl ? he : enUS
-
-  const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
-    if (!dateInput || dateInput === "no-date") return ""
-    try {
-      const d = parseLocalDate(dateInput)
-      if (isNaN(d.getTime())) return ""
-      if (isToday(d)) {
-        return t("common.today")
-      }
-      if (isYesterday(d)) {
-        return t("common.yesterday")
-      }
-      return format(d, "EEEE, PPP", { locale: dateLocale })
-    } catch {
-      return ""
-    }
-  }, [dateLocale, t])
 
   const [homework, setHomework] = useState<HomeworkItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
@@ -335,12 +316,8 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
         <div className="space-y-3.5 !mt-0">
           {groupedHomework.map((group) => (
             <div key={group.date} className="space-y-1">
-              {/* Date Section Header: No badge, aligned to beginning of the row */}
-              <div className="flex justify-start pt-1 pb-1 px-1">
-                <h2 className="text-sm sm:text-base font-semibold text-muted-foreground tracking-tight select-none text-start">
-                  {formatOneLineDate(group.date) || group.date}
-                </h2>
-              </div>
+              {/* Date Section Header */}
+              <SectionDateHeader date={group.date} />
 
               {/* Chat-style Continuing Feed */}
               <div className="flex flex-col gap-2.5 sm:gap-3">
