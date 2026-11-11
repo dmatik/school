@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
-import { motion } from "framer-motion"
 import {
   GraduationCap,
   Loader2,
@@ -12,15 +11,19 @@ import {
   Edit2,
   Trash2,
   Check,
-  Palette,
-  Sun,
-  Moon,
-  SunMoon
+  Palette
 } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -337,11 +340,11 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
             </div>
           </CardHeader>
 
-          <CardContent className="pt-4 space-y-4">
+          <CardContent className="pt-2 divide-y divide-border/40">
             {/* Language Selector Row */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3.5">
               <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-foreground block">
+                <span className="text-sm font-semibold text-foreground block">
                   {t("settings.language_label")}
                 </span>
                 <span className="text-xs text-muted-foreground block">
@@ -349,55 +352,31 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 </span>
               </div>
 
-              {/* Liquid Glass Language Selector */}
-              <div
-                role="tablist"
-                aria-label={t("settings.language_label")}
-                data-settings-language-selector
-                className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
-              >
-                {[
-                  { code: "he", label: t("common.hebrew") },
-                  { code: "en", label: t("common.english") }
-                ].map(({ code, label }) => {
-                  const isActive = (i18n.language || "he").startsWith(code)
-                  return (
-                    <motion.button
-                      key={code}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => i18n.changeLanguage(code)}
-                      className={cn(
-                        "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="settingsLanguageLiquidPill"
-                          transition={{
-                            type: "spring",
-                            stiffness: 450,
-                            damping: 35
-                          }}
-                          className="absolute inset-0 rounded-full apple-liquid-pill"
-                        />
-                      )}
-                      <span className="relative z-10 truncate">{label}</span>
-                    </motion.button>
-                  )
-                })}
+              <div className="w-full sm:w-[160px] shrink-0">
+                <Select
+                  value={(i18n.language || "he").startsWith("en") ? "en" : "he"}
+                  onValueChange={(val) => i18n.changeLanguage(val)}
+                >
+                  <SelectTrigger
+                    id="settings-language-select"
+                    data-settings-language-selector
+                    aria-label={t("settings.language_label")}
+                    className="w-full bg-muted dark:bg-secondary border-transparent"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="he">{t("common.hebrew")}</SelectItem>
+                    <SelectItem value="en">{t("common.english")}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
             {/* Color Theme Selector Row */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3.5">
               <div className="space-y-0.5">
-                <span className="text-xs font-semibold text-foreground block">
+                <span className="text-sm font-semibold text-foreground block">
                   {t("settings.theme_label")}
                 </span>
                 <span className="text-xs text-muted-foreground block">
@@ -405,50 +384,25 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 </span>
               </div>
 
-              {/* Liquid Glass Theme Selector */}
-              <div
-                role="tablist"
-                aria-label={t("settings.theme_label")}
-                data-settings-theme-selector
-                className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
-              >
-                {[
-                  { value: "light", label: t("common.light"), icon: Sun },
-                  { value: "dark", label: t("common.dark"), icon: Moon },
-                  { value: "system", label: t("common.system"), icon: SunMoon }
-                ].map(({ value, label, icon: Icon }) => {
-                  const isActive = theme === value
-                  return (
-                    <motion.button
-                      key={value}
-                      type="button"
-                      role="tab"
-                      aria-selected={isActive}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => setTheme(value)}
-                      className={cn(
-                        "relative flex items-center justify-center gap-2 h-8 px-3.5 sm:px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                        isActive
-                          ? "text-foreground"
-                          : "text-muted-foreground hover:text-foreground"
-                      )}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="settingsThemeLiquidPill"
-                          transition={{
-                            type: "spring",
-                            stiffness: 450,
-                            damping: 35
-                          }}
-                          className="absolute inset-0 rounded-full apple-liquid-pill"
-                        />
-                      )}
-                      <Icon className="relative z-10 w-5 h-5 shrink-0 stroke-[2px]" />
-                      <span className="relative z-10 truncate">{label}</span>
-                    </motion.button>
-                  )
-                })}
+              <div className="w-full sm:w-[160px] shrink-0">
+                <Select
+                  value={theme || "system"}
+                  onValueChange={(val) => setTheme(val)}
+                >
+                  <SelectTrigger
+                    id="settings-theme-select"
+                    data-settings-theme-selector
+                    aria-label={t("settings.theme_label")}
+                    className="w-full bg-muted dark:bg-secondary border-transparent"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="light">{t("common.light")}</SelectItem>
+                    <SelectItem value="dark">{t("common.dark")}</SelectItem>
+                    <SelectItem value="system">{t("common.system")}</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
           </CardContent>

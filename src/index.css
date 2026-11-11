@@ -229,4 +229,9 @@
     border: none;
     box-shadow: none;
   }
+
+  /* Dock / Tab Bar Filled Active Icon Styles */
+  .dock-icon-full {
+    fill: currentColor;
+  }
 }

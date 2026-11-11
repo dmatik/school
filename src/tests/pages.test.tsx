@@ -210,7 +210,7 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
   })
 
   describe('SettingsPage Component', () => {
-    it('renders appearance & language section with liquid glass selectors for language and theme', async () => {
+    it('renders appearance & language section with dropdown selectors for language and theme', async () => {
       render(<SettingsPage token="mock-test-jwt-token" currentUser={testRegularUser} />)
 
       await waitFor(() => {
@@ -219,22 +219,15 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
       expect(screen.getByText('settings.appearance_title')).toBeInTheDocument()
       expect(screen.getByText('settings.appearance_desc')).toBeInTheDocument()
 
-      // Language liquid glass selector
-      const langSelector = screen.getByRole('tablist', { name: 'settings.language_label' })
+      // Language dropdown selector
+      const langSelector = screen.getByRole('combobox', { name: 'settings.language_label' })
       expect(langSelector).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: 'common.hebrew' })).toBeInTheDocument()
-      const enTab = screen.getByRole('tab', { name: 'common.english' })
-      expect(enTab).toBeInTheDocument()
+      expect(langSelector).toHaveAttribute('data-settings-language-selector')
 
-      // Theme liquid glass selector
-      const themeSelector = screen.getByRole('tablist', { name: 'settings.theme_label' })
+      // Theme dropdown selector
+      const themeSelector = screen.getByRole('combobox', { name: 'settings.theme_label' })
       expect(themeSelector).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /common\.light/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /common\.dark/i })).toBeInTheDocument()
-      expect(screen.getByRole('tab', { name: /common\.system/i })).toBeInTheDocument()
-
-      // Click English option
-      fireEvent.click(enTab)
+      expect(themeSelector).toHaveAttribute('data-settings-theme-selector')
 
       // Webtop section is also visible for parent user
       expect(screen.getByText('account.webtop_title')).toBeInTheDocument()
@@ -255,8 +248,8 @@ describe('AdminPage, AccountPage & SettingsPage Component Tests (Isolated Test U
           expect(screen.getByText('settings.title')).toBeInTheDocument()
         })
         expect(screen.getByText('settings.appearance_title')).toBeInTheDocument()
-        expect(screen.getByRole('tablist', { name: 'settings.language_label' })).toBeInTheDocument()
-        expect(screen.getByRole('tablist', { name: 'settings.theme_label' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'settings.language_label' })).toBeInTheDocument()
+        expect(screen.getByRole('combobox', { name: 'settings.theme_label' })).toBeInTheDocument()
 
         // Webtop configuration must NOT be rendered
         expect(screen.queryByText('account.webtop_title')).not.toBeInTheDocument()

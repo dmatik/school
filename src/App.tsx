@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from "react"
+import { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy, useId } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertCircle,
@@ -174,12 +174,17 @@ function App() {
   const [syncTrigger, setSyncTrigger] = useState(0)
 
   const mobileNavItems = useMemo(() => {
-    const items: { tab: AppTab; icon: LucideIcon; label: string }[] = [
-      { tab: 'homework', icon: BookOpen, label: t('common.homework') },
-      { tab: 'incidents', icon: AlertCircle, label: t('common.incidents') },
+    const items: {
+      tab: AppTab;
+      icon: LucideIcon;
+      activeIcon?: React.ComponentType<{ className?: string }>;
+      label: string;
+    }[] = [
+      { tab: 'homework', icon: BookOpen, activeIcon: BookOpenFull, label: t('common.homework') },
+      { tab: 'incidents', icon: AlertCircle, activeIcon: AlertCircleFull, label: t('common.incidents') },
       { tab: 'exams', icon: GraduationCap, label: t('common.exams') },
-      { tab: 'schedule', icon: CalendarDays, label: t('common.schedule') },
-      { tab: 'settings', icon: SettingsIcon, label: t('common.settings_short') },
+      { tab: 'schedule', icon: CalendarDays, activeIcon: CalendarDaysFull, label: t('common.schedule') },
+      { tab: 'settings', icon: SettingsIcon, activeIcon: SettingsFull, label: t('common.settings_short') },
     ]
     if (currentUser?.role === 'admin') {
       items.push({ tab: 'admin', icon: Shield, label: t('common.admin_short') })
@@ -402,12 +407,14 @@ function App() {
               active={activeTab === 'homework'}
               onClick={() => handleTabChange('homework')}
               icon={BookOpen}
+              activeIcon={BookOpenFull}
               label={t('common.homework')}
             />
             <MenuButton
               active={activeTab === 'incidents'}
               onClick={() => handleTabChange('incidents')}
               icon={AlertCircle}
+              activeIcon={AlertCircleFull}
               label={t('common.incidents')}
             />
             <MenuButton
@@ -420,12 +427,14 @@ function App() {
               active={activeTab === 'schedule'}
               onClick={() => handleTabChange('schedule')}
               icon={CalendarDays}
+              activeIcon={CalendarDaysFull}
               label={t('common.schedule')}
             />
             <MenuButton
               active={activeTab === 'settings'}
               onClick={() => handleTabChange('settings')}
               icon={SettingsIcon}
+              activeIcon={SettingsFull}
               label={t('common.settings')}
             />
             {currentUser.role === 'admin' && (
@@ -556,6 +565,7 @@ function App() {
                   active={activeTab === item.tab}
                   onClick={() => handleTabChange(item.tab)}
                   icon={item.icon}
+                  activeIcon={item.activeIcon}
                   label={item.label}
                   isFiveOrMore={mobileNavItems.length >= 5}
                 />
@@ -569,7 +579,151 @@ function App() {
   )
 }
 
-function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; onClick: () => void; icon: LucideIcon; label: string }) {
+function BookOpenFull({ className }: { className?: string }) {
+  const maskId = useId()
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect width="100%" height="100%" fill="white" />
+          <path d="M12 7v14" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        </mask>
+      </defs>
+      <path
+        d="M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"
+        mask={`url(#${maskId})`}
+      />
+    </svg>
+  )
+}
+
+function CalendarDaysFull({ className }: { className?: string }) {
+  const maskId = useId()
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect width="100%" height="100%" fill="white" />
+          <path d="M3 10h18" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M8 14h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M12 14h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M16 14h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M8 18h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M12 18h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <path d="M16 18h.01" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        </mask>
+      </defs>
+      <path d="M8 2v4" />
+      <path d="M16 2v4" />
+      <rect
+        width="18"
+        height="18"
+        x="3"
+        y="4"
+        rx="2"
+        fill="currentColor"
+        mask={`url(#${maskId})`}
+      />
+    </svg>
+  )
+}
+
+function AlertCircleFull({ className }: { className?: string }) {
+  const maskId = useId()
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect width="100%" height="100%" fill="white" />
+          <line x1="12" y1="8" x2="12" y2="12" stroke="black" strokeWidth="2" strokeLinecap="round" />
+          <line x1="12" y1="16" x2="12.01" y2="16" stroke="black" strokeWidth="2" strokeLinecap="round" />
+        </mask>
+      </defs>
+      <circle cx="12" cy="12" r="10" mask={`url(#${maskId})`} />
+    </svg>
+  )
+}
+
+function SettingsFull({ className }: { className?: string }) {
+  const maskId = useId()
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className={className}
+      aria-hidden="true"
+    >
+      <defs>
+        <mask id={maskId}>
+          <rect width="100%" height="100%" fill="white" />
+          <circle cx="12" cy="12" r="3" fill="black" stroke="black" strokeWidth="2" />
+        </mask>
+      </defs>
+      <path
+        d="M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915"
+        mask={`url(#${maskId})`}
+      />
+    </svg>
+  )
+}
+
+function MenuButton({
+  active,
+  onClick,
+  icon: Icon,
+  activeIcon: ActiveIcon,
+  label
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: LucideIcon;
+  activeIcon?: React.ComponentType<{ className?: string }>;
+  label: string;
+}) {
+  const IconComponent = (active && ActiveIcon) ? ActiveIcon : Icon
   return (
     <motion.button
       whileTap={{ scale: 0.98 }}
@@ -577,11 +731,11 @@ function MenuButton({ active, onClick, icon: Icon, label }: { active: boolean; o
       className={cn(
         "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border border-transparent",
         active
-          ? "bg-[#555DB0]/10 text-[#555DB0] dark:bg-[#555DB0]/20 dark:text-[#8E94DB] shadow-xs"
+          ? "bg-primary/10 text-primary dark:bg-primary/20 dark:text-primary shadow-xs"
           : "text-muted-foreground hover:bg-accent/70 hover:text-foreground"
       )}
     >
-      <Icon className={cn("w-4 h-4 shrink-0", active ? "stroke-[2.5px] text-[#555DB0] dark:text-[#8E94DB]" : "text-muted-foreground")} />
+      <IconComponent className={cn("w-4 h-4 shrink-0 transition-all", active ? "stroke-[2px] dock-icon-full text-primary" : "text-muted-foreground")} />
       <span className="truncate">{label}</span>
     </motion.button>
   )
@@ -591,12 +745,14 @@ function MobileNavButton({
   active,
   onClick,
   icon: Icon,
+  activeIcon: ActiveIcon,
   label,
   isFiveOrMore
 }: {
   active: boolean;
   onClick: () => void;
   icon: LucideIcon;
+  activeIcon?: React.ComponentType<{ className?: string }>;
   label: string;
   isFiveOrMore?: boolean;
 }) {
@@ -612,15 +768,17 @@ function MobileNavButton({
     }
   }, [active])
 
+  const IconComponent = (active && ActiveIcon) ? ActiveIcon : Icon
+
   return (
     <motion.button
       ref={buttonRef}
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#555DB0]/40",
+        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         isFiveOrMore ? "w-[68px]" : "w-[85px]",
-        active ? "text-[#555DB0] dark:text-[#8E94DB]" : "text-foreground"
+        active ? "text-primary" : "text-foreground"
       )}
     >
       {active && (
@@ -635,11 +793,11 @@ function MobileNavButton({
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
-        <Icon className="stroke-[2px] w-6 h-6" />
+        <IconComponent className={cn("stroke-[2px] w-6 h-6 transition-all", active ? "dock-icon-full text-primary" : "fill-none")} />
         <span className={cn(
           "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
           isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
-          active ? "text-[#555DB0] dark:text-[#8E94DB]" : "text-foreground"
+          active ? "text-primary font-semibold" : "text-foreground"
         )}>
           {label}
         </span>
