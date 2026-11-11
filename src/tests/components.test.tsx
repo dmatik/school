@@ -596,7 +596,7 @@ describe('Empty Page Views', () => {
 
       // Ensure no count badge elements or calendar svg icons exist inside the day headers
       const headings = screen.getAllByRole('heading', { level: 2 })
-      headings.forEach((heading) => {
+      headings.forEach((heading: HTMLElement) => {
         const headerDiv = heading.parentElement
         // Header container should contain only the heading (no calendar icon container, no count badge)
         expect(headerDiv?.querySelectorAll('span')).toHaveLength(0)
