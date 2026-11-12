@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { webtopLog, maskUser } from './webtopLogger.js';
 
 const WEBTOP_API_BASE = 'https://webtopserver.smartschool.co.il/server';
 
@@ -83,11 +84,32 @@ export function getWebtopStudyYear(date = new Date()) {
   return month >= 7 ? year + 1 : year;
 }
 
+
+/** Credentials rejected by Webtop (wrong/changed password) or a session that cannot be renewed. */
+export class WebtopAuthError extends Error {
+  constructor(message) {
+    super(message);
+    this.name = 'WebtopAuthError';
+  }
+}
+
+const SESSION_EXPIRED_PATTERN = /expired|unauthori[sz]ed|not authenticated|not logged|session|פג תוקף|לא מחובר/i;
+
+// In-memory session cache keyed by username so that repeated syncs reuse one login.
+const sessionCache = new Map();
+
+export function clearWebtopSession(username) {
+  if (username) sessionCache.delete(username.trim());
+  else sessionCache.clear();
+}
+
 export class WebtopClient {
   constructor() {
     this.cookieHeader = '';
     this.token = '';
     this.user = null;
+    this.credentials = null;
+    this.loginCount = 0;
   }
 
   getHeaders() {
@@ -100,6 +122,23 @@ export class WebtopClient {
     };
   }
 
+  /**
+   * Reuse a cached session if one exists for this user; log in only when none is cached.
+   * A later "session expired" response triggers exactly one transparent re-login (see request()).
+   */
+  async useSession(username, password) {
+    this.credentials = { username, password };
+    const cached = sessionCache.get((username || '').trim());
+    webtopLog.info(cached ? 'Reusing cached session' : 'No cached session, login required', { user: maskUser(username) });
+    if (cached) {
+      this.cookieHeader = cached.cookieHeader;
+      this.token = cached.token;
+      this.user = cached.user;
+      return this.user;
+    }
+    return this.login(username, password);
+  }
+
   async login(username, password) {
     if (!username || !password) {
       throw new Error('Webtop username and password are required');
@@ -107,8 +146,53 @@ export class WebtopClient {
 
     const trimmedUser = username.trim();
     const trimmedPass = password.trim();
+    sessionCache.delete(trimmedUser);
+    this.cookieHeader = '';
 
-    const response = await fetch(`${WEBTOP_API_BASE}/api/user/LoginByUserNameAndPassword`, {
+    const user = maskUser(trimmedUser);
+    const startedAt = Date.now();
+    webtopLog.info('Login attempt', { user });
+    let response;
+    try {
+      response = await this.loginFetch(trimmedUser, trimmedPass);
+    } catch (err) {
+      webtopLog.warn('Login request failed', { user, error: err.message, ms: Date.now() - startedAt });
+      throw err;
+    }
+    this.loginCount += 1;
+
+    if (!response.ok) {
+      const msg = `Webtop authentication HTTP error: ${response.status}`;
+      if (response.status === 401 || response.status === 403) {
+        webtopLog.lockout('Login rejected', { user, status: response.status, ms: Date.now() - startedAt });
+        throw new WebtopAuthError(msg);
+      }
+      webtopLog.warn('Login HTTP error', { user, status: response.status, ms: Date.now() - startedAt });
+      throw new Error(msg);
+    }
+
+    const data = await response.json();
+    if (!data.status) {
+      webtopLog.lockout('Login rejected: invalid credentials', { user, ms: Date.now() - startedAt });
+      throw new WebtopAuthError(data.message || 'Invalid Webtop credentials');
+    }
+    webtopLog.info('Login ok', { user, ms: Date.now() - startedAt });
+
+    const rawCookie = response.headers.get('set-cookie') || '';
+    this.token = data.data?.token || '';
+    if (rawCookie) {
+      this.cookieHeader = rawCookie.split(',').map(c => c.split(';')[0].trim()).join('; ');
+    } else if (this.token) {
+      this.cookieHeader = `webToken=${this.token}`;
+    }
+
+    this.user = data.data;
+    sessionCache.set(trimmedUser, { cookieHeader: this.cookieHeader, token: this.token, user: this.user });
+    return this.user;
+  }
+
+  loginFetch(trimmedUser, trimmedPass) {
+    return fetch(`${WEBTOP_API_BASE}/api/user/LoginByUserNameAndPassword`, {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
@@ -123,124 +207,92 @@ export class WebtopClient {
       }),
       signal: AbortSignal.timeout(15000)
     });
+  }
 
-    if (!response.ok) {
-      throw new Error(`Webtop authentication HTTP error: ${response.status}`);
+  /**
+   * POST to a Webtop API path. If the session has expired, log in once and retry once.
+   * Throws WebtopAuthError when the session cannot be renewed.
+   */
+  async request(apiPath, body, failureLabel) {
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const startedAt = Date.now();
+      let response;
+      try {
+        response = await fetch(`${WEBTOP_API_BASE}${apiPath}`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify(body),
+          signal: AbortSignal.timeout(15000)
+        });
+      } catch (err) {
+        webtopLog.warn(`Call failed POST ${apiPath}`, { error: err.message, ms: Date.now() - startedAt });
+        throw err;
+      }
+      webtopLog.info(`Call POST ${apiPath}`, { status: response.status, ms: Date.now() - startedAt, ...(attempt > 0 ? { retry: 'after-relogin' } : {}) });
+
+      let data = null;
+      let expired = response.status === 401 || response.status === 403;
+      if (!expired && response.ok) {
+        data = await response.json();
+        if (!data.status && SESSION_EXPIRED_PATTERN.test(data.message || '')) expired = true;
+      }
+
+      if (expired) {
+        webtopLog.info(`Session expired on ${apiPath}`, { willRelogin: Boolean(attempt === 0 && this.credentials) });
+        if (this.credentials) sessionCache.delete(this.credentials.username.trim());
+        if (attempt === 0 && this.credentials) {
+          await this.login(this.credentials.username, this.credentials.password);
+          continue;
+        }
+        webtopLog.lockout('Session expired and could not be renewed', { path: apiPath });
+        throw new WebtopAuthError('Webtop session expired and could not be renewed');
+      }
+
+      if (!response.ok) {
+        webtopLog.warn(`Call error POST ${apiPath}`, { status: response.status });
+        throw new Error(`${failureLabel}: HTTP ${response.status}`);
+      }
+      if (!data.status) {
+        throw new Error(data.message || failureLabel);
+      }
+      return data;
     }
-
-    const data = await response.json();
-    if (!data.status) {
-      const msg = data.message || 'Invalid Webtop credentials';
-      throw new Error(msg);
-    }
-
-    const rawCookie = response.headers.get('set-cookie') || '';
-    this.token = data.data?.token || '';
-    if (rawCookie) {
-      this.cookieHeader = rawCookie.split(',').map(c => c.split(';')[0].trim()).join('; ');
-    } else if (this.token) {
-      this.cookieHeader = `webToken=${this.token}`;
-    }
-
-    this.user = data.data;
-    return this.user;
+    throw new WebtopAuthError('Webtop session expired and could not be renewed');
   }
 
   async initDashboard() {
-    const response = await fetch(`${WEBTOP_API_BASE}/api/dashboard/InitDashboard`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({}),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to initialize Webtop dashboard: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.status) {
-      throw new Error(data.message || 'Failed to fetch dashboard data');
-    }
-
+    const data = await this.request('/api/dashboard/InitDashboard', {}, 'Failed to initialize Webtop dashboard');
     return data.data || {};
   }
 
   async getIncidents(childId, classCode) {
-    const response = await fetch(`${WEBTOP_API_BASE}/api/dashboard/GetPupilDiciplineEvents`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        id: childId,
-        ClassCode: classCode
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch discipline events: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.status) {
-      throw new Error(data.message || 'Failed to fetch incidents');
-    }
-
-    const events = data.data?.dataTable?.diciplineEvents || [];
-    return events;
+    const data = await this.request(
+      '/api/dashboard/GetPupilDiciplineEvents',
+      { id: childId, ClassCode: classCode },
+      'Failed to fetch discipline events'
+    );
+    return data.data?.dataTable?.diciplineEvents || [];
   }
 
   async getHomework(childId, classCode, classNum) {
-    const response = await fetch(`${WEBTOP_API_BASE}/api/dashboard/GetHomeWork`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        id: childId,
-        ClassCode: classCode,
-        ClassNumber: classNum
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch homework: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.status) {
-      throw new Error(data.message || 'Failed to fetch homework');
-    }
-
-    const lessons = data.data?.dataTable || [];
-    return lessons;
+    const data = await this.request(
+      '/api/dashboard/GetHomeWork',
+      { id: childId, ClassCode: classCode, ClassNumber: classNum },
+      'Failed to fetch homework'
+    );
+    return data.data?.dataTable || [];
   }
 
   async getWeeklyLessonsAndHomework(childId, classCode, studyYear = getWebtopStudyYear(), weekIndex = 0) {
-    const response = await fetch(`${WEBTOP_API_BASE}/api/PupilCard/GetPupilLessonsAndHomework`, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({
-        studentID: childId,
-        classCode: classCode,
-        studyYear: studyYear,
-        weekIndex: weekIndex,
-        moduleID: 11
-      }),
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      throw new Error(`Failed to fetch weekly lessons and homework: HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    if (!data.status) {
-      throw new Error(data.message || 'Failed to fetch weekly lessons and homework');
-    }
-
+    const data = await this.request(
+      '/api/PupilCard/GetPupilLessonsAndHomework',
+      { studentID: childId, classCode, studyYear, weekIndex, moduleID: 11 },
+      'Failed to fetch weekly lessons and homework'
+    );
     return Array.isArray(data.data) ? data.data : [];
   }
 }
+
 
 /**
  * Match a freshly synced child object (from Webtop API) against previously stored

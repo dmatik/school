@@ -325,7 +325,14 @@
     "color_update_failed": "Failed to update color",
     "disconnect_failed": "Failed to disconnect Webtop",
     "sync_error": "Sync error",
-    "sync_failed": "Sync failed"
+    "sync_failed": "Sync failed",
+    "webtop_auto_sync_label": "Automatic sync",
+    "webtop_auto_sync_desc": "Sync with Webtop every ~3 hours (not at night)",
+    "webtop_auto_sync_next": "Next automatic sync: {{date}}",
+    "webtop_auto_sync_paused_title": "Automatic sync paused",
+    "webtop_auto_sync_paused_desc": "Webtop rejected the saved login. Check the credentials in Settings, then resume.",
+    "webtop_auto_sync_resume": "Resume automatic sync",
+    "webtop_auto_sync_go_settings": "Go to Settings"
   },
   "settings": {
     "title": "Settings",
@@ -391,4 +398,3 @@
     "admin_parent_only_hint": "Administrator accounts can only be parents."
   }
 }
-

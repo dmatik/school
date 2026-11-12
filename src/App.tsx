@@ -22,6 +22,7 @@ import {
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { LiquidDock, type DockItem } from "@/components/ui/liquid-dock"
 import { SyncButton } from "@/components/ui/sync-button"
+import { NoticeBanner } from "@/components/ui/notice-banner"
 import { toast } from "@/hooks/use-toast"
 import type { User } from "@/types"
 import { LoginView } from "@/components/LoginView"
@@ -178,6 +179,8 @@ function App() {
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
+  const [autoSyncPaused, setAutoSyncPaused] = useState(false)
+  const onOpenSyncCheckedRef = useRef(false)
 
   const mobileNavItems = useMemo<DockItem<AppTab>[]>(() => {
     const items: DockItem<AppTab>[] = [
@@ -202,10 +205,13 @@ function App() {
       if (res.ok) {
         const data = await res.json()
         setWebtopConfigured(Boolean(data.configured))
+        setAutoSyncPaused(Boolean(data.autoSyncAvailable && data.autoSyncPaused))
+        return data as { configured?: boolean; autoSyncAvailable?: boolean; autoSyncEnabled?: boolean }
       }
     } catch {
       // ignore
     }
+    return null
   }, [token])
 
   useEffect(() => {
@@ -219,6 +225,30 @@ function App() {
     }
   }, [checkWebtopConfig])
 
+  // Production only: when the app is opened, refresh stale data (server decides; it skips in dev)
+  useEffect(() => {
+    if (!token || onOpenSyncCheckedRef.current) return
+    onOpenSyncCheckedRef.current = true
+    ;(async () => {
+      const cfg = await checkWebtopConfig()
+      if (!cfg?.configured || !cfg.autoSyncAvailable || !cfg.autoSyncEnabled) return
+      try {
+        const res = await fetch("/api/webtop/sync-if-stale", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        if (!res.ok) return
+        const data = await res.json()
+        if (!data.skipped) {
+          setSyncTrigger(prev => prev + 1)
+          checkWebtopConfig()
+        }
+      } catch {
+        // silent: background refresh must never disturb the user
+      }
+    })()
+  }, [token, checkWebtopConfig])
+
   // Listen to external sync events (e.g. from SettingsPage) to show green checkmark
   useEffect(() => {
     const handleSyncedEvent = (e: Event) => {
@@ -230,6 +260,7 @@ function App() {
         }))
       }
       setSyncSuccess(true)
+      checkWebtopConfig()
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
@@ -241,7 +272,7 @@ function App() {
       window.removeEventListener("webtop:synced", handleSyncedEvent)
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
     }
-  }, [t])
+  }, [t, checkWebtopConfig])
 
   const handleSync = async () => {
     if (!token || syncing) return
@@ -389,6 +420,25 @@ function App() {
             isScrolled={Boolean(isScrolled || isScrolling)}
             action={renderWebtopSyncButton()}
           />
+
+          {autoSyncPaused && (
+            <NoticeBanner
+              variant="warning"
+              className="mx-3 mt-3 rounded-xl"
+              title={t("account.webtop_auto_sync_paused_title")}
+              description={t("account.webtop_auto_sync_paused_desc")}
+            >
+              {activeTab !== 'settings' && (
+                <button
+                  type="button"
+                  onClick={() => handleTabChange('settings')}
+                  className="text-xs font-semibold text-primary hover:underline"
+                >
+                  {t("account.webtop_auto_sync_go_settings")}
+                </button>
+              )}
+            </NoticeBanner>
+          )}
 
           {/* Main Body */}
           <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full">

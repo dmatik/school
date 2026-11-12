@@ -325,7 +325,14 @@
     "color_update_failed": "עדכון הצבע נכשל",
     "disconnect_failed": "ניתוק חיבור Webtop נכשל",
     "sync_error": "שגיאת סנכרון",
-    "sync_failed": "הסנכרון נכשל"
+    "sync_failed": "הסנכרון נכשל",
+    "webtop_auto_sync_label": "סנכרון אוטומטי",
+    "webtop_auto_sync_desc": "סנכרון מול Webtop כל כ-3 שעות (לא בלילה)",
+    "webtop_auto_sync_next": "הסנכרון האוטומטי הבא: {{date}}",
+    "webtop_auto_sync_paused_title": "הסנכרון האוטומטי הושהה",
+    "webtop_auto_sync_paused_desc": "Webtop דחה את פרטי ההתחברות השמורים. בדקו את הפרטים בהגדרות ואז המשיכו.",
+    "webtop_auto_sync_resume": "חידוש סנכרון אוטומטי",
+    "webtop_auto_sync_go_settings": "מעבר להגדרות"
   },
   "settings": {
     "title": "הגדרות",
@@ -391,4 +398,3 @@
     "admin_parent_only_hint": "חשבון מנהל מערכת יכול להיות מוגדר כהורה בלבד."
   }
 }
-
