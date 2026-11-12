@@ -15,10 +15,11 @@ Whenever the user asks to "do code review", "review this PR/branch", or "review 
         ▼                                   ▼                                   ▼
 [Blue Team: Architecture]          [Blue Team: UI & Testing]         [Red Team: Adversarial]
 `code-reviewer-architecture`       `code-reviewer-ui-testing`        `red-team-reviewer`
-• Architecture & Design Patterns   • Bilingual i18n Completeness     • Injection & DDE Attacks
-• React 19 & TypeScript Types      • Bi-directional RTL Compliance   • Auth, Session & Data Integrity
-• Backend & DB Synchronous Rules   • Accessibility & Visual UX       • Crash Probing & Fuzzing
-• Performance & Memory Discipline  • Vitest & Playwright Isolation   • DoS & Edge Case Failures
+• Architecture & Design Patterns   • Shared Components & Storybook   • Injection & DDE Attacks
+• Zero Code / UI Duplication       • Bilingual i18n Completeness     • Auth, Session & Data Integrity
+• React 19 & TypeScript Types      • Bi-directional RTL Compliance   • Crash Probing & Fuzzing
+• Backend & DB Synchronous Rules   • Accessibility & Visual UX       • DoS & Edge Case Failures
+• Performance & Memory Discipline  • Vitest & Playwright Isolation   • Boundary Conditions
         │                                   │                                   │
         └───────────────────────────────────┼───────────────────────────────────┘
                                             ▼
@@ -26,20 +27,22 @@ Whenever the user asks to "do code review", "review this PR/branch", or "review 
 ```
 
 ### A. Blue Team 1: Architecture & Code Quality Reviewer (`code-reviewer-architecture`)
-- **Focus**: System architecture, type safety, framework conventions, performance, and clean code.
+- **Focus**: System architecture, zero code duplication, shared component reuse, type safety, framework conventions, performance, and clean code.
 - **Checklist**:
   1. **Stack Compliance**: Strict adherence to React 19 (functional components, standard ref prop, no forwardRef), TypeScript 6, Vite 7, Radix UI primitives, Express 5, Better-SQLite3 synchronous API.
-  2. **Type Safety & Contracts**: Accurate TypeScript interfaces in `src/types.ts` or module exports. No `any` type escapes unless strictly justified.
-  3. **Data Access & Scoping**: Parameterized queries (`?`), multi-tenant scoping (`user_id = ?`), WAL mode safety, and proper foreign key cascade definitions.
-  4. **Performance & Lifecycle**: Memoization of expensive operations (`useMemo`, `useCallback`), proper hook dependency arrays, clean resource allocation and teardown.
+  2. **Zero Code Duplication & Shared Component Reuse**: Every UI section, modal, form field, button, card, and badge **must** use the shared components in `src/components/ui/` (`SectionCard`, `Modal`, `ConfirmModal`, `FilledInput`, `FilledTextarea`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `EditButton`, `DestructiveButton`, `SyncButton`, `LogoutButton`, etc.). Flag any inline re-implementation or duplicated markup as a blocker (`CHANGES REQUESTED`).
+  3. **Type Safety & Contracts**: Accurate TypeScript interfaces in `src/types.ts` or module exports. No `any` type escapes unless strictly justified.
+  4. **Data Access & Scoping**: Parameterized queries (`?`), multi-tenant scoping (`user_id = ?`), WAL mode safety, and proper foreign key cascade definitions.
+  5. **Performance & Lifecycle**: Memoization of expensive operations (`useMemo`, `useCallback`), proper hook dependency arrays, clean resource allocation and teardown.
 
-### B. Blue Team 2: UI/UX, Bilingual i18n & Test Integrity Reviewer (`code-reviewer-ui-testing`)
-- **Focus**: User experience, internationalization, bidirectional RTL layouts, and testing rigor.
+### B. Blue Team 2: UI/UX, Storybook Catalog, Bilingual i18n & Test Integrity Reviewer (`code-reviewer-ui-testing`)
+- **Focus**: Shared Storybook component compliance, user experience, internationalization, bidirectional RTL layouts, and testing rigor.
 - **Checklist**:
-  1. **Bilingual i18n Completeness**: Zero hardcoded strings in JSX or UI. Every label, toast, dialog, and message must exist in *both* `src/locales/en.json` and `src/locales/he.json`.
-  2. **Bi-directional & RTL Discipline**: Strictly use logical Tailwind CSS classes (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`, `text-end`). Zero physical directional classes (`pl-`, `pr-`, `ml-`, `mr-`, `text-left`, `text-right`). Pass `dir={i18n.dir()}` to popovers/dropdowns.
-  3. **Vitest Unit & Component Coverage**: Validates pure functions, calculation logic, edge inputs, and component state transitions inside `src/`.
-  4. **Playwright E2E Isolation**: Tests located strictly in `e2e/`, using isolated temporary users (`createTestUser` and `deleteTestUser`) in `beforeEach`/`afterEach`. Zero pollution of CI workflows or production admin records.
+  1. **Shared Storybook Component & Catalog Compliance**: Verify that all UI elements use shared Storybook components from `src/components/ui/` and that any new or modified shared component/variant has a corresponding, up-to-date story in `src/stories/` (and `src/stories/Introduction.mdx`). Reject any raw `DialogContent`/`AlertDialogContent` in pages (must use `Modal`/`ConfirmModal`) or raw unstyled inputs/buttons.
+  2. **Bilingual i18n Completeness**: Zero hardcoded strings in JSX or UI. Every label, toast, dialog, and message must exist in *both* `src/locales/en.json` and `src/locales/he.json`.
+  3. **Bi-directional & RTL Discipline**: Strictly use logical Tailwind CSS classes (`ps-`, `pe-`, `ms-`, `me-`, `start-`, `end-`, `text-start`, `text-end`). Zero physical directional classes (`pl-`, `pr-`, `ml-`, `mr-`, `text-left`, `text-right`). Pass `dir={i18n.dir()}` to popovers/dropdowns.
+  4. **Vitest Unit & Component Coverage**: Validates pure functions, calculation logic, edge inputs, and component state transitions inside `src/`.
+  5. **Playwright E2E Isolation**: Tests located strictly in `e2e/`, using isolated temporary users (`createTestUser` and `deleteTestUser`) in `beforeEach`/`afterEach`. Zero pollution of CI workflows or production admin records.
 
 ### C. Red Team: Adversarial Security & Reliability Reviewer (`red-team-reviewer`)
 - **Focus**: Exploitation vectors, stress testing, data integrity, and failure modes.

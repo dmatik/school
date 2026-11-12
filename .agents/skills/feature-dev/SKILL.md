@@ -28,13 +28,20 @@ Follow this step-by-step checklist when building new features in `class_attend`:
    - `src/locales/he.json`
 2. Ensure Hebrew strings read naturally and preserve correct punctuation.
 
-## Phase 4: Frontend UI Implementation
-1. Use existing Radix UI primitives in `src/components/ui/`.
-2. Apply Tailwind CSS with **logical properties** (`ps-`, `pe-`, `start-`, `end-`, `text-start`).
-3. Handle loading, empty, and error states gracefully.
-4. If creating a new major tab or view:
+## Phase 4: Shared Frontend UI & Storybook Implementation (Zero Code Duplication)
+1. **Use Shared Components Only (Zero Duplication)**:
+   - Every section, card, modal, form field, button, badge, and table **must** use the shared components in `src/components/ui/` (`SectionCard`, `Modal`, `ConfirmModal`, `FilledInput`, `FilledTextarea`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `FieldLabel`, `SelectField` / `SelectTrigger variant="filled"`, `DatePicker variant="filled"`, `Button`, `EditButton`, `DestructiveButton`, `SyncButton`, `LogoutButton`, `FloatingActionButton`, `PageHeader`, etc.).
+   - **Never duplicate UI markup** or build ad-hoc inline cards/modals/fields in page components.
+2. **Create/Extend Shared Components First**:
+   - If a feature requires a new UI element or variant not yet in `src/components/ui/`, create or extend the shared component in `src/components/ui/` first and consume it in the page.
+3. **Update Storybook Catalog (`src/stories/`)**:
+   - Every new or modified shared component or variant **must** be added or updated in `src/stories/` (`1-fields-and-inputs/`, `2-buttons-and-nav/`, `3-badges-and-pickers/`, or `4-surfaces-and-cards/`) and documented in `src/stories/Introduction.mdx`.
+4. **Logical RTL Styling & States**:
+   - Apply Tailwind CSS with **logical properties** (`ps-`, `pe-`, `start-`, `end-`, `text-start`).
+   - Handle loading, empty (`EmptyStateCard`), and error states gracefully.
+5. **If creating a new major tab or view**:
    - Wrap with `React.lazy` in `src/App.tsx`.
-   - Add tab icon and label in sidebar and mobile bottom navigation.
+   - Add tab icon and label in `Sidebar` and mobile `Dock`.
 
 ## Phase 5: Verification & Testing
 1. **Vitest Unit/Component Tests**:

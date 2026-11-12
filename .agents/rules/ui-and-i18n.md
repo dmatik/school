@@ -33,9 +33,27 @@ The application defaults to Hebrew (`dir="rtl"`) and supports English (`dir="ltr
 
 ---
 
-## 3. Component Architecture
+## 3. Shared Component Architecture & Storybook Mandate (Zero Code Duplication)
 
-* **UI Primitives**: Headless Radix UI components live in `src/components/ui/`. Use existing primitives (`Button`, `Card`, `Dialog`, `Select`, `Input`, `Switch`, `Tabs`, `Toast`).
-* **Class Merging**: Always use `cn(...)` from `@/lib/utils` to merge conditional Tailwind classes.
-* **Lazy Loading**: Major views must be lazy-loaded in `src/App.tsx` and wrapped with `<Suspense fallback={<LoadingSpinner />}>`.
+### Mandatory Rules
+1. **Zero UI Code Duplication**:
+   * Never write raw or duplicated markup for cards, sections, modals, dialogs, inputs, textareas, date pickers, selects, buttons, badges, avatars, headers, or list rows across views.
+   * Every UI element **must** consume the shared components in [`src/components/ui/`](../../src/components/ui).
+2. **Create/Extend Shared Components First**:
+   * If a feature requires a new UI element or a new variant of an existing control, build or extend the shared component in `src/components/ui/` first, then import it in the page/view.
+3. **Mandatory Storybook Catalog Synchronization**:
+   * Every new shared component, prop variant, or visual pattern **must** be added or updated in [`src/stories/`](../../src/stories) under its corresponding category:
+     * `src/stories/1-fields-and-inputs/` (`Input`, `SearchInput`, `Textarea`, `Select`, `DatePicker`, `SwitchAndLabel`)
+     * `src/stories/2-buttons-and-nav/` (`Button`, `ActionButton`, `SyncButton`, `LogoutButton`, `FloatingActionButton`, `Header`, `Sidebar`, `Dock`, `LiquidTabs`, `Tabs`)
+     * `src/stories/3-badges-and-pickers/` (`ChildBadge`, `StatusBadge`, `DateBadge`, `SubjectIconBadge`, `UserAvatar`, `ColorSwatchPicker`)
+     * `src/stories/4-surfaces-and-cards/` (`SectionCard`, `Modal`, `HomeworkCard`, `IncidentCard`, `ExamCard`, `AdminUserRow`, `ScheduleTable`, `EmptyStateCard`, `InfoBox`, `SectionDateHeader`, `Separator`, `Login`, `OverlaysAndControls`)
+   * Update [`src/stories/Introduction.mdx`](../../src/stories/Introduction.mdx) whenever adding a new component category or surface.
+4. **Canonical Shared Component Mapping**:
+   * **Modals & Confirmations**: Always use `Modal` and `ConfirmModal` (`src/components/ui/modal.tsx`) — never raw `DialogContent` or `AlertDialogContent` in application pages.
+   * **Form Fields**: Always use `FilledInput`, `FilledTextarea`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `FieldLabel` (`src/components/ui/form-field.tsx`), `SelectField` / `SelectTrigger variant="filled"` (`src/components/ui/select.tsx`), and `DatePicker variant="filled"` (`src/components/ui/date-picker.tsx`).
+   * **Sections & Surfaces**: Always use `SectionCard` (`src/components/ui/section-card.tsx`), `InfoBox` / `InfoItem` (`src/components/ui/info-box.tsx`), and `EmptyStateCard` (`src/components/ui/empty-state-card.tsx`).
+   * **Buttons & Actions**: Always use `Button`, `EditButton`, `DestructiveButton`, `ActionIconButton`, `SyncButton`, `LogoutButton`, and `FloatingActionButton`.
+5. **Class Merging & Lazy Loading**:
+   * Always use `cn(...)` from `@/lib/utils` to merge conditional Tailwind classes.
+   * Major views must be lazy-loaded in `src/App.tsx` and wrapped with `<Suspense fallback={<LoadingSpinner />}>`.
 
