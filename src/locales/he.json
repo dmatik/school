@@ -337,6 +337,7 @@
   "admin": {
     "title": "ניהול מערכת",
     "subtitle": "ניהול משתמשים והרשאות",
+    "users_section_title": "משתמשי מערכת",
     "add_user_button": "הוסף משתמש",
     "search_placeholder": "חיפוש",
     "total_users": "סה\"כ: {{count}} משתמשים",

@@ -337,6 +337,7 @@
   "admin": {
     "title": "System Administration",
     "subtitle": "Manage users and permissions",
+    "users_section_title": "System Users",
     "add_user_button": "Add User",
     "search_placeholder": "Search",
     "total_users": "Total: {{count}} users",

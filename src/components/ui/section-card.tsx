@@ -1,6 +1,7 @@
 import * as React from "react"
 import { type LucideIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
+import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 
 export interface SectionCardProps
@@ -138,3 +139,16 @@ export const SectionCardContent = ({
     {children}
   </div>
 )
+
+export const SectionCardSeparator = React.forwardRef<
+  HTMLDivElement,
+  React.ComponentPropsWithoutRef<typeof Separator>
+>(({ className, ...props }, ref) => (
+  <Separator
+    ref={ref}
+    className={cn("my-0 bg-border/40 dark:bg-border/60", className)}
+    {...props}
+  />
+))
+SectionCardSeparator.displayName = "SectionCardSeparator"
+

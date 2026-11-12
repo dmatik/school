@@ -3,16 +3,13 @@ import { useTranslation } from "react-i18next"
 import { PageHeader } from "@/components/ui/page-header"
 import { SearchInput } from "@/components/ui/search-input"
 import {
-  Shield,
-  Key,
-  Trash2,
-  Edit2,
   Loader2,
   AlertTriangle,
-  Users,
-  Baby
+  Users
 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
+import { SectionCard } from "@/components/ui/section-card"
+import { Separator } from "@/components/ui/separator"
+import { AdminUserRow } from "@/components/ui/admin-user-row"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
@@ -43,8 +40,6 @@ import {
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
-import { cn } from "@/lib/utils"
-import { getChildColor } from "@/lib/child-colors"
 import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
 
 interface AdminPageProps {
@@ -410,170 +405,60 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         {/* Page Header (Desktop only) */}
         <PageHeader sticky={false} title={t("admin.title")} />
 
-        {/* Search & Stats */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <SearchInput
-          value={searchQuery}
-          onChange={setSearchQuery}
-          placeholder={t("admin.search_placeholder")}
-          wrapperClassName="w-full sm:w-72"
-        />
-        <div className="text-sm text-muted-foreground self-end sm:self-center">
-          {t("admin.total_users", { count: users.length })}
+        {/* Search */}
+        <div>
+          <SearchInput
+            value={searchQuery}
+            onChange={setSearchQuery}
+            placeholder={t("admin.search_placeholder")}
+            wrapperClassName="w-full"
+          />
         </div>
-      </div>
 
-      {/* Users List */}
-      <Card className="shadow-sm border border-transparent overflow-hidden">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {searchQuery ? t("admin.no_users_found") : t("admin.no_users")}
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filteredUsers.map((u) => {
-                const isSelf = u.id === currentUser.id
-                const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ")
-
+        {/* Users List Section Card */}
+        <div className="space-y-4">
+          <SectionCard
+            icon={Users}
+            title={t("admin.users_section_title")}
+            description={t("admin.total_users", { count: users.length })}
+            contentClassName="pt-1"
+          >
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {searchQuery ? t("admin.no_users_found") : t("admin.no_users")}
+              </div>
+            ) : (
+              filteredUsers.map((u, index) => {
+                const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
                 return (
-                  <div
-                    key={u.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {u.avatar ? (
-                        <img
-                          src={u.avatar}
-                          alt={u.username}
-                          className="w-10 h-10 rounded-full object-cover border border-transparent shadow-xs"
-                        />
-                      ) : (() => {
-                        const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
-                        const userChildColor = linkedChild ? getChildColor(linkedChild.color) : null
-                        return (
-                          <div
-                            className={cn(
-                              "w-10 h-10 rounded-full flex items-center justify-center font-bold border border-transparent shadow-xs",
-                              userChildColor ? cn(userChildColor.bg, "text-white") : "bg-primary text-primary-foreground"
-                            )}
-                          >
-                            {u.username[0]?.toUpperCase() || "U"}
-                          </div>
-                        )
-                      })()}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {fullName || u.username}
-                          </span>
-                          {fullName && (
-                            <span className="text-xs text-muted-foreground">({u.username})</span>
-                          )}
-                          {isSelf && (
-                            <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium border border-transparent">
-                              {t("admin.you")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 font-medium",
-                              u.role === "admin" ? "text-[#D4973B] dark:text-[#F5D59E]" : "text-[#3B82C4] dark:text-[#AED4F8]"
-                            )}
-                          >
-                            <Shield className="w-3 h-3" />
-                            {u.role === "admin" ? t("account.role_admin") : t("account.role_user")}
-                          </span>
-                          <span className="text-border">•</span>
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 font-medium",
-                              u.familyRole === "child" ? "text-[#2CA58D] dark:text-[#9EE8D8]" : "text-[#8A63B8] dark:text-[#D8C2F2]"
-                            )}
-                          >
-                            {u.familyRole === "child" ? (
-                              <Baby className="w-3 h-3" />
-                            ) : (
-                              <Users className="w-3 h-3" />
-                            )}
-                            {u.familyRole === "child" ? t("admin.role_child") : t("admin.role_parent")}
-                          </span>
-                          {u.familyRole === "child" && (() => {
-                            const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
-                            if (linkedChild) {
-                              const childName = `${linkedChild.firstName} ${linkedChild.lastName}`.trim() || linkedChild.id
-                              return (
-                                <>
-                                  <span className="text-border">•</span>
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-transparent">
-                                    {childName}
-                                  </span>
-                                </>
-                              )
+                  <div key={u.id}>
+                    {index > 0 && <Separator className="my-0" />}
+                    <AdminUserRow
+                      user={u}
+                      isSelf={u.id === currentUser.id}
+                      linkedChild={
+                        linkedChild
+                          ? {
+                              id: linkedChild.id,
+                              name: `${linkedChild.firstName} ${linkedChild.lastName}`.trim() || linkedChild.id,
+                              color: linkedChild.color,
                             }
-                            return (
-                              <>
-                                <span className="text-border">•</span>
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-transparent">
-                                  {t("admin.unlinked_child_badge")}
-                                </span>
-                              </>
-                            )
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(u)}
-                        title={t("admin.edit_user")}
-                        className="h-8 px-2 text-xs flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{t("common.edit")}</span>
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openPasswordDialog(u)}
-                        title={t("admin.reset_password")}
-                        className="h-8 px-2 text-xs flex items-center gap-1"
-                      >
-                        <Key className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{t("admin.reset_password_short")}</span>
-                      </Button>
-
-                      {!isSelf && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUserToDelete(u)}
-                          title={t("admin.delete_user")}
-                          className="h-8 px-2 text-xs text-destructive hover:text-destructive flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden md:inline">{t("common.delete")}</span>
-                        </Button>
-                      )}
-                    </div>
+                          : null
+                      }
+                      onEdit={() => openEditDialog(u)}
+                      onResetPassword={() => openPasswordDialog(u)}
+                      onDelete={u.id !== currentUser.id ? () => setUserToDelete(u) : undefined}
+                    />
                   </div>
                 )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              })
+            )}
+          </SectionCard>
+        </div>
 
       {/* Create User Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>

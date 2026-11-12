@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react"
-import { Palette, GraduationCap, Key, CheckCircle2, Globe, Plus } from "lucide-react"
+import { Palette, GraduationCap, Key, CheckCircle2, Globe, Plus, Users } from "lucide-react"
 import {
   SectionCard,
   SectionCardHeader,
@@ -9,6 +9,8 @@ import {
 } from "@/components/ui/section-card"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Separator } from "@/components/ui/separator"
+import { AdminUserRow } from "@/components/ui/admin-user-row"
 
 const meta: Meta<typeof SectionCard> = {
   title: "4. Surfaces & Modals/SectionCard",
@@ -135,6 +137,71 @@ export const WithHeaderAction: Story = {
         <div className="text-sm text-muted-foreground">
           רשימת מפתחות רשומים במכשיר הנוכחי.
         </div>
+      </SectionCard>
+    </div>
+  ),
+}
+
+export const AdminUsersSection: Story = {
+  render: () => (
+    <div className="max-w-xl space-y-4">
+      <SectionCard
+        icon={Users}
+        title="משתמשי מערכת"
+        description="סה״כ: 3 משתמשים"
+        contentClassName="pt-1"
+      >
+        <AdminUserRow
+          user={{
+            id: "admin-1",
+            username: "admin",
+            firstName: "מנהל",
+            lastName: "מערכת",
+            role: "admin",
+            familyRole: "parent",
+          }}
+          isSelf
+          onEdit={() => {}}
+          onResetPassword={() => {}}
+        />
+
+        <Separator className="my-0" />
+
+        <AdminUserRow
+          user={{
+            id: "user-2",
+            username: "ronen",
+            firstName: "רונן",
+            lastName: "טרוסמן",
+            role: "user",
+            familyRole: "child",
+            linkedChildId: "child-1",
+          }}
+          linkedChild={{
+            id: "child-1",
+            name: "רונן טרוסמן",
+            color: "blue",
+          }}
+          onEdit={() => {}}
+          onResetPassword={() => {}}
+          onDelete={() => {}}
+        />
+
+        <Separator className="my-0" />
+
+        <AdminUserRow
+          user={{
+            id: "user-3",
+            username: "dima",
+            firstName: "דימה",
+            lastName: "טרוסמן",
+            role: "user",
+            familyRole: "parent",
+          }}
+          onEdit={() => {}}
+          onResetPassword={() => {}}
+          onDelete={() => {}}
+        />
       </SectionCard>
     </div>
   ),
