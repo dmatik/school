@@ -9,12 +9,16 @@ import { LiquidDatePicker } from '../components/ui/liquid-date-picker'
 import { PageHeader } from '../components/ui/page-header'
 import { MobileHeader } from '../components/ui/mobile-header'
 import { SyncButton } from '../components/ui/sync-button'
+import { ActionButton, EditButton, DestructiveButton } from '../components/ui/action-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
 import { SectionDateHeader } from '../components/ui/section-date-header'
 import { HomeworkCard } from '../components/ui/homework-card'
 import { IncidentCard } from '../components/ui/incident-card'
 import { ExamCard } from '../components/ui/exam-card'
+import { SelectField, SelectItem } from '../components/ui/select'
+import { InfoBox, InfoItem } from '../components/ui/info-box'
+import { SectionCard, SectionCardHeader, SectionCardTitle, SectionCardDescription, SectionCardContent } from '../components/ui/section-card'
 import { ScheduleTable } from '../components/ui/schedule-table'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
@@ -226,6 +230,67 @@ describe('SyncButton Component', () => {
     render(<SyncButton success={true} summary="Synced 5 items" />)
     const btn = screen.getByRole('button', { name: /Synced 5 items|common\.sync_success|סונכרן/i })
     expect(btn.className).toContain('text-emerald-600')
+  })
+
+  it('renders outline pill variant with text and animated state changes', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <SyncButton variant="outline" onClick={handleClick} label="סנכרן מול Webtop" />
+    )
+    const btn = screen.getByRole('button', { name: /סנכרן מול Webtop/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('rounded-full')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+
+    // Syncing state
+    rerender(<SyncButton variant="outline" syncing={true} syncingLabel="מסנכרן כעת..." />)
+    expect(screen.getByText('מסנכרן כעת...')).toBeInTheDocument()
+    expect(btn).toBeDisabled()
+
+    // Success state
+    rerender(<SyncButton variant="outline" success={true} successLabel="סונכרן בהצלחה" />)
+    expect(screen.getByText('סונכרן בהצלחה')).toBeInTheDocument()
+    expect(btn.className).toContain('border-[#2CA58D]/50')
+  })
+})
+
+describe('ActionButton, EditButton & DestructiveButton Components', () => {
+  it('renders ActionButton with custom icon and triggers onClick', () => {
+    const handleClick = vi.fn()
+    render(
+      <ActionButton onClick={handleClick}>
+        ביצוע פעולה
+      </ActionButton>
+    )
+    const btn = screen.getByRole('button', { name: /ביצוע פעולה/i })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders EditButton with pencil icon and default text', () => {
+    const handleClick = vi.fn()
+    render(<EditButton onClick={handleClick} />)
+    const btn = screen.getByRole('button', { name: /עריכה|common\.edit/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('text-muted-foreground')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders DestructiveButton with trash icon and destructive styling', () => {
+    const handleClick = vi.fn()
+    render(
+      <DestructiveButton onClick={handleClick}>
+        נתק חיבור
+      </DestructiveButton>
+    )
+    const btn = screen.getByRole('button', { name: /נתק חיבור/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('text-destructive')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
   })
 })
 
@@ -1440,4 +1505,159 @@ describe('Toast & ToastClose Component', () => {
     expect(closeBtn.className).toContain('opacity-80')
   })
 })
+
+describe('SectionCard Component', () => {
+  it('renders with unified container styling matching HomeworkCard, IncidentCard, and ExamCard', () => {
+    const { container } = render(
+      <SectionCard title="Test Title" description="Test Description">
+        <div>Card Body Content</div>
+      </SectionCard>
+    )
+
+    const card = container.firstChild as HTMLElement
+    expect(card).toBeInTheDocument()
+    expect(card.className).toContain('rounded-2xl')
+    expect(card.className).toContain('bg-card')
+    expect(card.className).toContain('border-border/40')
+    expect(card.className).toContain('shadow-xs')
+  })
+
+  it('renders icon, title, description, and action slot in header', () => {
+    render(
+      <SectionCard
+        title="Appearance Settings"
+        description="Configure theme and language"
+        icon={<span data-testid="custom-icon">Icon</span>}
+        action={<button data-testid="custom-action">Edit</button>}
+      >
+        <div>Settings Content</div>
+      </SectionCard>
+    )
+
+    expect(screen.getByText('Appearance Settings')).toBeInTheDocument()
+    expect(screen.getByText('Configure theme and language')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-action')).toBeInTheDocument()
+    expect(screen.getByText('Settings Content')).toBeInTheDocument()
+  })
+
+  it('supports compound subcomponents for custom structure', () => {
+    render(
+      <SectionCard>
+        <SectionCardHeader>
+          <SectionCardTitle>Compound Title</SectionCardTitle>
+          <SectionCardDescription>Compound Description</SectionCardDescription>
+        </SectionCardHeader>
+        <SectionCardContent>
+          <div>Compound Content</div>
+        </SectionCardContent>
+      </SectionCard>
+    )
+
+    expect(screen.getByText('Compound Title')).toBeInTheDocument()
+    expect(screen.getByText('Compound Description')).toBeInTheDocument()
+    expect(screen.getByText('Compound Content')).toBeInTheDocument()
+  })
+})
+
+describe('SelectField Component', () => {
+  it('renders with optional label and secondary description in responsive layout', () => {
+    render(
+      <SelectField
+        id="test-lang-select"
+        label="Language Label"
+        description="Select your preferred language"
+        defaultValue="he"
+        layout="responsive"
+        variant="filled"
+      >
+        <SelectItem value="he">Hebrew</SelectItem>
+        <SelectItem value="en">English</SelectItem>
+      </SelectField>
+    )
+
+    expect(screen.getByText('Language Label')).toBeInTheDocument()
+    expect(screen.getByText('Select your preferred language')).toBeInTheDocument()
+    const combobox = screen.getByRole('combobox', { name: 'Language Label' })
+    expect(combobox).toBeInTheDocument()
+    expect(combobox.className).toContain('bg-muted')
+  })
+
+  it('renders in stacked layout with full width trigger below description', () => {
+    const { container } = render(
+      <SelectField
+        id="test-theme-select"
+        label="Theme Label"
+        description="Choose theme"
+        defaultValue="system"
+        layout="stacked"
+        variant="filled"
+      >
+        <SelectItem value="system">System</SelectItem>
+      </SelectField>
+    )
+
+    expect(screen.getByText('Theme Label')).toBeInTheDocument()
+    expect(screen.getByText('Choose theme')).toBeInTheDocument()
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper.className).toContain('space-y-2')
+  })
+
+  it('renders cleanly when label and description are omitted (keeping them optional)', () => {
+    render(
+      <SelectField defaultValue="system" ariaLabel="Standalone Select">
+        <SelectItem value="system">System</SelectItem>
+      </SelectField>
+    )
+
+    const combobox = screen.getByRole('combobox', { name: 'Standalone Select' })
+    expect(combobox).toBeInTheDocument()
+    expect(screen.queryByRole('label')).toBeNull()
+  })
+})
+
+describe('InfoBox & InfoItem Component', () => {
+  it('renders grid container with elevated secondary dark background and key-value items', () => {
+    const { container } = render(
+      <InfoBox columns={2}>
+        <InfoItem label="Webtop Username" value="KQT460" />
+        <InfoItem label="Last Synced" value="11/11/2026, 18:56:07" isLtr />
+      </InfoBox>
+    )
+
+    const grid = container.firstChild as HTMLElement
+    expect(grid).toBeInTheDocument()
+    expect(grid.className).toContain('grid')
+    expect(grid.className).toContain('bg-muted/40')
+    expect(grid.className).toContain('dark:bg-secondary/80')
+    expect(grid.className).toContain('rounded-xl')
+
+    expect(screen.getByText('Webtop Username')).toBeInTheDocument()
+    expect(screen.getByText('KQT460')).toBeInTheDocument()
+    expect(screen.getByText('Last Synced')).toBeInTheDocument()
+    expect(screen.getByText('11/11/2026, 18:56:07')).toBeInTheDocument()
+  })
+
+  it('supports array items prop and custom column counts', () => {
+    const { container } = render(
+      <InfoBox
+        columns={3}
+        items={[
+          { label: 'Col 1', value: 'Val 1' },
+          { label: 'Col 2', value: 'Val 2' },
+          { label: 'Col 3', value: 'Val 3' },
+        ]}
+      />
+    )
+
+    const grid = container.firstChild as HTMLElement
+    expect(grid.className).toContain('sm:grid-cols-3')
+    expect(screen.getByText('Col 1')).toBeInTheDocument()
+    expect(screen.getByText('Val 1')).toBeInTheDocument()
+    expect(screen.getByText('Col 3')).toBeInTheDocument()
+  })
+})
+
+
+
 

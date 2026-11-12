@@ -25,8 +25,10 @@ export function ChildBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center border border-transparent shrink-0 shadow-xs transition-colors rounded-full font-semibold",
-        size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-2.5 py-1 text-xs",
+        "inline-flex items-center justify-center border border-transparent shrink-0 shadow-xs transition-colors rounded-full font-semibold",
+        size === "sm"
+          ? "px-2.5 py-0.5 text-xs min-h-[22px] leading-tight"
+          : "px-2.5 py-1 text-xs leading-normal",
         variant === "dot" ? "gap-1.5" : "gap-1",
         badgeClasses,
         className

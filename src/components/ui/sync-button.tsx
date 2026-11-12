@@ -11,6 +11,12 @@ export interface SyncButtonProps {
   summary?: string | null
   className?: string
   disabled?: boolean
+  variant?: "icon" | "outline" | "pill"
+  size?: "default" | "sm"
+  label?: string
+  syncingLabel?: string
+  successLabel?: string
+  iconPosition?: "start" | "end"
 }
 
 export function SyncButton({
@@ -20,8 +26,79 @@ export function SyncButton({
   summary,
   className,
   disabled = false,
+  variant = "icon",
+  size = "sm",
+  label,
+  syncingLabel,
+  successLabel,
+  iconPosition = "end",
 }: SyncButtonProps) {
   const { t } = useTranslation()
+
+  if (variant === "outline" || variant === "pill") {
+    const displayLabel = success
+      ? (successLabel ?? t("account.webtop_synced"))
+      : syncing
+        ? (syncingLabel ?? t("account.webtop_syncing"))
+        : (label ?? t("account.webtop_sync_button"))
+
+    const iconEl = (
+      <AnimatePresence mode="wait" initial={false}>
+        {success ? (
+          <motion.div
+            key="check"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.5, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-center justify-center text-[#2CA58D] dark:text-[#9EE8D8] shrink-0"
+          >
+            <Check className="w-3.5 h-3.5 stroke-[2.5px]" />
+          </motion.div>
+        ) : (
+          <motion.div
+            key="refresh"
+            initial={{ scale: 0.5, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ scale: 0.5, opacity: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex items-center justify-center shrink-0"
+          >
+            <RefreshCw className={cn("w-3.5 h-3.5", syncing && "animate-spin")} />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    )
+
+    return (
+      <Button
+        type="button"
+        variant="outline"
+        size={size}
+        onClick={onClick}
+        disabled={disabled || syncing}
+        className={cn(
+          "text-xs flex items-center gap-1.5 rounded-full transition-colors",
+          success && "border-[#2CA58D]/50 bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8]",
+          className
+        )}
+        title={success ? (summary || displayLabel) : displayLabel}
+        aria-label={displayLabel}
+      >
+        {iconPosition === "start" ? (
+          <>
+            {iconEl}
+            <span>{displayLabel}</span>
+          </>
+        ) : (
+          <>
+            <span>{displayLabel}</span>
+            {iconEl}
+          </>
+        )}
+      </Button>
+    )
+  }
 
   return (
     <Button

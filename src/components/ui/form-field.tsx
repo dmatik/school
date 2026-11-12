@@ -53,6 +53,36 @@ export function IconInput({
   )
 }
 
+export interface FieldLabelProps extends React.HTMLAttributes<HTMLDivElement> {
+  label: React.ReactNode
+  description?: React.ReactNode
+  htmlFor?: string
+}
+
+export function FieldLabel({
+  label,
+  description,
+  htmlFor,
+  className,
+  ...props
+}: FieldLabelProps) {
+  return (
+    <div className={cn("space-y-0.5", className)} {...props}>
+      {label && (
+        <label
+          htmlFor={htmlFor}
+          className="text-sm font-semibold text-foreground block select-none text-start"
+        >
+          {label}
+        </label>
+      )}
+      {description && (
+        <p className="text-xs text-muted-foreground block text-start">{description}</p>
+      )}
+    </div>
+  )
+}
+
 export interface CounterFieldProps {
   label: React.ReactNode
   htmlFor?: string
