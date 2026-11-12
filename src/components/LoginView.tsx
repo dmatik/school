@@ -10,29 +10,45 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { isPasskeySupported, loginWithPasskey } from "@/lib/webauthn"
 import type { User } from "@/types"
 
-interface LoginViewProps {
-  onLoginSuccess: (token: string, user: User) => void
+export interface LoginViewProps {
+  onLoginSuccess?: (token: string, user: User) => void
+  initialUsername?: string
+  initialPassword?: string
+  initialError?: string | null
+  simulateLoading?: boolean
+  simulatePasskeyLoading?: boolean
+  defaultHasPasskeySupport?: boolean
 }
 
-export function LoginView({ onLoginSuccess }: LoginViewProps) {
+export function LoginView({
+  onLoginSuccess,
+  initialUsername = "",
+  initialPassword = "",
+  initialError = null,
+  simulateLoading = false,
+  simulatePasskeyLoading = false,
+  defaultHasPasskeySupport,
+}: LoginViewProps) {
   const { t } = useTranslation()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [passkeyLoading, setPasskeyLoading] = useState(false)
-  const [hasPasskeySupport, setHasPasskeySupport] = useState(false)
+  const [username, setUsername] = useState(initialUsername)
+  const [password, setPassword] = useState(initialPassword)
+  const [error, setError] = useState<string | null>(initialError)
+  const [loading, setLoading] = useState(simulateLoading)
+  const [passkeyLoading, setPasskeyLoading] = useState(simulatePasskeyLoading)
+  const [hasPasskeySupport, setHasPasskeySupport] = useState(defaultHasPasskeySupport ?? false)
 
   useEffect(() => {
-    setHasPasskeySupport(isPasskeySupported())
-  }, [])
+    if (defaultHasPasskeySupport === undefined) {
+      setHasPasskeySupport(isPasskeySupported())
+    }
+  }, [defaultHasPasskeySupport])
 
   const handlePasskeyLogin = async () => {
     setError(null)
     setPasskeyLoading(true)
     try {
       const result = await loginWithPasskey(username.trim() || undefined)
-      onLoginSuccess(result.token, result.user)
+      onLoginSuccess?.(result.token, result.user)
     } catch (err: unknown) {
       const errorObj = err instanceof Error ? err : new Error(String(err))
       if (errorObj.name !== 'NotAllowedError') {
@@ -69,7 +85,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         throw new Error(data?.message || data?.error || t("auth.login_failed"))
       }
 
-      onLoginSuccess(data.token, data.user)
+      onLoginSuccess?.(data.token, data.user)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message || t("auth.login_failed"))
@@ -86,7 +102,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         <ModeToggle />
       </div>
 
-      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-transparent bg-card/90 backdrop-blur-md">
+      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-border/40 dark:border-border/60 bg-card/95 backdrop-blur-md transition-all duration-200">
         <CardHeader className="text-center space-y-2 pb-5">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-transparent flex items-center justify-center text-primary mb-2 shadow-xs">
             <UserIcon className="w-6 h-6" />
