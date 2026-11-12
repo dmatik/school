@@ -117,12 +117,14 @@ export interface ReadOnlyPillFieldProps extends React.HTMLAttributes<HTMLDivElem
   label: React.ReactNode
   value: React.ReactNode
   icon?: LucideIcon | React.ComponentType<{ className?: string }>
+  iconClassName?: string
 }
 
 export function ReadOnlyPillField({
   label,
   value,
   icon: Icon,
+  iconClassName,
   className,
   ...props
 }: ReadOnlyPillFieldProps) {
@@ -130,7 +132,7 @@ export function ReadOnlyPillField({
     <div className={cn("space-y-1.5", className)} {...props}>
       <Label className="text-xs text-muted-foreground">{label}</Label>
       <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-semibold bg-muted/40 border border-transparent text-foreground shadow-xs truncate">
-        {Icon && <Icon className="w-4 h-4 shrink-0 text-primary" />}
+        {Icon && <Icon className={cn("w-4 h-4 shrink-0 text-primary", iconClassName)} />}
         <span className="truncate">{value}</span>
       </div>
     </div>

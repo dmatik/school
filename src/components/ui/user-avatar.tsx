@@ -1,8 +1,8 @@
 import * as React from "react"
-import { User, Camera, Upload, Trash2 } from "lucide-react"
+import { User, Camera, Upload } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import { ActionButton, DestructiveButton } from "@/components/ui/action-button"
 
 export interface UserAvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   avatarUrl?: string | null
@@ -93,27 +93,25 @@ export function UserAvatar({
       />
 
       <div className="flex items-center gap-2">
-        <Button
+        <ActionButton
           type="button"
           variant="outline"
           size="sm"
+          icon={Upload}
+          iconPosition="start"
           onClick={() => fileInputRef.current?.click()}
-          className="text-xs"
         >
-          <Upload className="w-3.5 h-3.5 me-1" />
           {t("account.change_photo")}
-        </Button>
+        </ActionButton>
         {Boolean(avatarUrl) && onAvatarRemove && (
-          <Button
+          <DestructiveButton
             type="button"
-            variant="ghost"
             size="sm"
+            iconPosition="start"
             onClick={onAvatarRemove}
-            className="text-xs text-destructive hover:text-destructive"
           >
-            <Trash2 className="w-3.5 h-3.5 me-1" />
             {t("account.remove_photo")}
-          </Button>
+          </DestructiveButton>
         )}
       </div>
     </div>

@@ -1,10 +1,14 @@
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useTranslation } from "react-i18next"
 import { PageHeader } from "@/components/ui/page-header"
-import { User, Lock, Upload, LogOut, Check, Shield, Loader2, Camera, Trash2, Fingerprint, Plus, Smartphone, Laptop, Key, Users, Baby } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { User, Lock, Check, Shield, Loader2, Fingerprint, Plus, Smartphone, Laptop, Key, Users, Baby } from "lucide-react"
+import { SectionCard } from "@/components/ui/section-card"
+import { UserAvatar } from "@/components/ui/user-avatar"
+import { FilledInput, ReadOnlyPillField } from "@/components/ui/form-field"
 import { Button } from "@/components/ui/button"
+import { DestructiveButton } from "@/components/ui/action-button"
+import { LogoutButton } from "@/components/ui/logout-button"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { Label } from "@/components/ui/label"
 import {
   Dialog,
@@ -39,7 +43,6 @@ interface AccountPageProps {
 
 export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPageProps) {
   const { t } = useTranslation()
-  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Profile Form State
   const [firstName, setFirstName] = useState(user.firstName || "")
@@ -163,9 +166,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         title: t("account.avatar_too_large"),
         description: t("account.avatar_size_limit_desc")
       })
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
+      e.target.value = ""
       return
     }
 
@@ -179,9 +180,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         description: t("account.avatar_invalid_format")
       })
     } finally {
-      if (fileInputRef.current) {
-        fileInputRef.current.value = ""
-      }
+      e.target.value = ""
     }
   }
 
@@ -312,216 +311,145 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
       <PageHeader sticky={false} title={t("account.title")} />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* Profile Card */}
-        <Card className="shadow-xs border border-transparent rounded-xl">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <User className="w-5 h-5 text-primary" />
-              {t("account.personal_info")}
-            </CardTitle>
-            <CardDescription>{t("account.personal_info_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleSaveProfile} className="space-y-4">
-              {/* Avatar Selector */}
-              <div className="flex flex-col items-center justify-center gap-3 pb-4 border-b border-transparent">
-                <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-                  {avatar ? (
-                    <img
-                      src={avatar}
-                      alt={user.username}
-                      className="w-24 h-24 rounded-full object-cover border-2 border-transparent shadow-md"
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-primary text-primary-foreground flex items-center justify-center border-2 border-transparent shadow-md">
-                      <User className="w-10 h-10" />
-                    </div>
-                  )}
-                  <div className="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity">
-                    <Camera className="w-6 h-6" />
-                  </div>
-                </div>
-
-                <input
-                  type="file"
-                  ref={fileInputRef}
-                  className="hidden"
-                  accept="image/*"
-                  onChange={handleAvatarFile}
-                />
-
-                <div className="flex items-center gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fileInputRef.current?.click()}
-                    className="text-xs"
-                  >
-                    <Upload className="w-3.5 h-3.5 me-1" />
-                    {t("account.change_photo")}
-                  </Button>
-                  {avatar && (
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setAvatar("")}
-                      className="text-xs text-destructive hover:text-destructive"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 me-1" />
-                      {t("account.remove_photo")}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Username, System Role & Family Role (Read only) */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{t("auth.username")}</Label>
-                  <div className="flex items-center h-9 px-3.5 rounded-full text-sm font-semibold bg-muted/40 border border-transparent text-foreground shadow-xs truncate">
-                    {user.username}
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{t("account.role")}</Label>
-                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
-                    <Shield className={`w-4 h-4 shrink-0 ${user.role === 'admin' ? 'text-[#D4973B]' : 'text-[#3B82C4]'}`} />
-                    <span className="truncate">{user.role === 'admin' ? t("account.role_admin") : t("account.role_user")}</span>
-                  </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-xs text-muted-foreground">{t("account.family_role")}</Label>
-                  <div className="flex items-center gap-1.5 h-9 px-3.5 rounded-full text-sm font-medium bg-muted/40 border border-transparent shadow-xs text-foreground">
-                    {user.familyRole === 'child' ? (
-                      <Baby className="w-4 h-4 shrink-0 text-[#2CA58D]" />
-                    ) : (
-                      <Users className="w-4 h-4 shrink-0 text-[#8A63B8]" />
-                    )}
-                    <span className="truncate">
-                      {user.familyRole === 'child' ? t("account.role_child") : t("account.role_parent")}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Name & Family Name */}
-              <div className="space-y-2">
-                <Label htmlFor="firstName">{t("account.first_name")}</Label>
-                <Input
-                  id="firstName"
-                  value={firstName}
-                  onChange={(e) => setFirstName(e.target.value)}
-                  placeholder={t("account.first_name_placeholder")}
-                  className="bg-muted dark:bg-secondary border-transparent"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="lastName">{t("account.last_name")}</Label>
-                <Input
-                  id="lastName"
-                  value={lastName}
-                  onChange={(e) => setLastName(e.target.value)}
-                  placeholder={t("account.last_name_placeholder")}
-                  className="bg-muted dark:bg-secondary border-transparent"
-                />
-              </div>
-
-              <Button type="submit" disabled={savingProfile} className="w-full">
-                {savingProfile ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin me-2" />
-                    {t("common.saving")}
-                  </>
-                ) : (
-                  <>
-                    <Check className="w-4 h-4 me-2" />
-                    {t("common.save")}
-                  </>
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Change Password Card */}
-        <Card className="shadow-sm border border-transparent">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Lock className="w-5 h-5 text-primary" />
-              {t("account.change_password")}
-            </CardTitle>
-            <CardDescription>{t("account.change_password_desc")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleChangePassword} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="currentPassword">{t("account.current_password")}</Label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  autoComplete="current-password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="newPassword">{t("account.new_password")}</Label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent"
-                  required
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="confirmPassword">{t("account.confirm_password")}</Label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent"
-                  required
-                />
-              </div>
-
-              <Button type="submit" variant="secondary" disabled={savingPassword} className="w-full">
-                {savingPassword ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin me-2" />
-                    {t("common.saving")}
-                  </>
-                ) : (
-                  t("account.update_password_button")
-                )}
-              </Button>
-            </form>
-          </CardContent>
-        </Card>
-
-        {/* Passkeys Card */}
-        <Card className="shadow-sm border border-transparent md:col-span-2">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4">
-            <div className="space-y-1 min-w-0">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Fingerprint className="w-5 h-5 text-primary shrink-0" />
-                <span>{t("account.passkeys_title")}</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                {t("account.passkeys_desc")}
-              </CardDescription>
+        {/* Profile Section */}
+        <SectionCard
+          icon={User}
+          title={t("account.personal_info")}
+          description={t("account.personal_info_desc")}
+        >
+          <form onSubmit={handleSaveProfile} className="space-y-4">
+            {/* Avatar Selector reusing shared UserAvatar */}
+            <div className="pb-4 border-b border-border/40 dark:border-border/60 flex justify-center">
+              <UserAvatar
+                size="xl"
+                editable
+                avatarUrl={avatar}
+                name={firstName || user.username}
+                onAvatarChange={handleAvatarFile}
+                onAvatarRemove={() => setAvatar("")}
+              />
             </div>
+
+            {/* Username, System Role & Family Role (Read only) */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <ReadOnlyPillField
+                label={t("auth.username")}
+                value={user.username}
+              />
+              <ReadOnlyPillField
+                label={t("account.role")}
+                value={user.role === 'admin' ? t("account.role_admin") : t("account.role_user")}
+                icon={Shield}
+                iconClassName={user.role === 'admin' ? 'text-[#D4973B]' : 'text-[#3B82C4]'}
+              />
+              <ReadOnlyPillField
+                label={t("account.family_role")}
+                value={user.familyRole === 'child' ? t("account.role_child") : t("account.role_parent")}
+                icon={user.familyRole === 'child' ? Baby : Users}
+                iconClassName={user.familyRole === 'child' ? 'text-[#2CA58D]' : 'text-[#8A63B8]'}
+              />
+            </div>
+
+            {/* Name & Family Name */}
+            <div className="space-y-2">
+              <Label htmlFor="firstName">{t("account.first_name")}</Label>
+              <FilledInput
+                id="firstName"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                placeholder={t("account.first_name_placeholder")}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lastName">{t("account.last_name")}</Label>
+              <FilledInput
+                id="lastName"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                placeholder={t("account.last_name_placeholder")}
+              />
+            </div>
+
+            <Button type="submit" disabled={savingProfile} className="w-full">
+              {savingProfile ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin me-2" />
+                  {t("common.saving")}
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 me-2" />
+                  {t("common.save")}
+                </>
+              )}
+            </Button>
+          </form>
+        </SectionCard>
+
+        {/* Change Password Section */}
+        <SectionCard
+          icon={Lock}
+          title={t("account.change_password")}
+          description={t("account.change_password_desc")}
+        >
+          <form onSubmit={handleChangePassword} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">{t("account.current_password")}</Label>
+              <FilledInput
+                id="currentPassword"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">{t("account.new_password")}</Label>
+              <FilledInput
+                id="newPassword"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword">{t("account.confirm_password")}</Label>
+              <FilledInput
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+              />
+            </div>
+
+            <Button type="submit" variant="secondary" disabled={savingPassword} className="w-full">
+              {savingPassword ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin me-2" />
+                  {t("common.saving")}
+                </>
+              ) : (
+                t("account.update_password_button")
+              )}
+            </Button>
+          </form>
+        </SectionCard>
+
+        {/* Passkeys Section */}
+        <SectionCard
+          icon={Fingerprint}
+          title={t("account.passkeys_title")}
+          description={t("account.passkeys_desc")}
+          className="md:col-span-2"
+          action={
             <Button
               type="button"
               size="sm"
@@ -531,103 +459,91 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
               <Plus className="w-4 h-4" />
               <span>{t("account.add_passkey")}</span>
             </Button>
-          </CardHeader>
-          <CardContent>
-            {loadingPasskeys ? (
-              <div className="flex items-center justify-center p-8 text-muted-foreground">
-                <Loader2 className="w-6 h-6 animate-spin" />
-              </div>
-            ) : passkeys.length === 0 ? (
-              <div className="text-center py-6 sm:py-8 px-4 border border-dashed rounded-xl bg-muted/20">
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-2 sm:mb-3">
-                  <Fingerprint className="w-5 h-5 sm:w-6 sm:h-6" />
-                </div>
-                <p className="font-semibold text-sm">{t("account.no_passkeys")}</p>
-                <p className="text-xs text-muted-foreground mt-1 max-w-sm mx-auto">
-                  {t("account.no_passkeys_desc")}
-                </p>
+          }
+        >
+          {loadingPasskeys ? (
+            <div className="flex items-center justify-center p-8 text-muted-foreground">
+              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            </div>
+          ) : passkeys.length === 0 ? (
+            <EmptyStateCard
+              icon={Fingerprint}
+              title={t("account.no_passkeys")}
+              description={t("account.no_passkeys_desc")}
+              iconClassName="bg-primary/10 text-primary"
+              actions={
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={handleStartAddPasskey}
-                  className="mt-3 sm:mt-4 text-xs"
+                  className="mt-2 text-xs"
                 >
                   <Plus className="w-3.5 h-3.5 me-1.5" />
                   {t("account.add_passkey")}
                 </Button>
-              </div>
-            ) : (
-              <div className="divide-y divide-border/40 border border-transparent rounded-xl overflow-hidden">
-                {passkeys.map((p) => {
-                  const lower = p.deviceName.toLowerCase()
-                  const IconComponent = (lower.includes('phone') || lower.includes('android') || lower.includes('ios'))
-                    ? Smartphone
-                    : (lower.includes('mac') || lower.includes('windows') || lower.includes('pc') || lower.includes('laptop'))
-                      ? Laptop
-                      : Fingerprint
+              }
+            />
+          ) : (
+            <div className="divide-y divide-border/40">
+              {passkeys.map((p) => {
+                const lower = p.deviceName.toLowerCase()
+                const IconComponent = (lower.includes('phone') || lower.includes('android') || lower.includes('ios'))
+                  ? Smartphone
+                  : (lower.includes('mac') || lower.includes('windows') || lower.includes('pc') || lower.includes('laptop'))
+                    ? Laptop
+                    : Fingerprint
 
-                  return (
-                    <div key={p.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 sm:gap-3 hover:bg-muted/30 transition-colors">
-                      <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                        <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
-                          <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 min-w-0">
-                            <span className="text-sm font-semibold truncate">{p.deviceName}</span>
-                            {p.backedUp ? (
-                              <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0 self-start sm:self-auto">
-                                {t("account.synced")}
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="text-[11px] sm:text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
-                            <span>
-                              {t("account.created_on", { date: "" })}
-                              <bdi dir="ltr">{formatSystemDate(p.createdAt)}</bdi>
+                return (
+                  <div key={p.id} className="p-3 sm:p-3.5 flex items-center justify-between gap-2.5 sm:gap-3 hover:bg-muted/30 transition-colors">
+                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                      <div className="w-9 h-9 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+                        <IconComponent className="w-4 h-4 sm:w-5 sm:h-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-1.5 min-w-0">
+                          <span className="text-sm font-semibold truncate">{p.deviceName}</span>
+                          {p.backedUp ? (
+                            <span className="text-[10px] uppercase font-bold px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0 self-start sm:self-auto">
+                              {t("account.synced")}
                             </span>
-                            {p.lastUsedAt && (
-                              <>
-                                <span className="opacity-40">•</span>
-                                <span>
-                                  {t("account.last_used", { date: "" })}
-                                  <bdi dir="ltr">{formatSystemDate(p.lastUsedAt)}</bdi>
-                                </span>
-                              </>
-                            )}
-                          </div>
+                          ) : null}
+                        </div>
+                        <div className="text-[11px] sm:text-xs text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-0.5">
+                          <span>
+                            {t("account.created_on", { date: "" })}
+                            <bdi dir="ltr">{formatSystemDate(p.createdAt)}</bdi>
+                          </span>
+                          {p.lastUsedAt && (
+                            <>
+                              <span className="opacity-40">•</span>
+                              <span>
+                                {t("account.last_used", { date: "" })}
+                                <bdi dir="ltr">{formatSystemDate(p.lastUsedAt)}</bdi>
+                              </span>
+                            </>
+                          )}
                         </div>
                       </div>
-
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => setPasskeyToDelete(p)}
-                        className="text-muted-foreground hover:text-destructive shrink-0 h-8 w-8"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
                     </div>
-                  )
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+                    <DestructiveButton
+                      size="icon"
+                      onClick={() => setPasskeyToDelete(p)}
+                      title={t("common.delete")}
+                      className="shrink-0 h-8 w-8 p-0"
+                    />
+                  </div>
+                )
+              })}
+            </div>
+          )}
+        </SectionCard>
       </div>
 
       {/* Logout Button at bottom of Account Page */}
       <div className="pt-2 flex justify-center">
-        <Button
-          variant="outline"
-          onClick={onLogout}
-          className="w-full sm:w-auto min-w-[200px] text-destructive hover:text-destructive hover:bg-destructive/10 flex items-center justify-center gap-2 h-10 px-6 text-sm font-semibold rounded-full border-border/80 shadow-xs hover:border-destructive/30"
-        >
-          <LogOut className="w-4 h-4" />
-          <span>{t("auth.logout")}</span>
-        </Button>
+        <LogoutButton onLogout={onLogout} />
       </div>
 
       {/* Add Passkey Dialog */}
@@ -647,12 +563,11 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
             <div className="space-y-4 py-4">
               <div className="space-y-2">
                 <Label htmlFor="passkeyName">{t("account.passkey_name_prompt")}</Label>
-                <Input
+                <FilledInput
                   id="passkeyName"
                   value={newPasskeyName}
                   onChange={(e) => setNewPasskeyName(e.target.value)}
                   placeholder={t("account.passkey_name_placeholder")}
-                  className="bg-muted dark:bg-secondary border-transparent"
                   required
                 />
               </div>

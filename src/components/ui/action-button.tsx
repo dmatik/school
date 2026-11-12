@@ -115,3 +115,6 @@ export function DestructiveButton({
     </ActionButton>
   )
 }
+
+export { LogoutButton, type LogoutButtonProps } from "@/components/ui/logout-button"
+
