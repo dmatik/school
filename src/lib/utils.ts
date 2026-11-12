@@ -1,6 +1,7 @@
 import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
-import { format } from "date-fns"
+import { format, isToday, isYesterday, isTomorrow } from "date-fns"
+import { he, enUS } from "date-fns/locale"
 import type { HomeworkItem, ConsolidatedHomeworkItem } from "@/types"
 
 export function cn(...inputs: ClassValue[]) {
@@ -32,6 +33,38 @@ export function parseLocalDate(dateInput: string | Date | null | undefined): Dat
   }
   const parsed = new Date(dateInput)
   return isNaN(parsed.getTime()) ? new Date() : parsed
+}
+
+export interface FormatSectionDateOptions {
+  t?: (key: string) => string
+  locale?: typeof he | typeof enUS
+}
+
+export function formatSectionDate(
+  dateInput?: string | Date | null,
+  options?: FormatSectionDateOptions
+): string {
+  if (!dateInput || dateInput === "no-date") return ""
+  try {
+    const d = parseLocalDate(dateInput)
+    if (isNaN(d.getTime())) return ""
+
+    const t = options?.t
+    if (isToday(d)) {
+      return t ? t("common.today") : "היום"
+    }
+    if (isTomorrow(d)) {
+      return t ? t("common.tomorrow") : "מחר"
+    }
+    if (isYesterday(d)) {
+      return t ? t("common.yesterday") : "אתמול"
+    }
+
+    const locale = options?.locale || he
+    return format(d, "EEEE, PPP", { locale })
+  } catch {
+    return ""
+  }
 }
 
 const HEBREW_GRADE_MAP: Record<number, string> = {

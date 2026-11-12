@@ -5,6 +5,21 @@ import { IncidentsPage } from '../components/IncidentsPage'
 import { HomeworkPage } from '../components/HomeworkPage'
 import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
+import { LiquidDatePicker } from '../components/ui/liquid-date-picker'
+import { PageHeader } from '../components/ui/page-header'
+import { MobileHeader } from '../components/ui/mobile-header'
+import { SyncButton } from '../components/ui/sync-button'
+import { ActionButton, EditButton, DestructiveButton } from '../components/ui/action-button'
+import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
+import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
+import { SectionDateHeader } from '../components/ui/section-date-header'
+import { HomeworkCard } from '../components/ui/homework-card'
+import { IncidentCard } from '../components/ui/incident-card'
+import { ExamCard } from '../components/ui/exam-card'
+import { SelectField, SelectItem } from '../components/ui/select'
+import { InfoBox, InfoItem } from '../components/ui/info-box'
+import { SectionCard, SectionCardHeader, SectionCardTitle, SectionCardDescription, SectionCardContent } from '../components/ui/section-card'
+import { ScheduleTable } from '../components/ui/schedule-table'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -113,6 +128,610 @@ describe('DatePicker Component', () => {
     expect(clearBtn).toBeInTheDocument()
     fireEvent.click(clearBtn)
     expect(handleSetDate).toHaveBeenCalledWith(undefined)
+  })
+})
+
+describe('LiquidDatePicker Component', () => {
+  it('renders default placeholder and data-date-selected="false" when no date is set', () => {
+    render(<LiquidDatePicker setDate={() => {}} />)
+    const btn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn).toHaveAttribute('data-date-selected', 'false')
+  })
+
+  it('renders localized date with responsive short/full labels when date is set', () => {
+    const testDate = new Date(2026, 9, 28)
+    render(<LiquidDatePicker date={testDate} setDate={() => {}} />)
+    const btn = screen.getByRole('button', { name: /Wednesday.*October 28|יום רביעי.*28 באוקטובר/i })
+    expect(btn).toHaveAttribute('data-date-selected', 'true')
+    expect(screen.getByText('28/10/2026')).toHaveClass('md:hidden')
+  })
+
+  it('handles clearing selected date', () => {
+    const handleSetDate = vi.fn()
+    const testDate = new Date(2026, 9, 28)
+    render(<LiquidDatePicker date={testDate} setDate={handleSetDate} />)
+    const clearBtn = screen.getByRole('button', { name: /cancel|ביטול/i })
+    expect(clearBtn).toBeInTheDocument()
+    fireEvent.click(clearBtn)
+    expect(handleSetDate).toHaveBeenCalledWith(undefined)
+  })
+})
+
+describe('PageHeader Component', () => {
+  it('renders title and data-page-title attribute', () => {
+    const { container } = render(<PageHeader title="Test Title" />)
+    const header = container.querySelector('[data-page-title]')
+    expect(header).toBeInTheDocument()
+    expect(screen.getByText('Test Title')).toBeInTheDocument()
+  })
+
+  it('renders description and action slot when provided', () => {
+    render(
+      <PageHeader
+        title="Main Title"
+        description="Subtitle info"
+        actions={<button type="button">Action</button>}
+      />
+    )
+    expect(screen.getByText('Subtitle info')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Action' })).toBeInTheDocument()
+  })
+})
+
+describe('MobileHeader Component', () => {
+  it('renders title, avatar button, and action slot', () => {
+    const handleAvatarClick = vi.fn()
+    render(
+      <MobileHeader
+        title="Mobile Page"
+        username="Test User"
+        onAvatarClick={handleAvatarClick}
+        action={<button type="button">Sync</button>}
+      />
+    )
+
+    expect(screen.getByText('Mobile Page')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sync' })).toBeInTheDocument()
+
+    const avatarBtn = screen.getByRole('button', { name: /common\.account|חשבון/i })
+    expect(avatarBtn).toBeInTheDocument()
+    fireEvent.click(avatarBtn)
+    expect(handleAvatarClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies border styling when scrolled', () => {
+    const { container, rerender } = render(<MobileHeader title="Page" isScrolled={false} />)
+    expect(container.querySelector('header')?.className).toContain('border-transparent')
+
+    rerender(<MobileHeader title="Page" isScrolled={true} />)
+    expect(container.querySelector('header')?.className).toContain('border-border/50')
+  })
+})
+
+describe('SyncButton Component', () => {
+  it('renders idle sync button and triggers onClick', () => {
+    const handleClick = vi.fn()
+    render(<SyncButton onClick={handleClick} />)
+    const btn = screen.getByRole('button', { name: /common\.sync_now|סנכרן/i })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders spinning icon and disabled state when syncing', () => {
+    render(<SyncButton syncing={true} />)
+    const btn = screen.getByRole('button', { name: /common\.syncing|מסנכרן/i })
+    expect(btn).toBeDisabled()
+    expect(btn.querySelector('.animate-spin')).toBeInTheDocument()
+  })
+
+  it('renders checkmark and success classes when success=true', () => {
+    render(<SyncButton success={true} summary="Synced 5 items" />)
+    const btn = screen.getByRole('button', { name: /Synced 5 items|common\.sync_success|סונכרן/i })
+    expect(btn.className).toContain('text-emerald-600')
+  })
+
+  it('renders outline pill variant with text and animated state changes', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <SyncButton variant="outline" onClick={handleClick} label="סנכרן מול Webtop" />
+    )
+    const btn = screen.getByRole('button', { name: /סנכרן מול Webtop/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('rounded-full')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+
+    // Syncing state
+    rerender(<SyncButton variant="outline" syncing={true} syncingLabel="מסנכרן כעת..." />)
+    expect(screen.getByText('מסנכרן כעת...')).toBeInTheDocument()
+    expect(btn).toBeDisabled()
+
+    // Success state
+    rerender(<SyncButton variant="outline" success={true} successLabel="סונכרן בהצלחה" />)
+    expect(screen.getByText('סונכרן בהצלחה')).toBeInTheDocument()
+    expect(btn.className).toContain('border-[#2CA58D]/50')
+  })
+})
+
+describe('ActionButton, EditButton & DestructiveButton Components', () => {
+  it('renders ActionButton with custom icon and triggers onClick', () => {
+    const handleClick = vi.fn()
+    render(
+      <ActionButton onClick={handleClick}>
+        ביצוע פעולה
+      </ActionButton>
+    )
+    const btn = screen.getByRole('button', { name: /ביצוע פעולה/i })
+    expect(btn).toBeInTheDocument()
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders EditButton with pencil icon and default text', () => {
+    const handleClick = vi.fn()
+    render(<EditButton onClick={handleClick} />)
+    const btn = screen.getByRole('button', { name: /עריכה|common\.edit/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('text-muted-foreground')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders DestructiveButton with trash icon and destructive styling', () => {
+    const handleClick = vi.fn()
+    render(
+      <DestructiveButton onClick={handleClick}>
+        נתק חיבור
+      </DestructiveButton>
+    )
+    const btn = screen.getByRole('button', { name: /נתק חיבור/i })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('text-destructive')
+    fireEvent.click(btn)
+    expect(handleClick).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('AppSidebar Component', () => {
+  const DummyIcon = ({ className }: { className?: string }) => <svg data-testid="dummy-icon" className={className} />
+  const mockNavItems: SidebarNavItem[] = [
+    { tab: 'homework', label: 'Homework', icon: DummyIcon },
+    { tab: 'incidents', label: 'Incidents', icon: DummyIcon, badge: <span data-testid="test-badge">3</span> },
+    { tab: 'settings', label: 'Settings', icon: DummyIcon },
+  ]
+
+  const mockUser = {
+    username: 'johndoe',
+    firstName: 'John',
+    lastName: 'Doe',
+    avatar: null,
+    role: 'user',
+  }
+
+  it('renders app title, user display name, nav items, and version', () => {
+    render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={vi.fn()}
+        navItems={mockNavItems}
+        version="1.4.2"
+        syncAction={<button type="button">Sync Now</button>}
+      />
+    )
+
+    expect(screen.getByText('John Doe')).toBeInTheDocument()
+    expect(screen.getByText('Homework')).toBeInTheDocument()
+    expect(screen.getByText('Incidents')).toBeInTheDocument()
+    expect(screen.getByTestId('test-badge')).toBeInTheDocument()
+    expect(screen.getByText('v1.4.2')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Sync Now' })).toBeInTheDocument()
+  })
+
+  it('triggers onTabChange when nav item is clicked', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        navItems={mockNavItems}
+      />
+    )
+
+    const incidentsBtn = screen.getByRole('button', { name: /Incidents/i })
+    fireEvent.click(incidentsBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('incidents')
+  })
+
+  it('triggers onProfileClick or onTabChange("account") when avatar button is clicked', () => {
+    const handleTabChange = vi.fn()
+    const { rerender } = render(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        navItems={mockNavItems}
+      />
+    )
+
+    const avatarBtn = screen.getByRole('button', { name: /common\.account|חשבון/i })
+    fireEvent.click(avatarBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('account')
+
+    const customProfileClick = vi.fn()
+    rerender(
+      <AppSidebar
+        currentUser={mockUser}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+        onProfileClick={customProfileClick}
+        navItems={mockNavItems}
+      />
+    )
+
+    fireEvent.click(avatarBtn)
+    expect(customProfileClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('renders SidebarNavButton with active and inactive styles', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <SidebarNavButton
+        active={false}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Test Item"
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Test Item' })
+    expect(btn.className).toContain('text-muted-foreground')
+
+    rerender(
+      <SidebarNavButton
+        active={true}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Test Item"
+      />
+    )
+
+    expect(btn.className).toContain('bg-primary/10')
+  })
+})
+
+describe('LiquidDock Component', () => {
+  const DummyIcon = ({ className }: { className?: string }) => <svg data-testid="dock-dummy-icon" className={className} />
+  const mockDockItems: DockItem[] = [
+    { tab: 'homework', label: 'Homework', icon: DummyIcon },
+    { tab: 'incidents', label: 'Incidents', icon: DummyIcon, badge: <span data-testid="dock-badge">5</span> },
+    { tab: 'exams', label: 'Exams', icon: DummyIcon },
+    { tab: 'schedule', label: 'Schedule', icon: DummyIcon },
+    { tab: 'settings', label: 'Settings', icon: DummyIcon },
+  ]
+
+  it('renders all navigation items, labels, and badges', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+      />
+    )
+
+    expect(screen.getByText('Homework')).toBeInTheDocument()
+    expect(screen.getByText('Incidents')).toBeInTheDocument()
+    expect(screen.getByText('Exams')).toBeInTheDocument()
+    expect(screen.getByText('Schedule')).toBeInTheDocument()
+    expect(screen.getByText('Settings')).toBeInTheDocument()
+    expect(screen.getByTestId('dock-badge')).toBeInTheDocument()
+  })
+
+  it('triggers onTabChange when dock button is clicked', () => {
+    const handleTabChange = vi.fn()
+    render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={handleTabChange}
+      />
+    )
+
+    const incidentsBtn = screen.getByRole('button', { name: /Incidents/i })
+    fireEvent.click(incidentsBtn)
+    expect(handleTabChange).toHaveBeenCalledWith('incidents')
+  })
+
+  it('renders active pill on active item and inactive styling on others', () => {
+    const { container } = render(
+      <LiquidDock
+        items={mockDockItems}
+        activeTab="homework"
+        onTabChange={vi.fn()}
+      />
+    )
+
+    const activePill = container.querySelector('.apple-liquid-pill')
+    expect(activePill).toBeInTheDocument()
+
+    const activeBtn = screen.getByRole('button', { name: /Homework/i })
+    expect(activeBtn.className).toContain('text-primary')
+
+    const inactiveBtn = screen.getByRole('button', { name: /Exams/i })
+    expect(inactiveBtn.className).toContain('text-foreground')
+  })
+
+  it('renders LiquidDockItem independently with correct sizing for 5+ items', () => {
+    const handleClick = vi.fn()
+    const { rerender } = render(
+      <LiquidDockItem
+        active={false}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Tab"
+        isFiveOrMore={false}
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Tab' })
+    expect(btn.className).toContain('w-[85px]')
+
+    rerender(
+      <LiquidDockItem
+        active={true}
+        onClick={handleClick}
+        icon={DummyIcon}
+        label="Tab"
+        isFiveOrMore={true}
+      />
+    )
+
+    expect(btn.className).toContain('w-[68px]')
+    expect(btn.className).toContain('text-primary')
+  })
+})
+
+describe('SectionDateHeader Component', () => {
+  it('renders today, yesterday, and tomorrow relative dates', () => {
+    const today = new Date()
+    const yesterday = new Date(Date.now() - 86400000)
+    const tomorrow = new Date(Date.now() + 86400000)
+
+    const { rerender } = render(<SectionDateHeader date={today} />)
+    expect(screen.getByText(/common\.today|היום|Today/i)).toBeInTheDocument()
+
+    rerender(<SectionDateHeader date={yesterday} />)
+    expect(screen.getByText(/common\.yesterday|אתמול|Yesterday/i)).toBeInTheDocument()
+
+    rerender(<SectionDateHeader date={tomorrow} />)
+    expect(screen.getByText(/common\.tomorrow|מחר|Tomorrow/i)).toBeInTheDocument()
+  })
+
+  it('renders localized weekday and date for specific date string', () => {
+    // 2026-10-28 was a Wednesday
+    render(<SectionDateHeader date="2026-10-28" />)
+    expect(screen.getByText(/Wednesday|רביעי/i)).toBeInTheDocument()
+    expect(screen.getByText(/28/)).toBeInTheDocument()
+  })
+
+  it('renders custom element tag when "as" prop is provided', () => {
+    const { container } = render(<SectionDateHeader date="2026-10-28" as="h3" />)
+    const h3 = container.querySelector('h3')
+    expect(h3).toBeInTheDocument()
+  })
+
+  it('renders nothing when date is null or empty', () => {
+    const { container } = render(<SectionDateHeader date={null} />)
+    expect(container.firstChild).toBeNull()
+  })
+})
+
+describe('HomeworkCard Component', () => {
+  it('renders subject, lesson hour subtitle, teacher, child badge, and homework text', () => {
+    render(
+      <HomeworkCard
+        subject="Mathematics"
+        lessonHour={3}
+        teacher="Rachel Levi"
+        childName="Itay"
+        childColorId="blue"
+        homeworkText="Solve exercises 1 to 10 on page 45"
+      />
+    )
+
+    expect(screen.getByText('Mathematics')).toBeInTheDocument()
+    expect(screen.getByText(/homework\.lesson_hour|3/i)).toBeInTheDocument()
+    expect(screen.getByText('Rachel Levi')).toBeInTheDocument()
+    expect(screen.getByText('Itay')).toBeInTheDocument()
+    expect(screen.getByText(/Solve exercises 1 to 10 on page 45/)).toBeInTheDocument()
+  })
+
+  it('renders merged lesson hours', () => {
+    render(
+      <HomeworkCard
+        subject="English"
+        lessonHours={[2, 3]}
+        teacher="Sarah Cohen"
+      />
+    )
+
+    expect(screen.getByText('English')).toBeInTheDocument()
+    expect(screen.getByText(/homework\.lesson_hours|2, 3/i)).toBeInTheDocument()
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <HomeworkCard
+        subject="History"
+        childName={null}
+        homeworkText="Read pages 10-12"
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('History')).toBeInTheDocument()
+  })
+})
+
+describe('IncidentCard Component', () => {
+  it('renders subject, type, lesson hour, teacher, child badge, and description', () => {
+    render(
+      <IncidentCard
+        subject="Science"
+        type="Missing Homework"
+        hourNum={4}
+        teacher="Yossi Avraham"
+        childName="Maya"
+        childColorId="emerald"
+        description="Did not submit the science report"
+      />
+    )
+
+    expect(screen.getByText('Science')).toBeInTheDocument()
+    expect(screen.getByText(/incidents\.lesson_hour|4/i)).toBeInTheDocument()
+    expect(screen.getByText('Yossi Avraham')).toBeInTheDocument()
+    expect(screen.getByText('Maya')).toBeInTheDocument()
+    expect(screen.getByText('Missing Homework')).toBeInTheDocument()
+    expect(screen.getByText(/Did not submit the science report/)).toBeInTheDocument()
+  })
+
+  it('renders type as title when subject is omitted', () => {
+    render(
+      <IncidentCard
+        type="Late Arrival"
+        hourNum={1}
+        teacher="Sara Israeli"
+        description="Arrived 15 minutes late"
+      />
+    )
+
+    expect(screen.getByText('Late Arrival')).toBeInTheDocument()
+    expect(screen.getByText(/Arrived 15 minutes late/)).toBeInTheDocument()
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <IncidentCard
+        subject="English"
+        type="Disruption"
+        childName={null}
+        description="Talking without permission"
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('English')).toBeInTheDocument()
+  })
+})
+
+describe('ExamCard Component', () => {
+  it('renders name, formatted date, grade badge, child badge, and description', () => {
+    render(
+      <ExamCard
+        name="Mathematics Exam"
+        date="2026-11-20"
+        grade="95"
+        childName="Itay"
+        childColorId="blue"
+        description="Fractions and geometry"
+      />
+    )
+
+    expect(screen.getByText('Mathematics Exam')).toBeInTheDocument()
+    expect(screen.getByText('20/11/2026')).toBeInTheDocument()
+    expect(screen.getByText(/exams\.grade_badge|95/i)).toBeInTheDocument()
+    expect(screen.getByText('Itay')).toBeInTheDocument()
+    expect(screen.getByText('Fractions and geometry')).toBeInTheDocument()
+  })
+
+  it('renders edit button and calls onEdit when clicked', () => {
+    const handleEdit = vi.fn()
+    render(
+      <ExamCard
+        name="History Exam"
+        date="2026-11-25"
+        onEdit={handleEdit}
+      />
+    )
+
+    expect(screen.getByText('History Exam')).toBeInTheDocument()
+    const editBtn = screen.getByRole('button')
+    fireEvent.click(editBtn)
+    expect(handleEdit).toHaveBeenCalledTimes(1)
+  })
+
+  it('omits child badge when childName is null', () => {
+    const { container } = render(
+      <ExamCard
+        name="Science Quiz"
+        childName={null}
+      />
+    )
+
+    expect(container.querySelector('[data-testid="child-badge"]')).toBeNull()
+    expect(screen.getByText('Science Quiz')).toBeInTheDocument()
+  })
+})
+
+describe('ScheduleTable Component', () => {
+  const lessons = [
+    { dayOfWeek: 0, hourNum: 1, subject: 'Math' },
+    { dayOfWeek: 1, hourNum: 3, subject: 'English' },
+  ]
+  const finishTimes = [{ dayOfWeek: 0, finishTime: '13:30' }]
+
+  it('renders 6 day headers, lesson subjects, finish times and only populated hours in view mode', () => {
+    const { container } = render(
+      <ScheduleTable lessons={lessons} finishTimes={finishTimes} currentDayOfWeek={0} />
+    )
+    expect(container.querySelectorAll('[data-schedule-day]')).toHaveLength(6)
+    expect(screen.getByText('Math')).toBeInTheDocument()
+    expect(screen.getByText('English')).toBeInTheDocument()
+    expect(screen.getByText('13:30')).toBeInTheDocument()
+    expect(screen.getAllByText('--:--')).toHaveLength(5)
+    // Hours 1..3 rendered (highest populated is 3), no extra row
+    const dismissal = container.querySelector('[data-schedule-dismissal]')
+    expect(dismissal).toBeTruthy()
+    const lessonRows = dismissal!.previousElementSibling!.children
+    expect(lessonRows).toHaveLength(3)
+  })
+
+  it('renders one extra empty row in edit mode', () => {
+    const { container } = render(
+      <ScheduleTable lessons={lessons} finishTimes={finishTimes} isEditMode canEdit />
+    )
+    const lessonRows = container.querySelector('[data-schedule-dismissal]')!.previousElementSibling!.children
+    expect(lessonRows).toHaveLength(4)
+  })
+
+  it('marks today column with a badge only for the current day', () => {
+    render(<ScheduleTable lessons={lessons} finishTimes={finishTimes} currentDayOfWeek={2} />)
+    expect(screen.getAllByText(/schedule\.today_badge|היום|Today/i)).toHaveLength(1)
+  })
+
+  it('invokes onLessonClick and onFinishTimeClick with the correct day/hour', () => {
+    const onLessonClick = vi.fn()
+    const onFinishTimeClick = vi.fn()
+    const { container } = render(
+      <ScheduleTable
+        lessons={lessons}
+        finishTimes={finishTimes}
+        isEditMode
+        canEdit
+        onLessonClick={onLessonClick}
+        onFinishTimeClick={onFinishTimeClick}
+      />
+    )
+    fireEvent.click(screen.getByText('English'))
+    expect(onLessonClick).toHaveBeenCalledWith(1, 3)
+
+    const dismissalCells = container.querySelector('[data-schedule-dismissal]')!.children
+    fireEvent.click(dismissalCells[4])
+    expect(onFinishTimeClick).toHaveBeenCalledWith(4)
   })
 })
 
@@ -596,7 +1215,7 @@ describe('Empty Page Views', () => {
 
       // Ensure no count badge elements or calendar svg icons exist inside the day headers
       const headings = screen.getAllByRole('heading', { level: 2 })
-      headings.forEach((heading) => {
+      headings.forEach((heading: HTMLElement) => {
         const headerDiv = heading.parentElement
         // Header container should contain only the heading (no calendar icon container, no count badge)
         expect(headerDiv?.querySelectorAll('span')).toHaveLength(0)
@@ -886,4 +1505,159 @@ describe('Toast & ToastClose Component', () => {
     expect(closeBtn.className).toContain('opacity-80')
   })
 })
+
+describe('SectionCard Component', () => {
+  it('renders with unified container styling matching HomeworkCard, IncidentCard, and ExamCard', () => {
+    const { container } = render(
+      <SectionCard title="Test Title" description="Test Description">
+        <div>Card Body Content</div>
+      </SectionCard>
+    )
+
+    const card = container.firstChild as HTMLElement
+    expect(card).toBeInTheDocument()
+    expect(card.className).toContain('rounded-2xl')
+    expect(card.className).toContain('bg-card')
+    expect(card.className).toContain('border-border/40')
+    expect(card.className).toContain('shadow-xs')
+  })
+
+  it('renders icon, title, description, and action slot in header', () => {
+    render(
+      <SectionCard
+        title="Appearance Settings"
+        description="Configure theme and language"
+        icon={<span data-testid="custom-icon">Icon</span>}
+        action={<button data-testid="custom-action">Edit</button>}
+      >
+        <div>Settings Content</div>
+      </SectionCard>
+    )
+
+    expect(screen.getByText('Appearance Settings')).toBeInTheDocument()
+    expect(screen.getByText('Configure theme and language')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-icon')).toBeInTheDocument()
+    expect(screen.getByTestId('custom-action')).toBeInTheDocument()
+    expect(screen.getByText('Settings Content')).toBeInTheDocument()
+  })
+
+  it('supports compound subcomponents for custom structure', () => {
+    render(
+      <SectionCard>
+        <SectionCardHeader>
+          <SectionCardTitle>Compound Title</SectionCardTitle>
+          <SectionCardDescription>Compound Description</SectionCardDescription>
+        </SectionCardHeader>
+        <SectionCardContent>
+          <div>Compound Content</div>
+        </SectionCardContent>
+      </SectionCard>
+    )
+
+    expect(screen.getByText('Compound Title')).toBeInTheDocument()
+    expect(screen.getByText('Compound Description')).toBeInTheDocument()
+    expect(screen.getByText('Compound Content')).toBeInTheDocument()
+  })
+})
+
+describe('SelectField Component', () => {
+  it('renders with optional label and secondary description in responsive layout', () => {
+    render(
+      <SelectField
+        id="test-lang-select"
+        label="Language Label"
+        description="Select your preferred language"
+        defaultValue="he"
+        layout="responsive"
+        variant="filled"
+      >
+        <SelectItem value="he">Hebrew</SelectItem>
+        <SelectItem value="en">English</SelectItem>
+      </SelectField>
+    )
+
+    expect(screen.getByText('Language Label')).toBeInTheDocument()
+    expect(screen.getByText('Select your preferred language')).toBeInTheDocument()
+    const combobox = screen.getByRole('combobox', { name: 'Language Label' })
+    expect(combobox).toBeInTheDocument()
+    expect(combobox.className).toContain('bg-muted')
+  })
+
+  it('renders in stacked layout with full width trigger below description', () => {
+    const { container } = render(
+      <SelectField
+        id="test-theme-select"
+        label="Theme Label"
+        description="Choose theme"
+        defaultValue="system"
+        layout="stacked"
+        variant="filled"
+      >
+        <SelectItem value="system">System</SelectItem>
+      </SelectField>
+    )
+
+    expect(screen.getByText('Theme Label')).toBeInTheDocument()
+    expect(screen.getByText('Choose theme')).toBeInTheDocument()
+    const wrapper = container.firstChild as HTMLElement
+    expect(wrapper.className).toContain('space-y-2')
+  })
+
+  it('renders cleanly when label and description are omitted (keeping them optional)', () => {
+    render(
+      <SelectField defaultValue="system" ariaLabel="Standalone Select">
+        <SelectItem value="system">System</SelectItem>
+      </SelectField>
+    )
+
+    const combobox = screen.getByRole('combobox', { name: 'Standalone Select' })
+    expect(combobox).toBeInTheDocument()
+    expect(screen.queryByRole('label')).toBeNull()
+  })
+})
+
+describe('InfoBox & InfoItem Component', () => {
+  it('renders grid container with elevated secondary dark background and key-value items', () => {
+    const { container } = render(
+      <InfoBox columns={2}>
+        <InfoItem label="Webtop Username" value="KQT460" />
+        <InfoItem label="Last Synced" value="11/11/2026, 18:56:07" isLtr />
+      </InfoBox>
+    )
+
+    const grid = container.firstChild as HTMLElement
+    expect(grid).toBeInTheDocument()
+    expect(grid.className).toContain('grid')
+    expect(grid.className).toContain('bg-muted/40')
+    expect(grid.className).toContain('dark:bg-secondary/80')
+    expect(grid.className).toContain('rounded-xl')
+
+    expect(screen.getByText('Webtop Username')).toBeInTheDocument()
+    expect(screen.getByText('KQT460')).toBeInTheDocument()
+    expect(screen.getByText('Last Synced')).toBeInTheDocument()
+    expect(screen.getByText('11/11/2026, 18:56:07')).toBeInTheDocument()
+  })
+
+  it('supports array items prop and custom column counts', () => {
+    const { container } = render(
+      <InfoBox
+        columns={3}
+        items={[
+          { label: 'Col 1', value: 'Val 1' },
+          { label: 'Col 2', value: 'Val 2' },
+          { label: 'Col 3', value: 'Val 3' },
+        ]}
+      />
+    )
+
+    const grid = container.firstChild as HTMLElement
+    expect(grid.className).toContain('sm:grid-cols-3')
+    expect(screen.getByText('Col 1')).toBeInTheDocument()
+    expect(screen.getByText('Val 1')).toBeInTheDocument()
+    expect(screen.getByText('Col 3')).toBeInTheDocument()
+  })
+})
+
+
+
 

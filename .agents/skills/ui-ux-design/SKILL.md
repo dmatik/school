@@ -32,15 +32,32 @@ Use this skill whenever designing or refining UI components, views, or micro-int
 
 ---
 
-## 2. Component Guidelines
+## 2. Shared Storybook Component Catalog & Zero Duplication Mandate
 
-- **Cards**:
-  - Border: `border border-border/70 dark:border-border/60`.
-  - Background: `bg-card text-card-foreground`.
-  - Hover: `hover:shadow-md hover:border-primary/20 transition-all duration-200`.
+1. **Zero UI Code Duplication**:
+   - Every view in `src/components/` **must** be composed strictly of shared components from `src/components/ui/`.
+   - Never write inline or duplicated markup for cards, sections, modals, dialogs, inputs, textareas, selects, date pickers, buttons, badges, or rows.
+   - If a new UI pattern or variant is required, create or extend the shared component in `src/components/ui/` first, then import it in the view.
+
+2. **Mandatory Storybook Synchronization (`src/stories/`)**:
+   - Every new or updated shared component or variant **must** be added or updated in the Storybook catalog (`src/stories/`) and documented in `src/stories/Introduction.mdx`:
+     - **1. Fields & Inputs (`src/stories/1-fields-and-inputs/`)**: `FilledInput`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `FieldLabel`, `SearchInput`, `FilledTextarea`, `SelectField`, `SelectTrigger variant="filled"`, `DatePicker variant="filled"`, `LiquidDatePicker`, `Switch`, `Label`.
+     - **2. Buttons & Navigation (`src/stories/2-buttons-and-nav/`)**: `Button`, `EditButton`, `DestructiveButton`, `ActionIconButton`, `SyncButton`, `LogoutButton`, `FloatingActionButton`, `Header`, `PageHeader`, `Sidebar`, `Dock`, `LiquidTabs`, `Tabs`.
+     - **3. Badges & Pickers (`src/stories/3-badges-and-pickers/`)**: `ChildBadge`, `StatusBadge`, `DateBadge`, `SubjectIconBadge`, `UserAvatar`, `ColorSwatchPicker`.
+     - **4. Surfaces & Modals (`src/stories/4-surfaces-and-cards/`)**: `SectionCard`, `Modal`, `ConfirmModal`, `HomeworkCard`, `IncidentCard`, `ExamCard`, `AdminUserRow`, `ScheduleTable`, `EmptyStateCard`, `InfoBox`, `SectionDateHeader`, `Separator`, `Login`.
+
+---
+
+## 3. Component Styling Guidelines
+
+- **Section Cards (`SectionCard`)**:
+  - Border & Surface: `rounded-2xl bg-card border border-border/40 dark:border-border/60 shadow-xs`.
+  - Header action support via `headerAction` prop.
+- **Modals (`Modal` & `ConfirmModal`)**:
+  - Full-screen on mobile, centered card (`sm:rounded-xl sm:border`) on desktop.
+  - All internal form fields and buttons inside modals must also use shared Storybook components (`FilledInput`, `FilledTextarea`, `CounterField`, `TimePresetInput`, `SelectTrigger variant="filled"`, `DatePicker variant="filled"`, `Button`).
 - **Badges**:
-  - Compact rounded-md or rounded-full pills with subtle border and low-opacity colored backgrounds (`bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-500/20`).
+  - Compact rounded-md or rounded-full pills with subtle border and low-opacity colored backgrounds.
 - **Inputs & Selects**:
-  - Height: `h-9` for compact controls.
-  - Focus: `focus-visible:ring-2 focus-visible:ring-primary/30`.
+  - Height: `h-9` for compact controls, `rounded-full`, `bg-muted dark:bg-secondary border-transparent` (`variant="filled"` inside cards/modals).
 

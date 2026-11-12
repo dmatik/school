@@ -1,21 +1,15 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
+import { PageHeader } from "@/components/ui/page-header"
+import { LiquidTabs, type LiquidTabItem } from "@/components/ui/liquid-tabs"
+import { SearchInput } from "@/components/ui/search-input"
 import {
-  Search,
-  Plus,
-  Edit2,
   Trash2,
   Loader2,
-  Calendar as CalendarIcon,
-  Award,
-  GraduationCap,
-  X
+  GraduationCap
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -24,30 +18,14 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
-import { format, isToday, isYesterday, isTomorrow } from "date-fns"
-import { he, enUS } from "date-fns/locale"
+import { Modal, ConfirmModal } from "@/components/ui/modal"
+import { FilledInput, FilledTextarea, CounterField } from "@/components/ui/form-field"
+import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
-import { cn, parseLocalDate, getChildFirstName } from "@/lib/utils"
-import { getSubjectConfig } from "@/lib/subject-icons"
-import { getChildBadgeClasses, getChildAccentColor } from "@/lib/child-colors"
+import { SectionDateHeader } from "@/components/ui/section-date-header"
+import { ExamCard } from "@/components/ui/exam-card"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
+import { parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import type { ExamItem, WebtopConfig, User as UserType } from "@/types"
 
@@ -60,31 +38,9 @@ interface ExamsPageProps {
 type PeriodFilter = "future" | "past"
 
 export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
-  const { t, i18n } = useTranslation()
+  const { t } = useTranslation()
   const isChild = currentUser?.familyRole === "child"
   const isParent = !isChild
-  const isRtl = i18n.dir() === "rtl"
-  const dateLocale = isRtl ? he : enUS
-
-  const formatOneLineDate = useCallback((dateInput?: string | Date | null) => {
-    if (!dateInput || dateInput === "no-date") return ""
-    try {
-      const d = parseLocalDate(dateInput)
-      if (isNaN(d.getTime())) return ""
-      if (isToday(d)) {
-        return t("common.today")
-      }
-      if (isTomorrow(d)) {
-        return t("common.tomorrow")
-      }
-      if (isYesterday(d)) {
-        return t("common.yesterday")
-      }
-      return format(d, "EEEE, PPP", { locale: dateLocale })
-    } catch {
-      return ""
-    }
-  }, [dateLocale, t])
 
   const [exams, setExams] = useState<ExamItem[]>([])
   const [webtopConfig, setWebtopConfig] = useState<WebtopConfig | null>(null)
@@ -395,167 +351,64 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
     }
   }
 
+  const hasChildFilter = !isChild && Boolean(webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0)
+
+  const childTabItems = useMemo(() => [
+    { id: "all", label: t("exams.all_short") },
+    ...(webtopConfig?.linkedChildren.map((c) => ({
+      id: c.id,
+      label: c.firstName?.trim() || c.lastName?.trim() || ""
+    })) || [])
+  ], [webtopConfig?.linkedChildren, t])
+
+  const periodTabItems = useMemo<LiquidTabItem<PeriodFilter>[]>(() => [
+    { id: "future", label: t("exams.period_future") },
+    { id: "past", label: t("exams.period_past") }
+  ], [t])
+
   return (
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header with Title (Desktop only) */}
-        <div data-page-title className="hidden md:flex md:sticky md:top-0 md:z-30 md:bg-background md:pt-6 items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60 shrink-0">
-          <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-            {t("exams.title")}
-          </h1>
-        </div>
+        <PageHeader title={t("exams.title")} />
 
       {/* Filter Area: Search, Child Selector & Period Selector (Future vs Past) */}
-      {/* Search Input (iOS 26/27 greyish background) */}
-      <div className="relative w-full shrink-0 -mb-1.5 md:-mb-3.5">
-        <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-        <Input
-          type="search"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder={t("exams.search_placeholder")}
-          className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
-        />
-        {searchQuery && (
-          <button
-            type="button"
-            onClick={() => setSearchQuery("")}
-            className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-            aria-label={t("common.clear_search")}
-          >
-            <X className="w-4 h-4 stroke-[2.5px]" />
-          </button>
-        )}
-      </div>
+      {/* Search Input */}
+      <SearchInput
+        value={searchQuery}
+        onChange={setSearchQuery}
+        placeholder={t("exams.search_placeholder")}
+        wrapperClassName="-mb-1.5 md:-mb-3.5"
+      />
 
       {/* Liquid Glass Filter Row: Child selector at beginning of row, Period selector at end of row */}
       <div
         data-sticky-filters
         className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-0.5 pb-0.5 shrink-0"
       >
-          {/* 1 - Children Liquid Glass Selector (Parents only) */}
-          {!isChild && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
-            <div
-              role="tablist"
-              aria-label={t("exams.filter_child")}
-              data-exams-child-selector
-              className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock overflow-x-auto no-scrollbar max-w-full shrink-0"
-            >
-              {/* All option */}
-              <motion.button
-                type="button"
-                role="tab"
-                aria-selected={selectedChildId === "all"}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => setSelectedChildId("all")}
-                className={cn(
-                  "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                  selectedChildId === "all"
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {selectedChildId === "all" && (
-                  <motion.div
-                    layoutId="examsChildLiquidPill"
-                    transition={{
-                      type: "spring",
-                      stiffness: 450,
-                      damping: 35
-                    }}
-                    className="absolute inset-0 rounded-full apple-liquid-pill"
-                  />
-                )}
-                <span className="relative z-10 truncate">
-                  {t("exams.all_short")}
-                </span>
-              </motion.button>
+        {/* 1 - Children Liquid Glass Selector (Parents only) */}
+        {hasChildFilter && (
+          <LiquidTabs
+            data-exams-child-selector
+            aria-label={t("exams.filter_child")}
+            items={childTabItems}
+            selectedId={selectedChildId}
+            onSelect={setSelectedChildId}
+            layoutId="examsChildLiquidPill"
+          />
+        )}
 
-              {/* Children options */}
-              {webtopConfig.linkedChildren.map((c) => {
-                const isActive = selectedChildId === c.id
-                const displayName = c.firstName?.trim() || c.lastName?.trim() || ""
-
-                return (
-                  <motion.button
-                    key={c.id}
-                    type="button"
-                    role="tab"
-                    aria-selected={isActive}
-                    whileTap={{ scale: 0.95 }}
-                    onClick={() => setSelectedChildId(c.id)}
-                    className={cn(
-                      "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                      isActive
-                        ? "text-foreground"
-                        : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {isActive && (
-                      <motion.div
-                        layoutId="examsChildLiquidPill"
-                        transition={{
-                          type: "spring",
-                          stiffness: 450,
-                          damping: 35
-                        }}
-                        className="absolute inset-0 rounded-full apple-liquid-pill"
-                      />
-                    )}
-                    <span className="relative z-10 truncate max-w-[140px]">
-                      {displayName}
-                    </span>
-                  </motion.button>
-                )
-              })}
-            </div>
-          )}
-
-          {/* 2 - Future / Past Liquid Glass Selector (at the end of the row) */}
-          <div
-            role="tablist"
-            aria-label={t("exams.filter_period")}
-            data-exams-period-selector
-            className="inline-flex items-center p-1 h-10 rounded-full apple-liquid-dock ms-auto shrink-0"
-          >
-            {(["future", "past"] as const).map((period) => {
-              const isActive = selectedPeriod === period
-              const label = period === "future" ? t("exams.period_future") : t("exams.period_past")
-
-              return (
-                <motion.button
-                  key={period}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  whileTap={{ scale: 0.95 }}
-                  onClick={() => setSelectedPeriod(period)}
-                  className={cn(
-                    "relative flex items-center justify-center h-8 px-4 rounded-full text-base font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                    isActive
-                      ? "text-foreground"
-                      : "text-muted-foreground hover:text-foreground"
-                  )}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="examsPeriodLiquidPill"
-                      transition={{
-                        type: "spring",
-                        stiffness: 450,
-                        damping: 35
-                      }}
-                      className="absolute inset-0 rounded-full apple-liquid-pill"
-                    />
-                  )}
-                  <span className="relative z-10 truncate">
-                    {label}
-                  </span>
-                </motion.button>
-              )
-            })}
-          </div>
-        </div>
+        {/* 2 - Future / Past Liquid Glass Selector (at the end of the row) */}
+        <LiquidTabs<PeriodFilter>
+          data-exams-period-selector
+          aria-label={t("exams.filter_period")}
+          items={periodTabItems}
+          selectedId={selectedPeriod}
+          onSelect={setSelectedPeriod}
+          layoutId="examsPeriodLiquidPill"
+          className="ms-auto shrink-0"
+        />
+      </div>
 
       {/* Main Content Area */}
       {loading ? (
@@ -564,145 +417,62 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         </div>
       ) : isChild && !currentUser?.linkedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mx-auto mb-3">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {t("exams.title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {t("exams.child_unlinked_desc")}
-            </p>
-          </Card>
+          <EmptyStateCard
+            icon={GraduationCap}
+            iconClassName="bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E]"
+            title={t("exams.title")}
+            description={t("exams.child_unlinked_desc")}
+          />
         </div>
       ) : filteredExams.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {searchQuery
+          <EmptyStateCard
+            icon={GraduationCap}
+            iconClassName="bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5]"
+            title={
+              searchQuery
                 ? t("exams.no_exams_match")
                 : selectedPeriod === "future"
                   ? t("exams.empty_future_title")
-                  : t("exams.empty_past_title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery
+                  : t("exams.empty_past_title")
+            }
+            description={
+              searchQuery
                 ? null
                 : selectedPeriod === "future"
                   ? t("exams.empty_future_desc")
-                  : t("exams.empty_past_desc")}
-            </p>
-          </Card>
+                  : t("exams.empty_past_desc")
+            }
+          />
         </div>
       ) : (
         <div className="space-y-3.5 !mt-0">
           {groupedExams.map((group) => (
             <div key={group.date} className="space-y-1">
-              {/* Date Section Header: No badge, aligned to beginning of the row */}
-              <div className="flex justify-start pt-1 pb-1 px-1">
-                <h2 className="text-sm sm:text-base font-semibold text-muted-foreground tracking-tight select-none text-start">
-                  {formatOneLineDate(group.date) || group.date}
-                </h2>
-              </div>
+              {/* Date Section Header */}
+              <SectionDateHeader date={group.date} />
 
               {/* Feed Cards */}
               <div className="flex flex-col gap-2.5 sm:gap-3">
                 {group.items.map((exam) => {
-                  const subjectConfig = getSubjectConfig(exam.name)
-                  const SubjectIcon = subjectConfig.icon
-                  const subjectBadgeClass = subjectConfig.solidBadgeClass
                   const matchedChild = webtopConfig?.linkedChildren?.find(
                     (c) =>
                       (exam.childId && (c.id === exam.childId || c.externalId === exam.childId)) ||
                       (exam.studentName && `${c.firstName} ${c.lastName}`.trim() === exam.studentName.trim())
                   )
-                  const childBadgeClass = getChildBadgeClasses(matchedChild?.color)
-                  const childAccentClass = getChildAccentColor(matchedChild?.color)
                   const childDisplayName = getChildFirstName(exam.studentName, matchedChild) || exam.studentName
 
                   return (
-                    <Card
+                    <ExamCard
                       key={exam.id}
-                      className="relative overflow-hidden shadow-xs border border-border/40 dark:border-border/60 hover:shadow-sm transition-all duration-200 flex flex-col p-3.5 sm:p-4 gap-2.5 rounded-2xl bg-card"
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="flex items-center gap-3 min-w-0 flex-1">
-                          {/* Subject Icon: rounded-corner square */}
-                          <div
-                            className={cn(
-                              "w-11 h-11 rounded-[14px] border flex items-center justify-center shrink-0",
-                              subjectBadgeClass
-                            )}
-                          >
-                            <SubjectIcon className="w-5 h-5 shrink-0 stroke-[2.25]" />
-                          </div>
-
-                          {/* Exam Name, Date, and Grade */}
-                          <div className="min-w-0 flex-1 flex flex-col justify-center">
-                            <span className="font-bold text-base sm:text-lg text-foreground truncate tracking-tight text-start">
-                              {exam.name}
-                            </span>
-
-                            <div className="flex items-center gap-2 flex-wrap text-xs sm:text-sm text-muted-foreground font-medium text-start mt-0.5">
-                              {/* Date info */}
-                              <span className="inline-flex items-center gap-1.5">
-                                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground/80 shrink-0 -translate-y-[1px]" />
-                                <span className="leading-none">{format(parseLocalDate(exam.date), "dd/MM/yyyy")}</span>
-                              </span>
-
-                              {/* Grade badge if present */}
-                              {exam.grade ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] border border-transparent">
-                                  <Award className="w-3 h-3 shrink-0" />
-                                  {t("exams.grade_badge", { grade: exam.grade })}
-                                </span>
-                              ) : null}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Top-End actions: Student Name badge (parents only) & Edit button (parents only) */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          {/* Child Badge (visible ONLY to parents) with color dot indicator */}
-                          {!isChild && childDisplayName && (
-                            <span
-                              className={cn(
-                                "inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold border border-transparent shrink-0 shadow-xs transition-colors mt-0.5",
-                                childBadgeClass
-                              )}
-                            >
-                              <span className={cn("w-2 h-2 rounded-full shrink-0", childAccentClass)} />
-                              <span className="truncate max-w-[120px] sm:max-w-none">{childDisplayName}</span>
-                            </span>
-                          )}
-
-                          {/* Edit Exam Button (parents only) */}
-                          {isParent && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleOpenEditModal(exam)}
-                              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
-                              title={t("exams.edit_exam_button")}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                              <span className="sr-only">{t("exams.edit_exam_button")}</span>
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-
-                      {/* Description below date: unboxed, separated by hairline divider */}
-                      {exam.description ? (
-                        <div className="text-base font-normal text-start leading-relaxed text-foreground whitespace-pre-line pt-2.5 border-t border-border/60 dark:border-border/50">
-                          {exam.description}
-                        </div>
-                      ) : null}
-                    </Card>
+                      name={exam.name}
+                      date={exam.date}
+                      grade={exam.grade}
+                      childName={!isChild ? childDisplayName : null}
+                      childColorId={!isChild ? matchedChild?.color : null}
+                      description={exam.description}
+                      onEdit={isParent ? () => handleOpenEditModal(exam) : undefined}
+                    />
                   )
                 })}
               </div>
@@ -712,263 +482,229 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
       )}
 
       {/* Add Exam Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("exams.add_modal_title")}</DialogTitle>
-            <DialogDescription>{t("exams.add_modal_desc")}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateExam} className="flex flex-col flex-1 space-y-4 py-2">
-            {/* Child Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-child">{t("exams.child_label")}</Label>
-              {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
-                <Select value={formChildId} onValueChange={setFormChildId} required>
-                  <SelectTrigger id="exam-add-child" className="bg-muted dark:bg-secondary border-transparent">
-                    <SelectValue placeholder={t("exams.select_child_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {webtopConfig.linkedChildren.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.firstName} {c.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
-                  {t("exams.no_children_warning")}
-                </p>
-              )}
-            </div>
+      <Modal
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        title={t("exams.add_modal_title")}
+        description={t("exams.add_modal_desc")}
+        onSubmit={handleCreateExam}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="flex-1 sm:flex-none">
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()} className="flex-1 sm:flex-none">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
+              {t("common.save")}
+            </Button>
+          </>
+        }
+      >
+        {/* Child Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-child">{t("exams.child_label")}</Label>
+          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
+            <Select value={formChildId} onValueChange={setFormChildId} required>
+              <SelectTrigger id="exam-add-child" variant="filled">
+                <SelectValue placeholder={t("exams.select_child_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {webtopConfig.linkedChildren.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
+              {t("exams.no_children_warning")}
+            </p>
+          )}
+        </div>
 
-            {/* Exam Name */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-name">{t("exams.name_label")}</Label>
-              <Input
-                id="exam-add-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("exams.name_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-                maxLength={120}
-              />
-            </div>
+        {/* Exam Name */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-name">{t("exams.name_label")}</Label>
+          <FilledInput
+            id="exam-add-name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder={t("exams.name_placeholder")}
+            required
+            maxLength={120}
+          />
+        </div>
 
-            {/* Exam Date */}
-            <div className="space-y-2">
-              <Label>{t("exams.date_label")}</Label>
-              <DatePicker
-                date={formDate}
-                setDate={setFormDate}
-                clearable={false}
-                formatPattern="dd/MM/yyyy"
-                className="bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Date */}
+        <div className="space-y-2">
+          <Label>{t("exams.date_label")}</Label>
+          <DatePicker
+            date={formDate}
+            setDate={setFormDate}
+            clearable={false}
+            formatPattern="dd/MM/yyyy"
+            variant="filled"
+          />
+        </div>
 
-            {/* Exam Description (Optional, below date) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="exam-add-desc">{t("exams.description_label")}</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formDescription.length}/200
-                </span>
-              </div>
-              <Textarea
-                id="exam-add-desc"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("exams.description_placeholder")}
-                rows={3}
-                maxLength={200}
-                className="resize-none bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Description (Optional, below date) */}
+        <div className="space-y-2">
+          <CounterField label={t("exams.description_label")} htmlFor="exam-add-desc" currentLength={formDescription.length} maxLength={200}>
+            <FilledTextarea
+              id="exam-add-desc"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder={t("exams.description_placeholder")}
+              rows={3}
+              maxLength={200}
+              className="resize-none"
+            />
+          </CounterField>
+        </div>
 
-            {/* Grade (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-grade">{t("exams.grade_label")}</Label>
-              <Input
-                id="exam-add-grade"
-                value={formGrade}
-                onChange={(e) => setFormGrade(e.target.value)}
-                placeholder={t("exams.grade_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                maxLength={32}
-              />
-            </div>
+        {/* Grade (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-grade">{t("exams.grade_label")}</Label>
+          <FilledInput
+            id="exam-add-grade"
+            value={formGrade}
+            onChange={(e) => setFormGrade(e.target.value)}
+            placeholder={t("exams.grade_placeholder")}
+            maxLength={32}
+          />
+        </div>
+      </Modal>
 
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+      {/* Edit Exam Dialog */}
+      <Modal
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        title={t("exams.edit_modal_title")}
+        description={t("exams.edit_modal_desc")}
+        onSubmit={handleUpdateExam}
+        footer={
+          <div className="flex flex-row items-center justify-between w-full">
+            {activeExam ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setExamToDelete(activeExam)}
+                className="flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{t("common.delete")}</span>
+              </Button>
+            ) : <div />}
+            <div className="flex items-center gap-2 ms-auto">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
                 {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()}>
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
                 {t("common.save")}
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Exam Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("exams.edit_modal_title")}</DialogTitle>
-            <DialogDescription>{t("exams.edit_modal_desc")}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateExam} className="flex flex-col flex-1 space-y-4 py-2">
-            {/* Child Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-child">{t("exams.child_label")}</Label>
-              {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
-                <Select value={formChildId} onValueChange={setFormChildId} required>
-                  <SelectTrigger id="exam-edit-child" className="bg-muted dark:bg-secondary border-transparent">
-                    <SelectValue placeholder={t("exams.select_child_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {webtopConfig.linkedChildren.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.firstName} {c.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
-                  {t("exams.no_children_warning")}
-                </p>
-              )}
             </div>
+          </div>
+        }
+      >
+        {/* Child Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-child">{t("exams.child_label")}</Label>
+          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
+            <Select value={formChildId} onValueChange={setFormChildId} required>
+              <SelectTrigger id="exam-edit-child" variant="filled">
+                <SelectValue placeholder={t("exams.select_child_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {webtopConfig.linkedChildren.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
+              {t("exams.no_children_warning")}
+            </p>
+          )}
+        </div>
 
-            {/* Exam Name */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-name">{t("exams.name_label")}</Label>
-              <Input
-                id="exam-edit-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("exams.name_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-                maxLength={120}
-              />
-            </div>
+        {/* Exam Name */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-name">{t("exams.name_label")}</Label>
+          <FilledInput
+            id="exam-edit-name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder={t("exams.name_placeholder")}
+            required
+            maxLength={120}
+          />
+        </div>
 
-            {/* Exam Date */}
-            <div className="space-y-2">
-              <Label>{t("exams.date_label")}</Label>
-              <DatePicker
-                date={formDate}
-                setDate={setFormDate}
-                clearable={false}
-                formatPattern="dd/MM/yyyy"
-                className="bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Date */}
+        <div className="space-y-2">
+          <Label>{t("exams.date_label")}</Label>
+          <DatePicker
+            date={formDate}
+            setDate={setFormDate}
+            clearable={false}
+            formatPattern="dd/MM/yyyy"
+            variant="filled"
+          />
+        </div>
 
-            {/* Exam Description (Optional, below date) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="exam-edit-desc">{t("exams.description_label")}</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formDescription.length}/200
-                </span>
-              </div>
-              <Textarea
-                id="exam-edit-desc"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("exams.description_placeholder")}
-                rows={3}
-                maxLength={200}
-                className="resize-none bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Description (Optional, below date) */}
+        <div className="space-y-2">
+          <CounterField label={t("exams.description_label")} htmlFor="exam-edit-desc" currentLength={formDescription.length} maxLength={200}>
+            <FilledTextarea
+              id="exam-edit-desc"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder={t("exams.description_placeholder")}
+              rows={3}
+              maxLength={200}
+              className="resize-none"
+            />
+          </CounterField>
+        </div>
 
-            {/* Grade (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-grade">{t("exams.grade_label")}</Label>
-              <Input
-                id="exam-edit-grade"
-                value={formGrade}
-                onChange={(e) => setFormGrade(e.target.value)}
-                placeholder={t("exams.grade_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                maxLength={32}
-              />
-            </div>
-
-            <DialogFooter className="pt-2 flex flex-row items-center justify-between">
-              {activeExam && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => setExamToDelete(activeExam)}
-                  className="flex items-center gap-1.5"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{t("common.delete")}</span>
-                </Button>
-              )}
-              <div className="flex items-center gap-2 ms-auto">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()}>
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-                  {t("common.save")}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        {/* Grade (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-grade">{t("exams.grade_label")}</Label>
+          <FilledInput
+            id="exam-edit-grade"
+            value={formGrade}
+            onChange={(e) => setFormGrade(e.target.value)}
+            placeholder={t("exams.grade_placeholder")}
+            maxLength={32}
+          />
+        </div>
+      </Modal>
 
       {/* Delete Exam Confirmation Dialog */}
-      <AlertDialog open={Boolean(examToDelete)} onOpenChange={(open) => !open && setExamToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("exams.delete_modal_title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("exams.delete_confirm")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteExam}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin me-1.5" /> : null}
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmModal
+        open={Boolean(examToDelete)}
+        onOpenChange={(open) => !open && setExamToDelete(null)}
+        title={t("exams.delete_modal_title")}
+        description={t("exams.delete_confirm")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        loading={isDeleting}
+        onConfirm={handleDeleteExam}
+      />
 
       </div>
 
       {/* Floating Add Exam Action Button (Aligned with cards) */}
       {isParent && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
-          <div className="relative h-full w-full">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleOpenAddModal}
-              className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-              title={t("exams.add_exam_button")}
-              aria-label={t("exams.add_exam_button")}
-            >
-              <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
-            </motion.button>
-          </div>
-        </div>
+        <FloatingActionButton
+          onClick={handleOpenAddModal}
+          title={t("exams.add_exam_button")}
+          ariaLabel={t("exams.add_exam_button")}
+        />
       )}
     </div>
   )

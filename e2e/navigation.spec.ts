@@ -60,7 +60,7 @@ test.describe('Navigation Flow', () => {
     // Click Account shortcut
     const accountBtn = page.locator('aside button').first();
     await accountBtn.click();
-    await expect(page.locator('main h2').first()).toContainText(/הגדרות חשבון|Account Settings/);
+    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות חשבון|Account Settings/);
     await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
   });
 

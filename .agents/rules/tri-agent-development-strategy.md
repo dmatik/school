@@ -3,7 +3,9 @@
 This project utilizes a 3-agent expert methodology for complex feature implementations, architectural shifts, and quality enforcement:
 
 1. **Frontend UI/UX Expert (`frontend-uiux-expert`)**:
-   - React 19, TypeScript, Tailwind CSS 3.4, and Radix UI primitives.
+   - React 19, TypeScript, Tailwind CSS 3.4, Radix UI primitives, and Storybook 8.
+   - **Zero UI Code Duplication**: Enforces that every UI element (cards, modals, inputs, selects, date pickers, buttons, badges, rows) is built using shared components in `src/components/ui/`.
+   - **Mandatory Storybook Synchronization**: Ensures every new or modified shared component or variant is added or updated in `src/stories/` (and `src/stories/Introduction.mdx`).
    - Enforces bilingual Hebrew (RTL, default) and English (LTR) integrity.
    - Strictly enforces logical properties (`ps-`, `pe-`, `start-`, `end-`, `text-start`, `text-end`).
    - Ensures visual hierarchy, responsive liquid glass aesthetics, and zero hardcoded JSX strings (`src/locales/he.json` and `src/locales/en.json`).
@@ -26,13 +28,13 @@ This project utilizes a 3-agent expert methodology for complex feature implement
 
 1. **Planning & Architecture Alignment**:
    - Database schema & migration design (handled with `backend-db-expert`).
-   - UI/UX & bilingual user flow design (handled with `frontend-uiux-expert`).
+   - Shared UI component reuse, Storybook additions, & bilingual user flow design (handled with `frontend-uiux-expert`).
    - Threat modeling & authorization boundaries (audited with `red-team-expert`).
 
 2. **Implementation**:
    - Backend schema migrations and API endpoint updates.
    - Bilingual locale synchronization (`he.json` and `en.json`).
-   - Frontend components, state management, and accessibility styling.
+   - Shared UI components in `src/components/ui/` and Storybook stories in `src/stories/` first, then page integration with zero code duplication.
 
 3. **Verification & Hardening**:
    - Unit and component tests with Vitest (`npm test`).

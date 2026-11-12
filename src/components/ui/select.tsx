@@ -15,14 +15,22 @@ const SelectGroup = SelectPrimitive.Group
 
 const SelectValue = SelectPrimitive.Value
 
+export interface SelectTriggerProps
+    extends React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger> {
+    variant?: "card" | "filled"
+}
+
 const SelectTrigger = React.forwardRef<
     React.ElementRef<typeof SelectPrimitive.Trigger>,
-    React.ComponentPropsWithoutRef<typeof SelectPrimitive.Trigger>
->(({ className, children, ...props }, ref) => (
+    SelectTriggerProps
+>(({ className, children, variant = "card", ...props }, ref) => (
     <SelectPrimitive.Trigger
         ref={ref}
         className={cn(
-            "flex h-9 w-full items-center justify-between rounded-full border border-transparent bg-card px-3.5 py-1.5 text-sm shadow-xs placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 text-start [&>span]:line-clamp-1 transition-all duration-200",
+            "flex h-9 w-full items-center justify-between rounded-full border border-transparent px-3.5 py-1.5 text-sm shadow-xs placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent disabled:cursor-not-allowed disabled:opacity-50 text-start [&>span]:line-clamp-1 transition-all duration-200",
+            variant === "card"
+                ? "bg-card"
+                : "bg-muted dark:bg-secondary",
             className
         )}
         {...props}
@@ -154,6 +162,115 @@ const SelectSeparator = React.forwardRef<
 ))
 SelectSeparator.displayName = SelectPrimitive.Separator.displayName
 
+export interface SelectFieldProps extends React.ComponentProps<typeof SelectPrimitive.Root> {
+    label?: React.ReactNode
+    description?: React.ReactNode
+    placeholder?: string
+    variant?: "card" | "filled"
+    layout?: "responsive" | "stacked"
+    id?: string
+    className?: string
+    triggerClassName?: string
+    triggerProps?: Partial<SelectTriggerProps> & Record<string, any>
+    ariaLabel?: string
+    children: React.ReactNode
+}
+
+function SelectField({
+    label,
+    description,
+    placeholder,
+    variant = "filled",
+    layout = "responsive",
+    id,
+    className,
+    triggerClassName,
+    triggerProps,
+    ariaLabel,
+    children,
+    ...selectProps
+}: SelectFieldProps) {
+    const hasHeader = Boolean(label || description)
+
+    // Check if children contain SelectContent; if not, wrap inside SelectContent
+    const isSelectContentPassed = React.Children.toArray(children).some(
+        (child) =>
+            React.isValidElement(child) &&
+            (child.type === SelectContent || (child.type as any)?.displayName === "SelectContent")
+    )
+    const renderedContent = isSelectContentPassed ? (
+        children
+    ) : (
+        <SelectContent>{children}</SelectContent>
+    )
+
+    const selectNode = (
+        <Select {...selectProps}>
+            <SelectTrigger
+                id={id}
+                variant={variant}
+                aria-label={ariaLabel || (typeof label === "string" ? label : undefined)}
+                className={cn(triggerClassName)}
+                {...triggerProps}
+            >
+                <SelectValue placeholder={placeholder} />
+            </SelectTrigger>
+            {renderedContent}
+        </Select>
+    )
+
+    if (!hasHeader) {
+        return <div className={cn("w-full", className)}>{selectNode}</div>
+    }
+
+    if (layout === "stacked") {
+        return (
+            <div className={cn("space-y-2 py-2 w-full", className)}>
+                <div className="space-y-0.5">
+                    {label && (
+                        <label
+                            htmlFor={id}
+                            className="text-sm font-semibold text-foreground block cursor-pointer select-none text-start"
+                        >
+                            {label}
+                        </label>
+                    )}
+                    {description && (
+                        <p className="text-xs text-muted-foreground block text-start">{description}</p>
+                    )}
+                </div>
+                <div className="w-full">{selectNode}</div>
+            </div>
+        )
+    }
+
+    // Responsive layout (matches settings rows: stacked on mobile, inline on sm+)
+    return (
+        <div
+            className={cn(
+                "flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3.5",
+                className
+            )}
+        >
+            <div className="space-y-0.5 min-w-0 flex-1">
+                {label && (
+                    <label
+                        htmlFor={id}
+                        className="text-sm font-semibold text-foreground block cursor-pointer select-none text-start"
+                    >
+                        {label}
+                    </label>
+                )}
+                {description && (
+                    <p className="text-xs text-muted-foreground block text-start">{description}</p>
+                )}
+            </div>
+            <div className="w-full sm:w-[160px] shrink-0">{selectNode}</div>
+        </div>
+    )
+}
+SelectField.displayName = "SelectField"
+
 export {
     Select,
     SelectGroup,
@@ -165,4 +282,5 @@ export {
     SelectSeparator,
     SelectScrollUpButton,
     SelectScrollDownButton,
+    SelectField,
 }

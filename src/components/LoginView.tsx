@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Lock, User as UserIcon, Loader2, Fingerprint } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { IconInput } from "@/components/ui/form-field"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -10,29 +10,45 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { isPasskeySupported, loginWithPasskey } from "@/lib/webauthn"
 import type { User } from "@/types"
 
-interface LoginViewProps {
-  onLoginSuccess: (token: string, user: User) => void
+export interface LoginViewProps {
+  onLoginSuccess?: (token: string, user: User) => void
+  initialUsername?: string
+  initialPassword?: string
+  initialError?: string | null
+  simulateLoading?: boolean
+  simulatePasskeyLoading?: boolean
+  defaultHasPasskeySupport?: boolean
 }
 
-export function LoginView({ onLoginSuccess }: LoginViewProps) {
+export function LoginView({
+  onLoginSuccess,
+  initialUsername = "",
+  initialPassword = "",
+  initialError = null,
+  simulateLoading = false,
+  simulatePasskeyLoading = false,
+  defaultHasPasskeySupport,
+}: LoginViewProps) {
   const { t } = useTranslation()
-  const [username, setUsername] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
-  const [passkeyLoading, setPasskeyLoading] = useState(false)
-  const [hasPasskeySupport, setHasPasskeySupport] = useState(false)
+  const [username, setUsername] = useState(initialUsername)
+  const [password, setPassword] = useState(initialPassword)
+  const [error, setError] = useState<string | null>(initialError)
+  const [loading, setLoading] = useState(simulateLoading)
+  const [passkeyLoading, setPasskeyLoading] = useState(simulatePasskeyLoading)
+  const [hasPasskeySupport, setHasPasskeySupport] = useState(defaultHasPasskeySupport ?? false)
 
   useEffect(() => {
-    setHasPasskeySupport(isPasskeySupported())
-  }, [])
+    if (defaultHasPasskeySupport === undefined) {
+      setHasPasskeySupport(isPasskeySupported())
+    }
+  }, [defaultHasPasskeySupport])
 
   const handlePasskeyLogin = async () => {
     setError(null)
     setPasskeyLoading(true)
     try {
       const result = await loginWithPasskey(username.trim() || undefined)
-      onLoginSuccess(result.token, result.user)
+      onLoginSuccess?.(result.token, result.user)
     } catch (err: unknown) {
       const errorObj = err instanceof Error ? err : new Error(String(err))
       if (errorObj.name !== 'NotAllowedError') {
@@ -69,7 +85,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         throw new Error(data?.message || data?.error || t("auth.login_failed"))
       }
 
-      onLoginSuccess(data.token, data.user)
+      onLoginSuccess?.(data.token, data.user)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : String(err)
       setError(message || t("auth.login_failed"))
@@ -86,7 +102,7 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
         <ModeToggle />
       </div>
 
-      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-transparent bg-card/90 backdrop-blur-md">
+      <Card className="w-full max-w-md rounded-2xl shadow-xl border border-border/40 dark:border-border/60 bg-card/95 backdrop-blur-md transition-all duration-200">
         <CardHeader className="text-center space-y-2 pb-5">
           <div className="mx-auto w-12 h-12 rounded-2xl bg-primary/10 border border-transparent flex items-center justify-center text-primary mb-2 shadow-xs">
             <UserIcon className="w-6 h-6" />
@@ -109,36 +125,30 @@ export function LoginView({ onLoginSuccess }: LoginViewProps) {
 
             <div className="space-y-1.5">
               <Label htmlFor="username" className="text-xs font-semibold">{t("auth.username")}</Label>
-              <div className="relative">
-                <UserIcon className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  type="text"
-                  autoComplete="username"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
-                  placeholder={t("auth.username_placeholder")}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
+              <IconInput
+                id="username"
+                type="text"
+                icon={UserIcon}
+                autoComplete="username"
+                placeholder={t("auth.username_placeholder")}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-xs font-semibold">{t("auth.password")}</Label>
-              <div className="relative">
-                <Lock className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+              <IconInput
+                id="password"
+                type="password"
+                icon={Lock}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
 
             <Button type="submit" className="w-full mt-4 h-10 rounded-full font-semibold shadow-xs hover:shadow-sm transition-all duration-200" disabled={loading || passkeyLoading}>

@@ -1,41 +1,19 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
+import { PageHeader } from "@/components/ui/page-header"
+import { SearchInput } from "@/components/ui/search-input"
 import {
-  Plus,
-  Shield,
-  Key,
-  Trash2,
-  Edit2,
-  Search,
   Loader2,
   AlertTriangle,
-  Users,
-  Baby,
-  X
+  Users
 } from "lucide-react"
-import { Card, CardContent } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { SectionCard } from "@/components/ui/section-card"
+import { Separator } from "@/components/ui/separator"
+import { AdminUserRow } from "@/components/ui/admin-user-row"
+import { FilledInput } from "@/components/ui/form-field"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Modal, ConfirmModal } from "@/components/ui/modal"
 import {
   Select,
   SelectContent,
@@ -44,8 +22,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import { getChildColor } from "@/lib/child-colors"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
 
 interface AdminPageProps {
@@ -65,6 +42,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [isDeletingUser, setIsDeletingUser] = useState(false)
   const [activeUser, setActiveUser] = useState<User | null>(null)
 
   // Form states for Create User
@@ -360,8 +338,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
   // Handle Delete User
   const handleDeleteUser = async () => {
-    if (!userToDelete) return
+    if (!userToDelete || isDeletingUser) return
 
+    setIsDeletingUser(true)
     try {
       const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: "DELETE",
@@ -389,6 +368,8 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         title: t("common.error"),
         description: err instanceof Error ? err.message : t("admin.delete_failed")
       })
+    } finally {
+      setIsDeletingUser(false)
     }
   }
 
@@ -409,255 +390,262 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     <div className="relative h-full w-full overflow-hidden">
       <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header (Desktop only) */}
-        <div data-page-title className="hidden md:flex flex-row justify-between items-center gap-3 border-b border-border/70 dark:border-border/60 pb-2">
-          <h2 className="text-lg font-bold tracking-tight text-foreground truncate flex-1 min-w-0">
-            {t("admin.title")}
-          </h2>
-        </div>
+        <PageHeader sticky={false} title={t("admin.title")} />
 
-        {/* Search & Stats */}
-      <div className="flex flex-col sm:flex-row gap-4 items-center justify-between">
-        <div className="relative w-full sm:w-72">
-          <Search className="absolute start-3.5 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
-          <Input
-            type="search"
-            placeholder={t("admin.search_placeholder")}
+        {/* Search */}
+        <div>
+          <SearchInput
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="ps-11 pe-11 h-11 text-[18px] rounded-full bg-black/[0.05] dark:bg-white/[0.08] border border-transparent shadow-none placeholder:text-muted-foreground focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent"
+            onChange={setSearchQuery}
+            placeholder={t("admin.search_placeholder")}
+            wrapperClassName="w-full"
           />
-          {searchQuery && (
-            <button
-              type="button"
-              onClick={() => setSearchQuery("")}
-              className="absolute end-3 top-1/2 -translate-y-1/2 p-1.5 rounded-full text-muted-foreground hover:text-foreground hover:bg-black/5 dark:hover:bg-white/10 transition-colors focus:outline-none focus-visible:ring-1 focus-visible:ring-primary/40 flex items-center justify-center"
-              aria-label={t("common.clear_search")}
-            >
-              <X className="w-4 h-4 stroke-[2.5px]" />
-            </button>
-          )}
         </div>
-        <div className="text-sm text-muted-foreground self-end sm:self-center">
-          {t("admin.total_users", { count: users.length })}
-        </div>
-      </div>
 
-      {/* Users List */}
-      <Card className="shadow-sm border border-transparent overflow-hidden">
-        <CardContent className="p-0">
-          {loading ? (
-            <div className="flex justify-center items-center py-12">
-              <Loader2 className="w-8 h-8 animate-spin text-primary" />
-            </div>
-          ) : filteredUsers.length === 0 ? (
-            <div className="text-center py-12 text-muted-foreground">
-              {searchQuery ? t("admin.no_users_found") : t("admin.no_users")}
-            </div>
-          ) : (
-            <div className="divide-y divide-border">
-              {filteredUsers.map((u) => {
-                const isSelf = u.id === currentUser.id
-                const fullName = [u.firstName, u.lastName].filter(Boolean).join(" ")
-
+        {/* Users List Section Card */}
+        <div className="space-y-4">
+          <SectionCard
+            icon={Users}
+            title={t("admin.users_section_title")}
+            description={t("admin.total_users", { count: users.length })}
+            contentClassName="pt-1"
+          >
+            {loading ? (
+              <div className="flex justify-center items-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : filteredUsers.length === 0 ? (
+              <div className="text-center py-12 text-muted-foreground">
+                {searchQuery ? t("admin.no_users_found") : t("admin.no_users")}
+              </div>
+            ) : (
+              filteredUsers.map((u, index) => {
+                const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
                 return (
-                  <div
-                    key={u.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between p-4 gap-4 hover:bg-muted/30 transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      {u.avatar ? (
-                        <img
-                          src={u.avatar}
-                          alt={u.username}
-                          className="w-10 h-10 rounded-full object-cover border border-transparent shadow-xs"
-                        />
-                      ) : (() => {
-                        const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
-                        const userChildColor = linkedChild ? getChildColor(linkedChild.color) : null
-                        return (
-                          <div
-                            className={cn(
-                              "w-10 h-10 rounded-full flex items-center justify-center font-bold border border-transparent shadow-xs",
-                              userChildColor ? cn(userChildColor.bg, "text-white") : "bg-primary text-primary-foreground"
-                            )}
-                          >
-                            {u.username[0]?.toUpperCase() || "U"}
-                          </div>
-                        )
-                      })()}
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-foreground">
-                            {fullName || u.username}
-                          </span>
-                          {fullName && (
-                            <span className="text-xs text-muted-foreground">({u.username})</span>
-                          )}
-                          {isSelf && (
-                            <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium border border-transparent">
-                              {t("admin.you")}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 font-medium",
-                              u.role === "admin" ? "text-[#D4973B] dark:text-[#F5D59E]" : "text-[#3B82C4] dark:text-[#AED4F8]"
-                            )}
-                          >
-                            <Shield className="w-3 h-3" />
-                            {u.role === "admin" ? t("account.role_admin") : t("account.role_user")}
-                          </span>
-                          <span className="text-border">•</span>
-                          <span
-                            className={cn(
-                              "inline-flex items-center gap-1 font-medium",
-                              u.familyRole === "child" ? "text-[#2CA58D] dark:text-[#9EE8D8]" : "text-[#8A63B8] dark:text-[#D8C2F2]"
-                            )}
-                          >
-                            {u.familyRole === "child" ? (
-                              <Baby className="w-3 h-3" />
-                            ) : (
-                              <Users className="w-3 h-3" />
-                            )}
-                            {u.familyRole === "child" ? t("admin.role_child") : t("admin.role_parent")}
-                          </span>
-                          {u.familyRole === "child" && (() => {
-                            const linkedChild = webtopChildren.find((c) => c.id === u.linkedChildId)
-                            if (linkedChild) {
-                              const childName = `${linkedChild.firstName} ${linkedChild.lastName}`.trim() || linkedChild.id
-                              return (
-                                <>
-                                  <span className="text-border">•</span>
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-secondary text-secondary-foreground border border-transparent">
-                                    {childName}
-                                  </span>
-                                </>
-                              )
+                  <div key={u.id}>
+                    {index > 0 && <Separator className="my-0" />}
+                    <AdminUserRow
+                      user={u}
+                      isSelf={u.id === currentUser.id}
+                      linkedChild={
+                        linkedChild
+                          ? {
+                              id: linkedChild.id,
+                              name: `${linkedChild.firstName} ${linkedChild.lastName}`.trim() || linkedChild.id,
+                              color: linkedChild.color,
                             }
-                            return (
-                              <>
-                                <span className="text-border">•</span>
-                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[11px] font-medium bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-transparent">
-                                  {t("admin.unlinked_child_badge")}
-                                </span>
-                              </>
-                            )
-                          })()}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* Actions */}
-                    <div className="flex items-center gap-2 self-end sm:self-center">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openEditDialog(u)}
-                        title={t("admin.edit_user")}
-                        className="h-8 px-2 text-xs flex items-center gap-1"
-                      >
-                        <Edit2 className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{t("common.edit")}</span>
-                      </Button>
-
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => openPasswordDialog(u)}
-                        title={t("admin.reset_password")}
-                        className="h-8 px-2 text-xs flex items-center gap-1"
-                      >
-                        <Key className="w-3.5 h-3.5" />
-                        <span className="hidden md:inline">{t("admin.reset_password_short")}</span>
-                      </Button>
-
-                      {!isSelf && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setUserToDelete(u)}
-                          title={t("admin.delete_user")}
-                          className="h-8 px-2 text-xs text-destructive hover:text-destructive flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                          <span className="hidden md:inline">{t("common.delete")}</span>
-                        </Button>
-                      )}
-                    </div>
+                          : null
+                      }
+                      onEdit={() => openEditDialog(u)}
+                      onResetPassword={() => openPasswordDialog(u)}
+                      onDelete={u.id !== currentUser.id ? () => setUserToDelete(u) : undefined}
+                    />
                   </div>
                 )
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+              })
+            )}
+          </SectionCard>
+        </div>
 
       {/* Create User Dialog */}
-      <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("admin.create_user_modal_title")}</DialogTitle>
-            <DialogDescription>{t("admin.create_user_modal_desc")}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateUser} className="flex flex-col flex-1 space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="create-username">{t("auth.username")}</Label>
-              <Input
-                id="create-username"
-                value={createUsername}
-                onChange={(e) => setCreateUsername(e.target.value)}
-                placeholder={t("auth.username_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="create-password">{t("auth.password")}</Label>
-              <Input
-                id="create-password"
-                type="password"
-                value={createPassword}
-                onChange={(e) => setCreatePassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-              />
-            </div>
+      <Modal
+        open={isCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setCreateUsername("")
+            setCreatePassword("")
+            setCreateFirstName("")
+            setCreateLastName("")
+            setCreateRole("user")
+            setCreateFamilyRole("parent")
+            setCreateLinkedChildId("")
+          }
+        }}
+        title={t("admin.create_user_modal_title")}
+        description={t("admin.create_user_modal_desc")}
+        onSubmit={handleCreateUser}
+        submitText={t("admin.create_button")}
+        isSubmitting={isSubmittingCreate}
+      >
+        <div className="space-y-2">
+          <Label htmlFor="create-username">{t("auth.username")}</Label>
+          <FilledInput
+            id="create-username"
+            value={createUsername}
+            onChange={(e) => setCreateUsername(e.target.value)}
+            placeholder={t("auth.username_placeholder")}
+            required
+          />
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-password">{t("auth.password")}</Label>
+          <FilledInput
+            id="create-password"
+            type="password"
+            value={createPassword}
+            onChange={(e) => setCreatePassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-2">
+            <Label htmlFor="create-fn">{t("account.first_name")}</Label>
+            <FilledInput
+              id="create-fn"
+              value={createFirstName}
+              onChange={(e) => setCreateFirstName(e.target.value)}
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="create-ln">{t("account.last_name")}</Label>
+            <FilledInput
+              id="create-ln"
+              value={createLastName}
+              onChange={(e) => setCreateLastName(e.target.value)}
+            />
+          </div>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-role">{t("account.role")}</Label>
+          <Select
+            value={createRole}
+            onValueChange={(val: UserRole) => {
+              setCreateRole(val)
+              if (val === "admin") {
+                setCreateFamilyRole("parent")
+                setCreateLinkedChildId("")
+              }
+            }}
+          >
+            <SelectTrigger id="create-role" variant="filled">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="user">{t("account.role_user")}</SelectItem>
+              <SelectItem value="admin">{t("account.role_admin")}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="space-y-2">
+          <Label htmlFor="create-family-role">{t("admin.family_role")}</Label>
+          <Select
+            value={createFamilyRole}
+            onValueChange={(val: FamilyRole) => {
+              setCreateFamilyRole(val)
+              if (val === "parent") {
+                setCreateLinkedChildId("")
+              }
+            }}
+            disabled={createRole === "admin"}
+          >
+            <SelectTrigger id="create-family-role" variant="filled" disabled={createRole === "admin"}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="parent">{t("admin.role_parent")}</SelectItem>
+              <SelectItem value="child">{t("admin.role_child")}</SelectItem>
+            </SelectContent>
+          </Select>
+          {createRole === "admin" && (
+            <p className="text-xs text-muted-foreground">
+              {t("admin.admin_parent_only_hint")}
+            </p>
+          )}
+        </div>
+        {createFamilyRole === "child" && createRole !== "admin" && (
+          <div className="space-y-2">
+            <Label htmlFor="create-linked-child">{t("admin.linked_child")}</Label>
+            <Select
+              value={createLinkedChildId || "none"}
+              onValueChange={(val) => {
+                const childId = val === "none" ? "" : val
+                setCreateLinkedChildId(childId)
+                if (childId) {
+                  const matched = webtopChildren.find((c) => c.id === childId)
+                  if (matched && !createFirstName && !createLastName) {
+                    if (matched.firstName) setCreateFirstName(matched.firstName)
+                    if (matched.lastName) setCreateLastName(matched.lastName)
+                  }
+                }
+              }}
+            >
+              <SelectTrigger id="create-linked-child" variant="filled">
+                <SelectValue placeholder={t("admin.select_child_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">{t("admin.select_child_placeholder")}</SelectItem>
+                {webtopChildren.map((child) => (
+                  <SelectItem key={child.id} value={child.id}>
+                    {child.firstName} {child.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {webtopChildren.length === 0 && (
+              <p className="text-xs text-muted-foreground">
+                {t("admin.no_webtop_children_hint")}
+              </p>
+            )}
+          </div>
+        )}
+      </Modal>
+
+      {/* Edit User Dialog */}
+      {(() => {
+        const isEditingDefaultAdmin = activeUser?.id === "admin-default" || activeUser?.username?.toLowerCase() === "admin"
+        return (
+          <Modal
+            open={isEditOpen}
+            onOpenChange={setIsEditOpen}
+            title={t("admin.edit_user_modal_title", { username: activeUser?.username })}
+            description={t("admin.edit_user_modal_desc")}
+            onSubmit={handleEditUser}
+            footer={
+              <>
+                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="flex-1 sm:flex-none">
+                  {t("common.cancel")}
+                </Button>
+                <Button type="submit" disabled={isSubmittingEdit} className="flex-1 sm:flex-none">
+                  {isSubmittingEdit ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
+                  {t("common.save")}
+                </Button>
+              </>
+            }
+          >
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="create-fn">{t("account.first_name")}</Label>
-                <Input
-                  id="create-fn"
-                  value={createFirstName}
-                  onChange={(e) => setCreateFirstName(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent"
+                <Label htmlFor="edit-fn">{t("account.first_name")}</Label>
+                <FilledInput
+                  id="edit-fn"
+                  value={editFirstName}
+                  onChange={(e) => setEditFirstName(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="create-ln">{t("account.last_name")}</Label>
-                <Input
-                  id="create-ln"
-                  value={createLastName}
-                  onChange={(e) => setCreateLastName(e.target.value)}
-                  className="bg-muted dark:bg-secondary border-transparent"
+                <Label htmlFor="edit-ln">{t("account.last_name")}</Label>
+                <FilledInput
+                  id="edit-ln"
+                  value={editLastName}
+                  onChange={(e) => setEditLastName(e.target.value)}
                 />
               </div>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-role">{t("account.role")}</Label>
+              <Label htmlFor="edit-role">{t("account.role")}</Label>
               <Select
-                value={createRole}
+                value={isEditingDefaultAdmin ? "admin" : editRole}
                 onValueChange={(val: UserRole) => {
-                  setCreateRole(val)
+                  setEditRole(val)
                   if (val === "admin") {
-                    setCreateFamilyRole("parent")
-                    setCreateLinkedChildId("")
+                    setEditFamilyRole("parent")
+                    setEditLinkedChildId("")
                   }
                 }}
+                disabled={isEditingDefaultAdmin}
               >
-                <SelectTrigger id="create-role" className="bg-muted dark:bg-secondary border-transparent">
+                <SelectTrigger id="edit-role" variant="filled" disabled={isEditingDefaultAdmin}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -665,20 +653,25 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   <SelectItem value="admin">{t("account.role_admin")}</SelectItem>
                 </SelectContent>
               </Select>
+              {isEditingDefaultAdmin && (
+                <p className="text-xs text-muted-foreground">
+                  {t("admin.default_admin_role_fixed")}
+                </p>
+              )}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="create-family-role">{t("admin.family_role")}</Label>
+              <Label htmlFor="edit-family-role">{t("admin.family_role")}</Label>
               <Select
-                value={createFamilyRole}
+                value={editRole === "admin" || isEditingDefaultAdmin ? "parent" : editFamilyRole}
                 onValueChange={(val: FamilyRole) => {
-                  setCreateFamilyRole(val)
+                  setEditFamilyRole(val)
                   if (val === "parent") {
-                    setCreateLinkedChildId("")
+                    setEditLinkedChildId("")
                   }
                 }}
-                disabled={createRole === "admin"}
+                disabled={editRole === "admin" || isEditingDefaultAdmin}
               >
-                <SelectTrigger id="create-family-role" className="bg-muted dark:bg-secondary border-transparent" disabled={createRole === "admin"}>
+                <SelectTrigger id="edit-family-role" variant="filled" disabled={editRole === "admin" || isEditingDefaultAdmin}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -686,30 +679,23 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                   <SelectItem value="child">{t("admin.role_child")}</SelectItem>
                 </SelectContent>
               </Select>
-              {createRole === "admin" && (
+              {(editRole === "admin" || isEditingDefaultAdmin) && (
                 <p className="text-xs text-muted-foreground">
                   {t("admin.admin_parent_only_hint")}
                 </p>
               )}
             </div>
-            {createFamilyRole === "child" && createRole !== "admin" && (
+            {editFamilyRole === "child" && editRole !== "admin" && !isEditingDefaultAdmin && (
               <div className="space-y-2">
-                <Label htmlFor="create-linked-child">{t("admin.linked_child")}</Label>
+                <Label htmlFor="edit-linked-child">{t("admin.linked_child")}</Label>
                 <Select
-                  value={createLinkedChildId || "none"}
+                  value={editLinkedChildId || "none"}
                   onValueChange={(val) => {
                     const childId = val === "none" ? "" : val
-                    setCreateLinkedChildId(childId)
-                    if (childId) {
-                      const matched = webtopChildren.find((c) => c.id === childId)
-                      if (matched && !createFirstName && !createLastName) {
-                        if (matched.firstName) setCreateFirstName(matched.firstName)
-                        if (matched.lastName) setCreateLastName(matched.lastName)
-                      }
-                    }
+                    setEditLinkedChildId(childId)
                   }}
                 >
-                  <SelectTrigger id="create-linked-child" className="bg-muted dark:bg-secondary border-transparent">
+                  <SelectTrigger id="edit-linked-child" variant="filled">
                     <SelectValue placeholder={t("admin.select_child_placeholder")} />
                   </SelectTrigger>
                   <SelectContent>
@@ -728,225 +714,56 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
                 )}
               </div>
             )}
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="flex-1 sm:flex-none">
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={isSubmittingCreate} className="flex-1 sm:flex-none">
-                {isSubmittingCreate ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-                {t("admin.create_button")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit User Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          {(() => {
-            const isEditingDefaultAdmin = activeUser?.id === "admin-default" || activeUser?.username?.toLowerCase() === "admin"
-            return (
-              <>
-                <DialogHeader>
-                  <DialogTitle>
-                    {t("admin.edit_user_modal_title", { username: activeUser?.username })}
-                  </DialogTitle>
-                  <DialogDescription>{t("admin.edit_user_modal_desc")}</DialogDescription>
-                </DialogHeader>
-                <form onSubmit={handleEditUser} className="flex flex-col flex-1 space-y-4 py-2">
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-fn">{t("account.first_name")}</Label>
-                      <Input
-                        id="edit-fn"
-                        value={editFirstName}
-                        onChange={(e) => setEditFirstName(e.target.value)}
-                        className="bg-muted dark:bg-secondary border-transparent"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-ln">{t("account.last_name")}</Label>
-                      <Input
-                        id="edit-ln"
-                        value={editLastName}
-                        onChange={(e) => setEditLastName(e.target.value)}
-                        className="bg-muted dark:bg-secondary border-transparent"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-role">{t("account.role")}</Label>
-                    <Select
-                      value={isEditingDefaultAdmin ? "admin" : editRole}
-                      onValueChange={(val: UserRole) => {
-                        setEditRole(val)
-                        if (val === "admin") {
-                          setEditFamilyRole("parent")
-                          setEditLinkedChildId("")
-                        }
-                      }}
-                      disabled={isEditingDefaultAdmin}
-                    >
-                      <SelectTrigger id="edit-role" className="bg-muted dark:bg-secondary border-transparent" disabled={isEditingDefaultAdmin}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="user">{t("account.role_user")}</SelectItem>
-                        <SelectItem value="admin">{t("account.role_admin")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {isEditingDefaultAdmin && (
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.default_admin_role_fixed")}
-                      </p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="edit-family-role">{t("admin.family_role")}</Label>
-                    <Select
-                      value={editRole === "admin" || isEditingDefaultAdmin ? "parent" : editFamilyRole}
-                      onValueChange={(val: FamilyRole) => {
-                        setEditFamilyRole(val)
-                        if (val === "parent") {
-                          setEditLinkedChildId("")
-                        }
-                      }}
-                      disabled={editRole === "admin" || isEditingDefaultAdmin}
-                    >
-                      <SelectTrigger id="edit-family-role" className="bg-muted dark:bg-secondary border-transparent" disabled={editRole === "admin" || isEditingDefaultAdmin}>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="parent">{t("admin.role_parent")}</SelectItem>
-                        <SelectItem value="child">{t("admin.role_child")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {(editRole === "admin" || isEditingDefaultAdmin) && (
-                      <p className="text-xs text-muted-foreground">
-                        {t("admin.admin_parent_only_hint")}
-                      </p>
-                    )}
-                  </div>
-                  {editFamilyRole === "child" && editRole !== "admin" && !isEditingDefaultAdmin && (
-                    <div className="space-y-2">
-                      <Label htmlFor="edit-linked-child">{t("admin.linked_child")}</Label>
-                      <Select
-                        value={editLinkedChildId || "none"}
-                        onValueChange={(val) => {
-                          const childId = val === "none" ? "" : val
-                          setEditLinkedChildId(childId)
-                        }}
-                      >
-                        <SelectTrigger id="edit-linked-child" className="bg-muted dark:bg-secondary border-transparent">
-                          <SelectValue placeholder={t("admin.select_child_placeholder")} />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="none">{t("admin.select_child_placeholder")}</SelectItem>
-                          {webtopChildren.map((child) => (
-                            <SelectItem key={child.id} value={child.id}>
-                              {child.firstName} {child.lastName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {webtopChildren.length === 0 && (
-                        <p className="text-xs text-muted-foreground">
-                          {t("admin.no_webtop_children_hint")}
-                        </p>
-                      )}
-                    </div>
-                  )}
-                  <DialogFooter className="pt-2">
-                    <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)} className="flex-1 sm:flex-none">
-                      {t("common.cancel")}
-                    </Button>
-                    <Button type="submit" disabled={isSubmittingEdit} className="flex-1 sm:flex-none">
-                      {isSubmittingEdit ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-                      {t("common.save")}
-                    </Button>
-                  </DialogFooter>
-                </form>
-              </>
-            )
-          })()}
-        </DialogContent>
-      </Dialog>
+          </Modal>
+        )
+      })()}
 
       {/* Reset Password Dialog */}
-      <Dialog open={isPasswordOpen} onOpenChange={setIsPasswordOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {t("admin.reset_password_modal_title", { username: activeUser?.username })}
-            </DialogTitle>
-            <DialogDescription>
-              {t("admin.reset_password_modal_desc", { username: activeUser?.username })}
-            </DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleResetPassword} className="flex flex-col flex-1 space-y-4 py-2">
-            <div className="space-y-2">
-              <Label htmlFor="reset-pass">{t("admin.new_password")}</Label>
-              <Input
-                id="reset-pass"
-                type="password"
-                value={resetPassword}
-                onChange={(e) => setResetPassword(e.target.value)}
-                placeholder="••••••••"
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-              />
-            </div>
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsPasswordOpen(false)} className="flex-1 sm:flex-none">
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={isSubmittingPassword} className="flex-1 sm:flex-none">
-                {isSubmittingPassword ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-                {t("admin.confirm_reset_password")}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <Modal
+        open={isPasswordOpen}
+        onOpenChange={(open) => {
+          setIsPasswordOpen(open)
+          if (!open) setResetPassword("")
+        }}
+        title={t("admin.reset_password_modal_title", { username: activeUser?.username })}
+        description={t("admin.reset_password_modal_desc", { username: activeUser?.username })}
+        onSubmit={handleResetPassword}
+        submitText={t("admin.confirm_reset_password")}
+        isSubmitting={isSubmittingPassword}
+      >
+        <div className="space-y-2">
+          <Label htmlFor="reset-pass">{t("admin.new_password")}</Label>
+          <FilledInput
+            id="reset-pass"
+            type="password"
+            value={resetPassword}
+            onChange={(e) => setResetPassword(e.target.value)}
+            placeholder="••••••••"
+            required
+          />
+        </div>
+      </Modal>
 
       {/* Delete User Alert Dialog */}
-      <AlertDialog open={!!userToDelete} onOpenChange={(open) => !open && setUserToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="w-5 h-5" />
-              {t("admin.delete_user_title")}
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("admin.delete_user_desc", { username: userToDelete?.username })}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="flex-1 sm:flex-none">{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteUser} className="bg-destructive text-destructive-foreground hover:bg-destructive/90 flex-1 sm:flex-none">
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmModal
+        open={!!userToDelete}
+        onOpenChange={(open) => !open && setUserToDelete(null)}
+        icon={AlertTriangle}
+        title={t("admin.delete_user_title")}
+        description={t("admin.delete_user_desc", { username: userToDelete?.username })}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        loading={isDeletingUser}
+        onConfirm={handleDeleteUser}
+      />
       </div>
 
       {/* Floating Add User Action Button (Aligned with cards, identical to ExamsPage) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
-        <div className="relative h-full w-full">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setIsCreateOpen(true)}
-            className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-            title={t("admin.add_user_button")}
-            aria-label={t("admin.add_user_button")}
-          >
-            <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
-          </motion.button>
-        </div>
-      </div>
+      <FloatingActionButton
+        onClick={() => setIsCreateOpen(true)}
+        title={t("admin.add_user_button")}
+        ariaLabel={t("admin.add_user_button")}
+      />
     </div>
   )
 }

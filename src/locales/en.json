@@ -183,6 +183,7 @@
     "room_label": "Room / Notes (Optional)",
     "room_placeholder": "e.g. Room 102, Lab",
     "clear_lesson": "Clear Lesson",
+    "clear_lesson_confirm": "Are you sure you want to clear this lesson?",
     "lesson_saved": "Lesson updated",
     "lesson_cleared": "Lesson cleared",
     "finish_time_row": "School ends at",
@@ -192,6 +193,7 @@
     "finish_time_label": "Dismissal Time",
     "finish_time_presets": "Common hours",
     "clear_finish_time": "Clear Time",
+    "clear_finish_time_confirm": "Are you sure you want to clear the dismissal time for this day?",
     "finish_time_saved": "Dismissal time updated",
     "finish_time_cleared": "Dismissal time cleared",
     "fetch_failed": "Failed to load schedule",
@@ -337,6 +339,7 @@
   "admin": {
     "title": "System Administration",
     "subtitle": "Manage users and permissions",
+    "users_section_title": "System Users",
     "add_user_button": "Add User",
     "search_placeholder": "Search",
     "total_users": "Total: {{count}} users",

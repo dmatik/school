@@ -1,42 +1,32 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { useTheme } from "next-themes"
+import { PageHeader } from "@/components/ui/page-header"
 import {
   GraduationCap,
   Loader2,
-  CheckCircle2,
   Globe,
-  AlertCircle,
-  RefreshCw,
-  Edit2,
-  Trash2,
   Check,
   Palette
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { SectionCard } from "@/components/ui/section-card"
+import { InfoBox, InfoItem } from "@/components/ui/info-box"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { NoticeBanner } from "@/components/ui/notice-banner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
-  Select,
-  SelectContent,
+  SelectField,
   SelectItem,
-  SelectTrigger,
-  SelectValue,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { ConfirmModal } from "@/components/ui/modal"
 import { toast } from "@/hooks/use-toast"
-import { cn, formatGradeHebrew, formatSystemDateTime } from "@/lib/utils"
-import { CHILD_COLORS, getChildBadgeClasses } from "@/lib/child-colors"
+import { formatGradeHebrew, formatSystemDateTime } from "@/lib/utils"
+import { ChildBadge } from "@/components/ui/child-badge"
+import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker"
+import { FieldLabel, FilledInput } from "@/components/ui/form-field"
+import { SyncButton } from "@/components/ui/sync-button"
+import { EditButton, DestructiveButton } from "@/components/ui/action-button"
 import type { WebtopConfig, User } from "@/types"
 
 interface SettingsPageProps {
@@ -319,128 +309,69 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
   return (
     <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-6 md:pb-6 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
-      <div data-page-title className="hidden md:flex items-center justify-between gap-3 pb-2 border-b border-border/70 dark:border-border/60">
-        <h1 className="text-lg font-bold tracking-tight text-foreground truncate">
-          {t("settings.title")}
-        </h1>
-      </div>
+      <PageHeader sticky={false} title={t("settings.title")} />
 
       <div className="space-y-4">
         {/* Appearance & Language Card */}
-        <Card className="shadow-xs border border-transparent rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-transparent">
-            <div className="space-y-1 min-w-0">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <Palette className="w-5 h-5 text-primary shrink-0" />
-                <span>{t("settings.appearance_title")}</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                {t("settings.appearance_desc")}
-              </CardDescription>
-            </div>
-          </CardHeader>
+        <SectionCard
+          icon={Palette}
+          title={t("settings.appearance_title")}
+          description={t("settings.appearance_desc")}
+          contentClassName="pt-2 divide-y divide-border/40"
+        >
+          {/* Language Selector Row */}
+          <SelectField
+            id="settings-language-select"
+            label={t("settings.language_label")}
+            description={t("settings.language_desc")}
+            value={(i18n.language || "he").startsWith("en") ? "en" : "he"}
+            onValueChange={(val) => i18n.changeLanguage(val)}
+            variant="filled"
+            triggerProps={{ "data-settings-language-selector": "" }}
+          >
+            <SelectItem value="he">{t("common.hebrew")}</SelectItem>
+            <SelectItem value="en">{t("common.english")}</SelectItem>
+          </SelectField>
 
-          <CardContent className="pt-2 divide-y divide-border/40">
-            {/* Language Selector Row */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3.5">
-              <div className="space-y-0.5">
-                <span className="text-sm font-semibold text-foreground block">
-                  {t("settings.language_label")}
-                </span>
-                <span className="text-xs text-muted-foreground block">
-                  {t("settings.language_desc")}
-                </span>
-              </div>
-
-              <div className="w-full sm:w-[160px] shrink-0">
-                <Select
-                  value={(i18n.language || "he").startsWith("en") ? "en" : "he"}
-                  onValueChange={(val) => i18n.changeLanguage(val)}
-                >
-                  <SelectTrigger
-                    id="settings-language-select"
-                    data-settings-language-selector
-                    aria-label={t("settings.language_label")}
-                    className="w-full bg-muted dark:bg-secondary border-transparent"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="he">{t("common.hebrew")}</SelectItem>
-                    <SelectItem value="en">{t("common.english")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            {/* Color Theme Selector Row */}
-            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 py-3.5">
-              <div className="space-y-0.5">
-                <span className="text-sm font-semibold text-foreground block">
-                  {t("settings.theme_label")}
-                </span>
-                <span className="text-xs text-muted-foreground block">
-                  {t("settings.theme_desc")}
-                </span>
-              </div>
-
-              <div className="w-full sm:w-[160px] shrink-0">
-                <Select
-                  value={theme || "system"}
-                  onValueChange={(val) => setTheme(val)}
-                >
-                  <SelectTrigger
-                    id="settings-theme-select"
-                    data-settings-theme-selector
-                    aria-label={t("settings.theme_label")}
-                    className="w-full bg-muted dark:bg-secondary border-transparent"
-                  >
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="light">{t("common.light")}</SelectItem>
-                    <SelectItem value="dark">{t("common.dark")}</SelectItem>
-                    <SelectItem value="system">{t("common.system")}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+          {/* Color Theme Selector Row */}
+          <SelectField
+            id="settings-theme-select"
+            label={t("settings.theme_label")}
+            description={t("settings.theme_desc")}
+            value={theme || "system"}
+            onValueChange={(val) => setTheme(val)}
+            variant="filled"
+            triggerProps={{ "data-settings-theme-selector": "" }}
+          >
+            <SelectItem value="light">{t("common.light")}</SelectItem>
+            <SelectItem value="dark">{t("common.dark")}</SelectItem>
+            <SelectItem value="system">{t("common.system")}</SelectItem>
+          </SelectField>
+        </SectionCard>
 
         {/* Webtop Integration Card */}
         {!isChild && (
-          <Card className="shadow-xs border border-transparent rounded-xl">
-          <CardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-4 border-b border-transparent">
-            <div className="space-y-1 min-w-0">
-              <CardTitle className="text-base sm:text-lg flex items-center gap-2">
-                <GraduationCap className="w-5 h-5 text-primary shrink-0" />
-                <span>{t("account.webtop_title")}</span>
-              </CardTitle>
-              <CardDescription className="text-xs sm:text-sm">
-                {t("account.webtop_desc")}
-              </CardDescription>
-            </div>
-
-            {/* Status indicator */}
-            <div className="flex items-center gap-2">
-              {loadingWebtop ? (
+          <SectionCard
+            icon={GraduationCap}
+            title={t("account.webtop_title")}
+            description={t("account.webtop_desc")}
+            action={
+              loadingWebtop ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : webtopConfig?.configured ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8] border border-transparent">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{t("account.webtop_status_connected")}</span>
-                </div>
+                <StatusBadge
+                  variant="success"
+                  label={t("account.webtop_status_connected")}
+                />
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-transparent">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{t("account.webtop_status_not_connected")}</span>
-                </div>
-              )}
-            </div>
-          </CardHeader>
-
-          <CardContent className="pt-4">
+                <StatusBadge
+                  variant="neutral"
+                  label={t("account.webtop_status_not_connected")}
+                />
+              )
+            }
+            contentClassName="pt-4"
+          >
             {loadingWebtop ? (
               <div className="flex items-center justify-center p-8 text-muted-foreground">
                 <Loader2 className="w-6 h-6 animate-spin" />
@@ -448,67 +379,56 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
             ) : webtopConfig?.configured && !isEditingWebtop ? (
               <div className="space-y-5">
                 {/* Connected Info Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent">
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">{t("account.webtop_username")}</span>
-                    <span className="text-sm font-semibold text-foreground block">{webtopConfig.username}</span>
-                  </div>
-
-                  <div className="space-y-1">
-                    <span className="text-xs text-muted-foreground block">
-                      {t("account.webtop_last_synced", { date: "" }).replace(":", "")}
-                    </span>
-                    <span className="text-xs font-medium text-foreground block tabular-nums">
-                      {webtopConfig.lastSyncedAt ? (
-                        <bdi dir="ltr" className="inline-block">
-                          {formatSystemDateTime(webtopConfig.lastSyncedAt)}
-                        </bdi>
-                      ) : (
-                        "-"
-                      )}
-                    </span>
-                  </div>
-                </div>
+                <InfoBox columns={2}>
+                  <InfoItem
+                    label={t("account.webtop_username")}
+                    value={webtopConfig.username}
+                  />
+                  <InfoItem
+                    label={t("account.webtop_last_synced", { date: "" }).replace(":", "")}
+                    value={
+                      webtopConfig.lastSyncedAt
+                        ? formatSystemDateTime(webtopConfig.lastSyncedAt)
+                        : "-"
+                    }
+                    isLtr={Boolean(webtopConfig.lastSyncedAt)}
+                    valueClassName="text-xs font-medium"
+                  />
+                </InfoBox>
 
                 {/* Sync Error Alert if any */}
                 {webtopConfig.syncError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{t("account.webtop_status_error")}: {webtopConfig.syncError}</span>
-                  </div>
+                  <NoticeBanner
+                    variant="destructive"
+                    description={`${t("account.webtop_status_error")}: ${webtopConfig.syncError}`}
+                  />
                 )}
 
                 {/* Linked Kids Color Selection */}
                 {webtopConfig.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
                   <div className="space-y-3 pt-1">
-                    <div className="space-y-0.5">
-                      <span className="text-xs font-semibold text-foreground block">
-                        {t("account.webtop_linked_kids_title")}
-                      </span>
-                      <span className="text-xs text-muted-foreground block">
-                        {t("account.webtop_linked_kids_desc")}
-                      </span>
-                    </div>
+                    <FieldLabel
+                      label={t("account.webtop_linked_kids_title")}
+                      description={t("account.webtop_linked_kids_desc")}
+                    />
 
                     <div className="space-y-2.5">
                       {webtopConfig.linkedChildren.map((child) => {
                         const childFullName = `${child.firstName} ${child.lastName}`.trim()
-                        const childBadgeClass = getChildBadgeClasses(child.color)
 
                         return (
-                          <div
+                          <InfoBox
                             key={child.id}
-                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-3.5 rounded-xl bg-muted/40 dark:bg-secondary/80 border border-transparent shadow-xs"
+                            columns={1}
+                            className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-xs"
                           >
                             <div className="flex items-center gap-2.5 min-w-0">
-                              <span
-                                className={cn(
-                                  "inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-semibold border border-transparent transition-all",
-                                  childBadgeClass
-                                )}
-                              >
-                                {childFullName}
-                              </span>
+                              <ChildBadge
+                                name={childFullName}
+                                colorId={child.color}
+                                variant="solid"
+                                size="sm"
+                              />
                               {child.classCode && (
                                 <span className="text-xs text-muted-foreground">
                                   ({t("account.class_label", {
@@ -519,43 +439,12 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                               )}
                             </div>
 
-                            {/* Color selection buttons */}
-                            <div className="flex items-center gap-2 flex-wrap">
-                              {/* Default / No Color button */}
-                              <button
-                                type="button"
-                                title={t("account.color_default")}
-                                onClick={() => handleUpdateChildColor(child.id, null)}
-                                className={cn(
-                                  "w-6 h-6 rounded-full border flex items-center justify-center text-[10px] transition-all hover:scale-110",
-                                  !child.color
-                                    ? "border-primary bg-primary/10 text-primary font-bold ring-2 ring-primary/30"
-                                    : "border-border/80 bg-muted/40 text-muted-foreground"
-                                )}
-                              >
-                                ✕
-                              </button>
-
-                              {CHILD_COLORS.map((col) => {
-                                const isSelected = child.color === col.id
-                                return (
-                                  <button
-                                    key={col.id}
-                                    type="button"
-                                    title={t(col.labelKey)}
-                                    onClick={() => handleUpdateChildColor(child.id, col.id)}
-                                    className={cn(
-                                      "w-6 h-6 rounded-full transition-all hover:scale-110 shadow-xs",
-                                      col.bg,
-                                      isSelected
-                                        ? "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110"
-                                        : "opacity-75 hover:opacity-100"
-                                    )}
-                                  />
-                                )
-                              })}
-                            </div>
-                          </div>
+                            <ColorSwatchPicker
+                              selectedColorId={child.color}
+                              onSelectColor={(colId) => handleUpdateChildColor(child.id, colId)}
+                              clearPosition="end"
+                            />
+                          </InfoBox>
                         )
                       })}
                     </div>
@@ -565,52 +454,19 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 {/* Action Buttons */}
                 <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
                   <div className="flex items-center gap-2">
-                    <Button
-                      type="button"
+                    <SyncButton
                       variant="outline"
-                      size="sm"
                       onClick={handleSyncWebtop}
-                      disabled={syncingWebtop}
-                      className={cn(
-                        "text-xs flex items-center gap-1.5 transition-colors",
-                        syncSuccessWebtop && "border-[#2CA58D]/50 bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8]"
-                      )}
-                    >
-                      {syncSuccessWebtop ? (
-                        <>
-                          <Check className="w-3.5 h-3.5 stroke-[2.5px] text-[#2CA58D] dark:text-[#9EE8D8] animate-in zoom-in-75 duration-200" />
-                          <span>{t("account.webtop_synced")}</span>
-                        </>
-                      ) : (
-                        <>
-                          <RefreshCw className={cn("w-3.5 h-3.5", syncingWebtop && "animate-spin")} />
-                          <span>{syncingWebtop ? t("account.webtop_syncing") : t("account.webtop_sync_button")}</span>
-                        </>
-                      )}
-                    </Button>
+                      syncing={syncingWebtop}
+                      success={syncSuccessWebtop}
+                    />
 
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditingWebtop(true)}
-                      className="text-xs flex items-center gap-1.5 text-muted-foreground"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>{t("common.edit")}</span>
-                    </Button>
+                    <EditButton onClick={() => setIsEditingWebtop(true)} />
                   </div>
 
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowDisconnectDialog(true)}
-                    className="text-xs text-destructive hover:text-destructive flex items-center gap-1.5"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                    <span>{t("account.webtop_disconnect")}</span>
-                  </Button>
+                  <DestructiveButton onClick={() => setShowDisconnectDialog(true)}>
+                    {t("account.webtop_disconnect")}
+                  </DestructiveButton>
                 </div>
               </div>
             ) : (
@@ -618,25 +474,23 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="webtopUser">{t("account.webtop_username")}</Label>
-                    <Input
+                    <FilledInput
                       id="webtopUser"
                       value={webtopUsername}
                       onChange={(e) => setWebtopUsername(e.target.value)}
                       placeholder={t("account.webtop_username_placeholder")}
-                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="webtopPass">{t("account.webtop_password")}</Label>
-                    <Input
+                    <FilledInput
                       id="webtopPass"
                       type="password"
                       value={webtopPassword}
                       onChange={(e) => setWebtopPassword(e.target.value)}
                       placeholder={t("account.webtop_password_placeholder")}
-                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>
@@ -702,33 +556,22 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 </div>
               </form>
             )}
-          </CardContent>
-        </Card>
+          </SectionCard>
         )}
       </div>
 
       {/* Disconnect Webtop Confirmation Dialog */}
       {!isChild && (
-        <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("account.webtop_disconnect")}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("account.webtop_disconnect_confirm")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-row items-center justify-end gap-2 pt-2">
-              <AlertDialogCancel disabled={disconnectingWebtop}>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDisconnectWebtop}
-                disabled={disconnectingWebtop}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {disconnectingWebtop ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmModal
+          open={showDisconnectDialog}
+          onOpenChange={setShowDisconnectDialog}
+          title={t("account.webtop_disconnect")}
+          description={t("account.webtop_disconnect_confirm")}
+          confirmText={t("common.delete")}
+          cancelText={t("common.cancel")}
+          loading={disconnectingWebtop}
+          onConfirm={handleDisconnectWebtop}
+        />
       )}
     </div>
   )

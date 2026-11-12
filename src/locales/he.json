@@ -183,6 +183,7 @@
     "room_label": "חדר / הערות (אופציונלי)",
     "room_placeholder": "למשל: כיתה 102, מעבדה",
     "clear_lesson": "מחק שיעור",
+    "clear_lesson_confirm": "האם אתה בטוח שברצונך למחוק את השיעור?",
     "lesson_saved": "השיעור עודכן",
     "lesson_cleared": "השיעור נמחק",
     "finish_time_row": "סיום לימודים",
@@ -192,6 +193,7 @@
     "finish_time_label": "שעת סיום",
     "finish_time_presets": "שעות נפוצות",
     "clear_finish_time": "נקה שעה",
+    "clear_finish_time_confirm": "האם אתה בטוח שברצונך למחוק את שעת הסיום ליום זה?",
     "finish_time_saved": "שעת הסיום עודכנה",
     "finish_time_cleared": "שעת הסיום נמחקה",
     "fetch_failed": "שגיאה בטעינת מערכת השעות",
@@ -337,6 +339,7 @@
   "admin": {
     "title": "ניהול מערכת",
     "subtitle": "ניהול משתמשים והרשאות",
+    "users_section_title": "משתמשי מערכת",
     "add_user_button": "הוסף משתמש",
     "search_placeholder": "חיפוש",
     "total_users": "סה\"כ: {{count}} משתמשים",
