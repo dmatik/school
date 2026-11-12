@@ -11,16 +11,8 @@ import {
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog"
+import { Modal } from "@/components/ui/modal"
+import { FilledInput, CounterField, TimePresetInput } from "@/components/ui/form-field"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { getChildColor } from "@/lib/child-colors"
@@ -397,25 +389,6 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     setFormFinishTime(existing)
   }
 
-  // Format HH:MM input cleanly on mobile numeric keypad & desktop
-  const handleFinishTimeInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const raw = e.target.value
-    if (raw.length < formFinishTime.length && formFinishTime.startsWith(raw)) {
-      setFormFinishTime(raw.endsWith(":") ? raw.slice(0, -1) : raw)
-      return
-    }
-    if (/^\d:$/.test(raw)) {
-      setFormFinishTime(`0${raw}`)
-      return
-    }
-    const digits = raw.replace(/\D/g, "").slice(0, 4)
-    if (digits.length <= 2) {
-      setFormFinishTime(digits)
-    } else {
-      setFormFinishTime(`${digits.slice(0, 2)}:${digits.slice(2)}`)
-    }
-  }
-
   // Save Finish Time: updates local state and immediately persists to backend
   const handleSaveFinishTime = async (timeValue: string) => {
     if (editingFinishDay === null || !token || !selectedChildId) return
@@ -552,166 +525,125 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       )}
 
       {/* Lesson Edit/Add Dialog */}
-      <Dialog open={Boolean(editingLesson)} onOpenChange={(open) => !open && setEditingLesson(null)}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>
-              {editingLesson?.lesson
-                ? t("schedule.lesson_modal_title_edit")
-                : t("schedule.lesson_modal_title_add")}
-            </DialogTitle>
-            <DialogDescription>
-              {editingLesson
-                ? t("schedule.lesson_modal_desc", {
-                    day: t(`schedule.days.day_${editingLesson.dayOfWeek}`),
-                    hour: editingLesson.hourNum
-                  })
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <form onSubmit={handleSaveLesson} className="flex flex-col flex-1 space-y-4 py-2">
-            {/* Subject */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="lesson-form-subject">{t("schedule.subject_label")}</Label>
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {formSubject.length}/50
-                </span>
-              </div>
-              <Input
-                id="lesson-form-subject"
-                value={formSubject}
-                onChange={(e) => setFormSubject(e.target.value)}
-                placeholder={t("schedule.subject_placeholder")}
-                required
-                maxLength={50}
-                className="bg-muted dark:bg-secondary border-transparent"
-              />
+      <Modal
+        open={Boolean(editingLesson)}
+        onOpenChange={(open) => !open && setEditingLesson(null)}
+        title={
+          editingLesson?.lesson
+            ? t("schedule.lesson_modal_title_edit")
+            : t("schedule.lesson_modal_title_add")
+        }
+        description={
+          editingLesson
+            ? t("schedule.lesson_modal_desc", {
+                day: t(`schedule.days.day_${editingLesson.dayOfWeek}`),
+                hour: editingLesson.hourNum
+              })
+            : ""
+        }
+        onSubmit={handleSaveLesson}
+        footer={
+          <div className="flex items-center justify-between gap-2 w-full">
+            {editingLesson?.lesson ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleClearLesson}
+                className="rounded-full me-auto h-9"
+              >
+                <Trash2 className="w-4 h-4 me-1.5" />
+                {t("schedule.clear_lesson")}
+              </Button>
+            ) : <div />}
+            <div className="flex items-center gap-2 ms-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingLesson(null)}
+                className="rounded-full h-9"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="submit"
+                disabled={!formSubject.trim()}
+                className="rounded-full h-9"
+              >
+                {t("common.save")}
+              </Button>
             </div>
-
-            <DialogFooter className="flex items-center justify-between gap-2 pt-2">
-              {editingLesson?.lesson && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={handleClearLesson}
-                  className="rounded-full me-auto h-9"
-                >
-                  <Trash2 className="w-4 h-4 me-1.5" />
-                  {t("schedule.clear_lesson")}
-                </Button>
-              )}
-              <div className="flex items-center gap-2 ms-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditingLesson(null)}
-                  className="rounded-full h-9"
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={!formSubject.trim()}
-                  className="rounded-full h-9"
-                >
-                  {t("common.save")}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+          </div>
+        }
+      >
+        <CounterField label={t("schedule.subject_label")} htmlFor="lesson-form-subject" currentLength={formSubject.length} maxLength={50}>
+          <FilledInput
+            id="lesson-form-subject"
+            value={formSubject}
+            onChange={(e) => setFormSubject(e.target.value)}
+            placeholder={t("schedule.subject_placeholder")}
+            required
+            maxLength={50}
+          />
+        </CounterField>
+      </Modal>
 
       {/* School Finish Time Dialog */}
-      <Dialog open={editingFinishDay !== null} onOpenChange={(open) => !open && setEditingFinishDay(null)}>
-        <DialogContent
-          className="sm:max-w-sm"
-          onOpenAutoFocus={(e) => e.preventDefault()}
-        >
-          <DialogHeader>
-            <DialogTitle>{t("schedule.finish_time_modal_title")}</DialogTitle>
-            <DialogDescription>
-              {editingFinishDay !== null
-                ? t("schedule.finish_time_modal_desc", {
-                    day: t(`schedule.days.day_${editingFinishDay}`)
-                  })
-                : ""}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex flex-col space-y-4 py-2">
-            {/* Time input */}
-            <div className="space-y-2">
-              <Label htmlFor="finish-time-input">{t("schedule.finish_time_label")}</Label>
-              <Input
-                id="finish-time-input"
-                type="text"
-                inputMode="numeric"
-                placeholder="13:30"
-                maxLength={5}
-                value={formFinishTime}
-                onChange={handleFinishTimeInputChange}
-                className="bg-muted dark:bg-secondary border-transparent font-bold tabular-nums text-start"
-              />
+      <Modal
+        open={editingFinishDay !== null}
+        onOpenChange={(open) => !open && setEditingFinishDay(null)}
+        maxWidth="sm"
+        onOpenAutoFocus={(e) => e.preventDefault()}
+        title={t("schedule.finish_time_modal_title")}
+        description={
+          editingFinishDay !== null
+            ? t("schedule.finish_time_modal_desc", {
+                day: t(`schedule.days.day_${editingFinishDay}`)
+              })
+            : ""
+        }
+        footer={
+          <div className="flex items-center justify-between gap-2 w-full">
+            {finishTimeMap.get(editingFinishDay ?? -1) ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => handleSaveFinishTime("")}
+                className="rounded-full me-auto h-9"
+              >
+                <Trash2 className="w-4 h-4 me-1.5" />
+                {t("schedule.clear_finish_time")}
+              </Button>
+            ) : <div />}
+            <div className="flex items-center gap-2 ms-auto">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setEditingFinishDay(null)}
+                className="rounded-full h-9"
+              >
+                {t("common.cancel")}
+              </Button>
+              <Button
+                type="button"
+                onClick={() => handleSaveFinishTime(formFinishTime)}
+                disabled={!/^([01]\d|2[0-3]):[0-5]\d$/.test(formFinishTime.trim())}
+                className="rounded-full h-9"
+              >
+                {t("common.save")}
+              </Button>
             </div>
-
-            {/* Quick Presets */}
-            <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground">
-                {t("schedule.finish_time_presets")}
-              </Label>
-              <div className="grid grid-cols-3 gap-1.5">
-                {COMMON_FINISH_PRESETS.map((preset) => (
-                  <Button
-                    key={preset}
-                    type="button"
-                    variant={formFinishTime === preset ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setFormFinishTime(preset)}
-                    className="h-8 text-xs font-semibold tabular-nums"
-                  >
-                    {preset}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            <DialogFooter className="flex items-center justify-between gap-2 pt-2">
-              {finishTimeMap.get(editingFinishDay ?? -1) && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => handleSaveFinishTime("")}
-                  className="rounded-full me-auto h-9"
-                >
-                  <Trash2 className="w-4 h-4 me-1.5" />
-                  {t("schedule.clear_finish_time")}
-                </Button>
-              )}
-              <div className="flex items-center gap-2 ms-auto">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setEditingFinishDay(null)}
-                  className="rounded-full h-9"
-                >
-                  {t("common.cancel")}
-                </Button>
-                <Button
-                  type="button"
-                  onClick={() => handleSaveFinishTime(formFinishTime)}
-                  disabled={!/^([01]\d|2[0-3]):[0-5]\d$/.test(formFinishTime.trim())}
-                  className="rounded-full h-9"
-                >
-                  {t("common.save")}
-                </Button>
-              </div>
-            </DialogFooter>
           </div>
-        </DialogContent>
-      </Dialog>
+        }
+      >
+        <TimePresetInput
+          id="finish-time-input"
+          value={formFinishTime}
+          onChange={setFormFinishTime}
+          label={t("schedule.finish_time_label")}
+          presetsLabel={t("schedule.finish_time_presets")}
+          presets={COMMON_FINISH_PRESETS}
+        />
+      </Modal>
 
       </div>
 

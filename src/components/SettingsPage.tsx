@@ -20,16 +20,7 @@ import {
   SelectField,
   SelectItem,
 } from "@/components/ui/select"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { ConfirmModal } from "@/components/ui/modal"
 import { toast } from "@/hooks/use-toast"
 import { formatGradeHebrew, formatSystemDateTime } from "@/lib/utils"
 import { ChildBadge } from "@/components/ui/child-badge"
@@ -574,26 +565,16 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
 
       {/* Disconnect Webtop Confirmation Dialog */}
       {!isChild && (
-        <AlertDialog open={showDisconnectDialog} onOpenChange={setShowDisconnectDialog}>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>{t("account.webtop_disconnect")}</AlertDialogTitle>
-              <AlertDialogDescription>
-                {t("account.webtop_disconnect_confirm")}
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter className="flex-row items-center justify-end gap-2 pt-2">
-              <AlertDialogCancel disabled={disconnectingWebtop}>{t("common.cancel")}</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDisconnectWebtop}
-                disabled={disconnectingWebtop}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                {disconnectingWebtop ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.delete")}
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <ConfirmModal
+          open={showDisconnectDialog}
+          onOpenChange={setShowDisconnectDialog}
+          title={t("account.webtop_disconnect")}
+          description={t("account.webtop_disconnect_confirm")}
+          confirmText={t("common.delete")}
+          cancelText={t("common.cancel")}
+          loading={disconnectingWebtop}
+          onConfirm={handleDisconnectWebtop}
+        />
       )}
     </div>
   )

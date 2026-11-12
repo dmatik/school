@@ -10,8 +10,6 @@ import {
 } from "lucide-react"
 import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import {
   Select,
@@ -20,24 +18,8 @@ import {
   SelectTrigger,
   SelectValue
 } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle
-} from "@/components/ui/alert-dialog"
+import { Modal, ConfirmModal } from "@/components/ui/modal"
+import { FilledInput, FilledTextarea, CounterField } from "@/components/ui/form-field"
 import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
 import { SectionDateHeader } from "@/components/ui/section-date-header"
@@ -506,244 +488,219 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
       )}
 
       {/* Add Exam Dialog */}
-      <Dialog open={isAddOpen} onOpenChange={setIsAddOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("exams.add_modal_title")}</DialogTitle>
-            <DialogDescription>{t("exams.add_modal_desc")}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleCreateExam} className="flex flex-col flex-1 space-y-4 py-2">
-            {/* Child Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-child">{t("exams.child_label")}</Label>
-              {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
-                <Select value={formChildId} onValueChange={setFormChildId} required>
-                  <SelectTrigger id="exam-add-child" className="bg-muted dark:bg-secondary border-transparent">
-                    <SelectValue placeholder={t("exams.select_child_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {webtopConfig.linkedChildren.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.firstName} {c.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
-                  {t("exams.no_children_warning")}
-                </p>
-              )}
-            </div>
+      <Modal
+        open={isAddOpen}
+        onOpenChange={setIsAddOpen}
+        title={t("exams.add_modal_title")}
+        description={t("exams.add_modal_desc")}
+        onSubmit={handleCreateExam}
+        footer={
+          <>
+            <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)} className="flex-1 sm:flex-none">
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()} className="flex-1 sm:flex-none">
+              {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
+              {t("common.save")}
+            </Button>
+          </>
+        }
+      >
+        {/* Child Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-child">{t("exams.child_label")}</Label>
+          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
+            <Select value={formChildId} onValueChange={setFormChildId} required>
+              <SelectTrigger id="exam-add-child" variant="filled">
+                <SelectValue placeholder={t("exams.select_child_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {webtopConfig.linkedChildren.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
+              {t("exams.no_children_warning")}
+            </p>
+          )}
+        </div>
 
-            {/* Exam Name */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-name">{t("exams.name_label")}</Label>
-              <Input
-                id="exam-add-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("exams.name_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-                maxLength={120}
-              />
-            </div>
+        {/* Exam Name */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-name">{t("exams.name_label")}</Label>
+          <FilledInput
+            id="exam-add-name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder={t("exams.name_placeholder")}
+            required
+            maxLength={120}
+          />
+        </div>
 
-            {/* Exam Date */}
-            <div className="space-y-2">
-              <Label>{t("exams.date_label")}</Label>
-              <DatePicker
-                date={formDate}
-                setDate={setFormDate}
-                clearable={false}
-                formatPattern="dd/MM/yyyy"
-                className="bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Date */}
+        <div className="space-y-2">
+          <Label>{t("exams.date_label")}</Label>
+          <DatePicker
+            date={formDate}
+            setDate={setFormDate}
+            clearable={false}
+            formatPattern="dd/MM/yyyy"
+            variant="filled"
+          />
+        </div>
 
-            {/* Exam Description (Optional, below date) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="exam-add-desc">{t("exams.description_label")}</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formDescription.length}/200
-                </span>
-              </div>
-              <Textarea
-                id="exam-add-desc"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("exams.description_placeholder")}
-                rows={3}
-                maxLength={200}
-                className="resize-none bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Description (Optional, below date) */}
+        <div className="space-y-2">
+          <CounterField label={t("exams.description_label")} htmlFor="exam-add-desc" currentLength={formDescription.length} maxLength={200}>
+            <FilledTextarea
+              id="exam-add-desc"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder={t("exams.description_placeholder")}
+              rows={3}
+              maxLength={200}
+              className="resize-none"
+            />
+          </CounterField>
+        </div>
 
-            {/* Grade (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-add-grade">{t("exams.grade_label")}</Label>
-              <Input
-                id="exam-add-grade"
-                value={formGrade}
-                onChange={(e) => setFormGrade(e.target.value)}
-                placeholder={t("exams.grade_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                maxLength={32}
-              />
-            </div>
+        {/* Grade (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-add-grade">{t("exams.grade_label")}</Label>
+          <FilledInput
+            id="exam-add-grade"
+            value={formGrade}
+            onChange={(e) => setFormGrade(e.target.value)}
+            placeholder={t("exams.grade_placeholder")}
+            maxLength={32}
+          />
+        </div>
+      </Modal>
 
-            <DialogFooter className="pt-2">
-              <Button type="button" variant="outline" onClick={() => setIsAddOpen(false)}>
+      {/* Edit Exam Dialog */}
+      <Modal
+        open={isEditOpen}
+        onOpenChange={setIsEditOpen}
+        title={t("exams.edit_modal_title")}
+        description={t("exams.edit_modal_desc")}
+        onSubmit={handleUpdateExam}
+        footer={
+          <div className="flex flex-row items-center justify-between w-full">
+            {activeExam ? (
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={() => setExamToDelete(activeExam)}
+                className="flex items-center gap-1.5"
+              >
+                <Trash2 className="w-4 h-4" />
+                <span>{t("common.delete")}</span>
+              </Button>
+            ) : <div />}
+            <div className="flex items-center gap-2 ms-auto">
+              <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
                 {t("common.cancel")}
               </Button>
               <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()}>
                 {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
                 {t("common.save")}
               </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Edit Exam Dialog */}
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle>{t("exams.edit_modal_title")}</DialogTitle>
-            <DialogDescription>{t("exams.edit_modal_desc")}</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateExam} className="flex flex-col flex-1 space-y-4 py-2">
-            {/* Child Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-child">{t("exams.child_label")}</Label>
-              {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
-                <Select value={formChildId} onValueChange={setFormChildId} required>
-                  <SelectTrigger id="exam-edit-child" className="bg-muted dark:bg-secondary border-transparent">
-                    <SelectValue placeholder={t("exams.select_child_placeholder")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {webtopConfig.linkedChildren.map(c => (
-                      <SelectItem key={c.id} value={c.id}>
-                        {c.firstName} {c.lastName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              ) : (
-                <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
-                  {t("exams.no_children_warning")}
-                </p>
-              )}
             </div>
+          </div>
+        }
+      >
+        {/* Child Selection */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-child">{t("exams.child_label")}</Label>
+          {webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 ? (
+            <Select value={formChildId} onValueChange={setFormChildId} required>
+              <SelectTrigger id="exam-edit-child" variant="filled">
+                <SelectValue placeholder={t("exams.select_child_placeholder")} />
+              </SelectTrigger>
+              <SelectContent>
+                {webtopConfig.linkedChildren.map(c => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.firstName} {c.lastName}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          ) : (
+            <p className="text-xs text-[#D4973B] dark:text-[#F5D59E]">
+              {t("exams.no_children_warning")}
+            </p>
+          )}
+        </div>
 
-            {/* Exam Name */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-name">{t("exams.name_label")}</Label>
-              <Input
-                id="exam-edit-name"
-                value={formName}
-                onChange={(e) => setFormName(e.target.value)}
-                placeholder={t("exams.name_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                required
-                maxLength={120}
-              />
-            </div>
+        {/* Exam Name */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-name">{t("exams.name_label")}</Label>
+          <FilledInput
+            id="exam-edit-name"
+            value={formName}
+            onChange={(e) => setFormName(e.target.value)}
+            placeholder={t("exams.name_placeholder")}
+            required
+            maxLength={120}
+          />
+        </div>
 
-            {/* Exam Date */}
-            <div className="space-y-2">
-              <Label>{t("exams.date_label")}</Label>
-              <DatePicker
-                date={formDate}
-                setDate={setFormDate}
-                clearable={false}
-                formatPattern="dd/MM/yyyy"
-                className="bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Date */}
+        <div className="space-y-2">
+          <Label>{t("exams.date_label")}</Label>
+          <DatePicker
+            date={formDate}
+            setDate={setFormDate}
+            clearable={false}
+            formatPattern="dd/MM/yyyy"
+            variant="filled"
+          />
+        </div>
 
-            {/* Exam Description (Optional, below date) */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="exam-edit-desc">{t("exams.description_label")}</Label>
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {formDescription.length}/200
-                </span>
-              </div>
-              <Textarea
-                id="exam-edit-desc"
-                value={formDescription}
-                onChange={(e) => setFormDescription(e.target.value)}
-                placeholder={t("exams.description_placeholder")}
-                rows={3}
-                maxLength={200}
-                className="resize-none bg-muted dark:bg-secondary border-transparent"
-              />
-            </div>
+        {/* Exam Description (Optional, below date) */}
+        <div className="space-y-2">
+          <CounterField label={t("exams.description_label")} htmlFor="exam-edit-desc" currentLength={formDescription.length} maxLength={200}>
+            <FilledTextarea
+              id="exam-edit-desc"
+              value={formDescription}
+              onChange={(e) => setFormDescription(e.target.value)}
+              placeholder={t("exams.description_placeholder")}
+              rows={3}
+              maxLength={200}
+              className="resize-none"
+            />
+          </CounterField>
+        </div>
 
-            {/* Grade (Optional) */}
-            <div className="space-y-2">
-              <Label htmlFor="exam-edit-grade">{t("exams.grade_label")}</Label>
-              <Input
-                id="exam-edit-grade"
-                value={formGrade}
-                onChange={(e) => setFormGrade(e.target.value)}
-                placeholder={t("exams.grade_placeholder")}
-                className="bg-muted dark:bg-secondary border-transparent"
-                maxLength={32}
-              />
-            </div>
-
-            <DialogFooter className="pt-2 flex flex-row items-center justify-between">
-              {activeExam && (
-                <Button
-                  type="button"
-                  variant="destructive"
-                  onClick={() => setExamToDelete(activeExam)}
-                  className="flex items-center gap-1.5"
-                >
-                  <Trash2 className="w-4 h-4" />
-                  <span>{t("common.delete")}</span>
-                </Button>
-              )}
-              <div className="flex items-center gap-2 ms-auto">
-                <Button type="button" variant="outline" onClick={() => setIsEditOpen(false)}>
-                  {t("common.cancel")}
-                </Button>
-                <Button type="submit" disabled={isSubmitting || !formChildId || !formName.trim()}>
-                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-                  {t("common.save")}
-                </Button>
-              </div>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
+        {/* Grade (Optional) */}
+        <div className="space-y-2">
+          <Label htmlFor="exam-edit-grade">{t("exams.grade_label")}</Label>
+          <FilledInput
+            id="exam-edit-grade"
+            value={formGrade}
+            onChange={(e) => setFormGrade(e.target.value)}
+            placeholder={t("exams.grade_placeholder")}
+            maxLength={32}
+          />
+        </div>
+      </Modal>
 
       {/* Delete Exam Confirmation Dialog */}
-      <AlertDialog open={Boolean(examToDelete)} onOpenChange={(open) => !open && setExamToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("exams.delete_modal_title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("exams.delete_confirm")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeleteExam}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? <Loader2 className="w-3.5 h-3.5 animate-spin me-1.5" /> : null}
-              {t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <ConfirmModal
+        open={Boolean(examToDelete)}
+        onOpenChange={(open) => !open && setExamToDelete(null)}
+        title={t("exams.delete_modal_title")}
+        description={t("exams.delete_confirm")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        loading={isDeleting}
+        onConfirm={handleDeleteExam}
+      />
 
       </div>
 

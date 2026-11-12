@@ -24,7 +24,7 @@ interface DatePickerProps {
     clearable?: boolean
     formatPattern?: string
     formatDisplay?: (date: Date) => { short?: string; full?: string } | string
-    variant?: "default" | "liquid-icon" | "liquid"
+    variant?: "default" | "filled" | "liquid-icon" | "liquid"
     align?: "start" | "end" | "center"
 }
 
@@ -180,6 +180,7 @@ export function DatePicker({
                             variant={"outline"}
                             className={cn(
                                 "w-full justify-start text-start font-normal gap-2 h-9 text-sm px-3 border-transparent shadow-xs focus:outline-none focus-visible:outline-none focus:ring-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-transparent focus-visible:border-transparent",
+                                variant === "filled" && "bg-muted dark:bg-secondary text-foreground hover:bg-muted/80 dark:hover:bg-secondary/80",
                                 !date && "text-muted-foreground",
                                 clearable && date && "pe-7",
                                 className

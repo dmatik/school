@@ -10,24 +10,7 @@ import { DestructiveButton } from "@/components/ui/action-button"
 import { LogoutButton } from "@/components/ui/logout-button"
 import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { Label } from "@/components/ui/label"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
+import { Modal, ConfirmModal } from "@/components/ui/modal"
 import { toast } from "@/hooks/use-toast"
 import { formatSystemDate } from "@/lib/utils"
 import { isPasskeySupported, registerPasskey, fetchUserPasskeys, deletePasskey, type PasskeyInfo } from "@/lib/webauthn"
@@ -546,86 +529,67 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
         <LogoutButton onLogout={onLogout} />
       </div>
 
-      {/* Add Passkey Dialog */}
-      <Dialog open={showAddPasskeyDialog} onOpenChange={setShowAddPasskeyDialog}>
-        <DialogContent className="sm:max-w-md">
-          <form onSubmit={handleConfirmAddPasskey} className="flex flex-col flex-1">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                <Fingerprint className="w-5 h-5 text-primary" />
-                {t("account.add_passkey")}
-              </DialogTitle>
-              <DialogDescription>
-                {t("account.passkeys_desc")}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="space-y-4 py-4">
-              <div className="space-y-2">
-                <Label htmlFor="passkeyName">{t("account.passkey_name_prompt")}</Label>
-                <FilledInput
-                  id="passkeyName"
-                  value={newPasskeyName}
-                  onChange={(e) => setNewPasskeyName(e.target.value)}
-                  placeholder={t("account.passkey_name_placeholder")}
-                  required
-                />
-              </div>
-            </div>
-
-            <DialogFooter className="flex-row items-center justify-end gap-2 pt-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setShowAddPasskeyDialog(false)}
-                disabled={addingPasskey}
-              >
-                {t("common.cancel")}
-              </Button>
-              <Button type="submit" disabled={addingPasskey}>
-                {addingPasskey ? (
-                  <>
-                    <Loader2 className="w-4 h-4 animate-spin me-2" />
-                    {t("account.adding_passkey")}
-                  </>
-                ) : (
-                  <>
-                    <Key className="w-4 h-4 me-2" />
-                    {t("common.confirm")}
-                  </>
-                )}
-              </Button>
-            </DialogFooter>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Passkey Confirmation Dialog */}
-      <AlertDialog open={!!passkeyToDelete} onOpenChange={(open) => !open && setPasskeyToDelete(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("account.passkey_deleted_title")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("account.delete_passkey_confirm")}
-              {passkeyToDelete && (
-                <span className="block mt-2 font-medium text-foreground">
-                  "{passkeyToDelete.deviceName}"
-                </span>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="flex-row items-center justify-end gap-2 pt-2">
-            <AlertDialogCancel disabled={deletingPasskey}>{t("common.cancel")}</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDeletePasskey}
-              disabled={deletingPasskey}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+      {/* Add Passkey Modal */}
+      <Modal
+        open={showAddPasskeyDialog}
+        onOpenChange={setShowAddPasskeyDialog}
+        icon={Fingerprint}
+        title={t("account.add_passkey")}
+        description={t("account.passkeys_desc")}
+        onSubmit={handleConfirmAddPasskey}
+        footer={
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setShowAddPasskeyDialog(false)}
+              disabled={addingPasskey}
             >
-              {deletingPasskey ? <Loader2 className="w-4 h-4 animate-spin" /> : t("common.delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={addingPasskey}>
+              {addingPasskey ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin me-2" />
+                  {t("account.adding_passkey")}
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4 me-2" />
+                  {t("common.confirm")}
+                </>
+              )}
+            </Button>
+          </>
+        }
+      >
+        <div className="space-y-2">
+          <Label htmlFor="passkeyName">{t("account.passkey_name_prompt")}</Label>
+          <FilledInput
+            id="passkeyName"
+            value={newPasskeyName}
+            onChange={(e) => setNewPasskeyName(e.target.value)}
+            placeholder={t("account.passkey_name_placeholder")}
+            required
+          />
+        </div>
+      </Modal>
+
+      {/* Delete Passkey Confirmation Modal */}
+      <ConfirmModal
+        open={!!passkeyToDelete}
+        onOpenChange={(open) => !open && setPasskeyToDelete(null)}
+        title={t("account.passkey_deleted_title")}
+        description={t("account.delete_passkey_confirm")}
+        loading={deletingPasskey}
+        onConfirm={handleDeletePasskey}
+      >
+        {passkeyToDelete && (
+          <div className="mt-1 font-medium text-foreground text-sm">
+            "{passkeyToDelete.deviceName}"
+          </div>
+        )}
+      </ConfirmModal>
     </div>
   )
 }

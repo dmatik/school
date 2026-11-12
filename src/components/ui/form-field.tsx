@@ -2,6 +2,7 @@ import * as React from "react"
 import { type LucideIcon } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Input, type InputProps } from "@/components/ui/input"
+import { Textarea, type TextareaProps } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 
@@ -20,6 +21,24 @@ export function FilledInput({
         variant === "filled" && "bg-muted dark:bg-secondary border-transparent",
         className
       )}
+      {...props}
+    />
+  )
+}
+
+export interface FilledTextareaProps extends TextareaProps {
+  variant?: "card" | "filled"
+}
+
+export function FilledTextarea({
+  variant = "filled",
+  className,
+  ...props
+}: FilledTextareaProps) {
+  return (
+    <Textarea
+      variant={variant}
+      className={className}
       {...props}
     />
   )
@@ -140,6 +159,7 @@ export function ReadOnlyPillField({
 }
 
 export interface TimePresetInputProps {
+  label?: React.ReactNode
   value: string
   onChange: (value: string) => void
   presets?: string[]
@@ -150,6 +170,7 @@ export interface TimePresetInputProps {
 }
 
 export function TimePresetInput({
+  label,
   value,
   onChange,
   presets = ["11:45", "12:45", "13:30", "14:15", "15:00", "16:00"],
@@ -178,17 +199,20 @@ export function TimePresetInput({
 
   return (
     <div className={cn("space-y-3", className)}>
-      <Input
-        id={id}
-        type="text"
-        inputMode="numeric"
-        placeholder="13:30"
-        maxLength={5}
-        value={value}
-        onChange={handleInputChange}
-        disabled={disabled}
-        className="bg-muted dark:bg-secondary border-transparent font-bold tabular-nums text-start h-9"
-      />
+      <div className="space-y-2">
+        {label && <Label htmlFor={id}>{label}</Label>}
+        <Input
+          id={id}
+          type="text"
+          inputMode="numeric"
+          placeholder="13:30"
+          maxLength={5}
+          value={value}
+          onChange={handleInputChange}
+          disabled={disabled}
+          className="bg-muted dark:bg-secondary border-transparent font-bold tabular-nums text-start h-9"
+        />
+      </div>
       {presets.length > 0 && (
         <div className="space-y-1.5">
           {presetsLabel && (
