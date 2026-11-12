@@ -1,11 +1,9 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
 import { PageHeader } from "@/components/ui/page-header"
 import { LiquidTabs, type LiquidTabItem } from "@/components/ui/liquid-tabs"
 import { SearchInput } from "@/components/ui/search-input"
 import {
-  Plus,
   Trash2,
   Loader2,
   GraduationCap
@@ -44,6 +42,7 @@ import { format } from "date-fns"
 import { DatePicker } from "@/components/ui/date-picker"
 import { SectionDateHeader } from "@/components/ui/section-date-header"
 import { ExamCard } from "@/components/ui/exam-card"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { parseLocalDate, getChildFirstName } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import type { ExamItem, WebtopConfig, User as UserType } from "@/types"
@@ -750,20 +749,11 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
 
       {/* Floating Add Exam Action Button (Aligned with cards) */}
       {isParent && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
-          <div className="relative h-full w-full">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={handleOpenAddModal}
-              className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-              title={t("exams.add_exam_button")}
-              aria-label={t("exams.add_exam_button")}
-            >
-              <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
-            </motion.button>
-          </div>
-        </div>
+        <FloatingActionButton
+          onClick={handleOpenAddModal}
+          title={t("exams.add_exam_button")}
+          ariaLabel={t("exams.add_exam_button")}
+        />
       )}
     </div>
   )

@@ -1,6 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
 import { PageHeader } from "@/components/ui/page-header"
 import { LiquidTabs } from "@/components/ui/liquid-tabs"
 import {
@@ -26,6 +25,7 @@ import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { getChildColor } from "@/lib/child-colors"
 import { ScheduleTable } from "@/components/ui/schedule-table"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import type { ScheduleLesson, ScheduleFinishTime, WebtopConfig, User as UserType } from "@/types"
 
 interface SchedulePageProps {
@@ -717,27 +717,15 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
 
       {/* Floating Edit / Done Action Button (Aligned with cards) */}
       {isParent && selectedChildId && (
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
-          <div className="relative h-full w-full">
-            <motion.button
-              type="button"
-              whileTap={{ scale: 0.92 }}
-              onClick={() => setIsEditMode((prev) => !prev)}
-              className={cn(
-                "pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full flex items-center justify-center select-none shadow-md transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8",
-                childColor ? cn(childColor.bg, "text-white") : "bg-primary text-primary-foreground shadow-primary/30"
-              )}
-              title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
-              aria-label={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
-            >
-              {isEditMode ? (
-                <Check className="w-[22px] h-[22px] stroke-[2.5px]" />
-              ) : (
-                <Pencil className="w-[22px] h-[22px] stroke-[2px]" />
-              )}
-            </motion.button>
-          </div>
-        </div>
+        <FloatingActionButton
+          onClick={() => setIsEditMode((prev) => !prev)}
+          icon={Pencil}
+          activeIcon={Check}
+          active={isEditMode}
+          colorClassName={childColor ? cn(childColor.bg, "text-white") : undefined}
+          title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+          ariaLabel={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+        />
       )}
     </div>
   )

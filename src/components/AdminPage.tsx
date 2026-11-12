@@ -1,10 +1,8 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useTranslation } from "react-i18next"
-import { motion } from "framer-motion"
 import { PageHeader } from "@/components/ui/page-header"
 import { SearchInput } from "@/components/ui/search-input"
 import {
-  Plus,
   Shield,
   Key,
   Trash2,
@@ -44,6 +42,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { toast } from "@/hooks/use-toast"
+import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import { cn } from "@/lib/utils"
 import { getChildColor } from "@/lib/child-colors"
 import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
@@ -915,20 +914,11 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       </div>
 
       {/* Floating Add User Action Button (Aligned with cards, identical to ExamsPage) */}
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 top-0 max-w-3xl mx-auto w-full px-4 md:px-6">
-        <div className="relative h-full w-full">
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.92 }}
-            onClick={() => setIsCreateOpen(true)}
-            className="pointer-events-auto absolute z-30 h-[50px] w-[50px] rounded-full bg-primary text-white flex items-center justify-center select-none shadow-md shadow-primary/30 transition-transform focus:outline-none focus-visible:outline-none ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8"
-            title={t("admin.add_user_button")}
-            aria-label={t("admin.add_user_button")}
-          >
-            <Plus className="w-[22px] h-[22px] stroke-[2.2px]" />
-          </motion.button>
-        </div>
-      </div>
+      <FloatingActionButton
+        onClick={() => setIsCreateOpen(true)}
+        title={t("admin.add_user_button")}
+        ariaLabel={t("admin.add_user_button")}
+      />
     </div>
   )
 }
