@@ -6,6 +6,8 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
+import { createAutoSync } from './autoSync.js';
+import { webtopLog, maskUser } from './webtopLogger.js';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -13,7 +15,7 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
-import { WebtopClient, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId } from './webtop.js';
+import { WebtopClient, WebtopAuthError, clearWebtopSession, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId } from './webtop.js';
 import { getWebAuthnConfig, resolveTrustProxy } from './webauthn-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -864,6 +866,15 @@ app.get('/api/users', authenticate, requireAdmin, (req, res) => {
 
 /* --- Webtop Sync & Data Endpoints --- */
 
+// Wrong-password failures are lockout events; everything else is a regular failure.
+function logWebtopFailure(context, err) {
+  if (err instanceof WebtopAuthError) {
+    webtopLog.lockout(`${context}: ${err.message}`);
+  } else {
+    webtopLog.warn(`${context}: ${err?.message || err}`);
+  }
+}
+
 async function syncWebtopData() {
   const creds = db.prepare('SELECT * FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
   if (!creds) {
@@ -889,8 +900,10 @@ async function syncWebtopData() {
     }
   }
 
+  webtopLog.info('Sync started', { user: maskUser(creds.username) });
+  const syncStartedAt = Date.now();
   const client = new WebtopClient();
-  await client.login(creds.username, plainPassword);
+  await client.useSession(creds.username, plainPassword);
 
   const dash = await client.initDashboard();
   const rawChildren = dash.childrens || [];
@@ -979,7 +992,8 @@ async function syncWebtopData() {
         });
       }
     } catch (e) {
-      console.warn(`Failed to fetch incidents for child ${child.id}:`, e.message);
+      if (e instanceof WebtopAuthError) throw e;
+      webtopLog.warn(`Failed to fetch incidents for child ${child.id}: ${e.message}`);
     }
 
     // 2. Homework & Weekly Lessons across past weeks (current week + last 3 weeks)
@@ -1030,11 +1044,13 @@ async function syncWebtopData() {
             }
           }
         } catch (weekErr) {
-          console.warn(`Failed to fetch weekly lessons/homework for child ${child.id} (week ${weekOffset}):`, weekErr.message);
+          if (weekErr instanceof WebtopAuthError) throw weekErr;
+          webtopLog.warn(`Failed to fetch weekly lessons/homework for child ${child.id} (week ${weekOffset}): ${weekErr.message}`);
         }
       }
     } catch (e) {
-      console.warn(`Failed to fetch weekly homework for child ${child.id}:`, e.message);
+      if (e instanceof WebtopAuthError) throw e;
+      webtopLog.warn(`Failed to fetch weekly homework for child ${child.id}: ${e.message}`);
     }
 
     // Fallback/supplemental: fetch today's dashboard homework
@@ -1065,7 +1081,8 @@ async function syncWebtopData() {
         });
       }
     } catch (e) {
-      console.warn(`Failed to fetch dashboard homework for child ${child.id}:`, e.message);
+      if (e instanceof WebtopAuthError) throw e;
+      webtopLog.warn(`Failed to fetch dashboard homework for child ${child.id}: ${e.message}`);
     }
   }
 
@@ -1210,6 +1227,13 @@ async function syncWebtopData() {
 
   syncTx();
 
+  webtopLog.info('Sync finished', {
+    children: linkedChildren.length,
+    incidents: allIncidents.length,
+    homework: allHomework.length,
+    ms: Date.now() - syncStartedAt
+  });
+
   return {
     childrenCount: linkedChildren.length,
     incidentsCount: allIncidents.length,
@@ -1223,11 +1247,23 @@ async function runWebtopSync() {
   if (activeSyncPromise) {
     return activeSyncPromise;
   }
-  activeSyncPromise = syncWebtopData().finally(() => {
-    activeSyncPromise = null;
-  });
+  activeSyncPromise = syncWebtopData()
+    .then((result) => {
+      autoSync.recordResult(null);
+      return result;
+    })
+    .catch((err) => {
+      autoSync.recordResult(err);
+      throw err;
+    })
+    .finally(() => {
+      activeSyncPromise = null;
+    });
   return activeSyncPromise;
 }
+
+// Production-only background sync (no-op in development/test; see server/autoSync.js)
+const autoSync = createAutoSync({ db, runSync: () => runWebtopSync() });
 
 // GET /api/webtop/config
 app.get('/api/webtop/config', authenticate, (req, res) => {
@@ -1247,7 +1283,8 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
         linkedChildren: [],
         lastSyncedAt: null,
         syncStatus: 'idle',
-        syncError: null
+        syncError: null,
+        ...autoSync.getStatus()
       });
     }
 
@@ -1269,7 +1306,8 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
         linkedChildren: childRecord ? [childRecord] : [],
         lastSyncedAt: creds.last_synced_at,
         syncStatus: creds.sync_status,
-        syncError: null
+        syncError: null,
+        ...autoSync.getStatus()
       });
     }
 
@@ -1280,7 +1318,8 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
       linkedChildren: allChildren,
       lastSyncedAt: creds.last_synced_at,
       syncStatus: creds.sync_status,
-      syncError: creds.sync_error
+      syncError: creds.sync_error,
+      ...autoSync.getStatus()
     });
   } catch (err) {
     console.error('Failed to fetch Webtop config:', err);
@@ -1320,7 +1359,7 @@ app.post('/api/webtop/test', authenticate, requireParent, async (req, res) => {
       children
     });
   } catch (err) {
-    console.error('Webtop test login failed:', err.message);
+    logWebtopFailure('Webtop test login failed', err);
     res.status(400).json({ error: err.message || 'Webtop authentication failed' });
   }
 });
@@ -1384,13 +1423,15 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       effectiveChildId = linkedChildren[0]?.id || null;
     }
 
+    clearWebtopSession(); // credentials changed: drop any cached session
     const encryptedPass = encryptPassword(password);
     const existing = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
 
     if (existing) {
       db.prepare(`
         UPDATE webtop_credentials
-        SET username = ?, encrypted_password = ?, selected_child_id = ?, updated_at = ?
+        SET username = ?, encrypted_password = ?, selected_child_id = ?, updated_at = ?,
+            consecutive_failures = 0, auto_sync_paused_reason = NULL
         WHERE id = ?
       `).run(username, encryptedPass, effectiveChildId, now, existing.id);
     } else {
@@ -1404,7 +1445,7 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
     try {
       syncResult = await syncWebtopData();
     } catch (syncErr) {
-      console.warn('Initial sync warning:', syncErr.message);
+      logWebtopFailure('Initial sync warning', syncErr);
     }
 
     res.json({
@@ -1415,7 +1456,7 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       syncResult
     });
   } catch (err) {
-    console.error('Failed to configure Webtop:', err);
+    logWebtopFailure('Failed to configure Webtop', err);
     res.status(400).json({ error: err.message || 'Failed to configure Webtop' });
   }
 });
@@ -1509,7 +1550,7 @@ app.post('/api/webtop/sync', authenticate, async (req, res) => {
     const result = await runWebtopSync();
     res.json({ success: true, result });
   } catch (err) {
-    console.error('Failed to sync Webtop data:', err);
+    logWebtopFailure('Failed to sync Webtop data', err);
     // Persist error status
     const creds = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
     if (creds) {
@@ -1524,11 +1565,39 @@ app.post('/api/webtop/sync', authenticate, async (req, res) => {
   }
 });
 
+// POST /api/webtop/sync-if-stale - sync on app open if data is older than the minimum gap
+// (production only; returns { skipped: true, reason } everywhere else)
+app.post('/api/webtop/sync-if-stale', authenticate, async (req, res) => {
+  try {
+    const outcome = await autoSync.syncIfStale();
+    res.json({ success: true, ...outcome });
+  } catch (err) {
+    logWebtopFailure('Failed to sync Webtop data on app open', err);
+    res.status(500).json({ error: err.message || 'Failed to sync Webtop data' });
+  }
+});
+
+// PUT /api/webtop/auto-sync - enable/disable automatic sync, or resume after a pause (parent only)
+app.put('/api/webtop/auto-sync', authenticate, requireParent, (req, res) => {
+  const { enabled } = req.body || {};
+  if (typeof enabled !== 'boolean') {
+    return res.status(400).json({ error: 'enabled must be a boolean' });
+  }
+  if (!autoSync.getStatus().autoSyncAvailable) {
+    return res.status(403).json({ error: 'Automatic sync is not available in this environment' });
+  }
+  if (!autoSync.setEnabled(enabled)) {
+    return res.status(400).json({ error: 'Webtop credentials not configured' });
+  }
+  res.json({ success: true, ...autoSync.getStatus() });
+});
+
 // DELETE /api/webtop/config - remove credentials and clear synced data (parent only)
 app.delete('/api/webtop/config', authenticate, requireParent, (req, res) => {
   try {
     const deleteTx = db.transaction(() => {
       db.prepare('DELETE FROM webtop_credentials').run();
+      clearWebtopSession();
       db.prepare('DELETE FROM incidents').run();
       db.prepare('DELETE FROM homework').run();
       db.prepare("DELETE FROM children WHERE external_source = 'webtop'").run();
@@ -2175,6 +2244,7 @@ app.get(/.*/, spaRateLimiter, (req, res) => {
 
 app.listen(PORT, () => {
   console.log(`School server running on http://localhost:${PORT}`);
+  autoSync.start();
 });
 
 export default app;

@@ -653,6 +653,13 @@ export function initDb(targetDb = db) {
     })();
   }
 
+  // Auto-sync state (production-only feature; columns are harmless elsewhere)
+  const credAutoCols = targetDb.prepare("PRAGMA table_info(webtop_credentials)").all().map(c => c.name);
+  if (!credAutoCols.includes('auto_sync_enabled')) targetDb.exec("ALTER TABLE webtop_credentials ADD COLUMN auto_sync_enabled INTEGER NOT NULL DEFAULT 1;");
+  if (!credAutoCols.includes('consecutive_failures')) targetDb.exec("ALTER TABLE webtop_credentials ADD COLUMN consecutive_failures INTEGER NOT NULL DEFAULT 0;");
+  if (!credAutoCols.includes('next_sync_at')) targetDb.exec("ALTER TABLE webtop_credentials ADD COLUMN next_sync_at TEXT;");
+  if (!credAutoCols.includes('auto_sync_paused_reason')) targetDb.exec("ALTER TABLE webtop_credentials ADD COLUMN auto_sync_paused_reason TEXT;");
+
   const incFks = targetDb.prepare("PRAGMA foreign_key_list(incidents)").all();
   if (incFks.some(fk => fk.table === 'users')) {
     targetDb.transaction(() => {

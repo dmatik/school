@@ -13,6 +13,7 @@ import { SectionCard } from "@/components/ui/section-card"
 import { InfoBox, InfoItem } from "@/components/ui/info-box"
 import { StatusBadge } from "@/components/ui/status-badge"
 import { NoticeBanner } from "@/components/ui/notice-banner"
+import { Switch } from "@/components/ui/switch"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -189,6 +190,26 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
       })
     } finally {
       setSavingWebtop(false)
+    }
+  }
+
+  const handleToggleAutoSync = async (enabled: boolean) => {
+    try {
+      const res = await fetch("/api/webtop/auto-sync", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ enabled })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || t("common.error"))
+      await loadWebtopConfig()
+      window.dispatchEvent(new CustomEvent("webtop:configured"))
+    } catch (err: unknown) {
+      toast({
+        variant: "destructive",
+        title: t("common.error"),
+        description: err instanceof Error ? err.message : t("common.error")
+      })
     }
   }
 
@@ -395,6 +416,42 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                     valueClassName="text-xs font-medium"
                   />
                 </InfoBox>
+
+                {/* Automatic sync (production only; server reports availability) */}
+                {webtopConfig.autoSyncAvailable && (
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <FieldLabel
+                        label={t("account.webtop_auto_sync_label")}
+                        description={
+                          webtopConfig.autoSyncEnabled && webtopConfig.nextSyncAt
+                            ? t("account.webtop_auto_sync_next", { date: formatSystemDateTime(webtopConfig.nextSyncAt) })
+                            : t("account.webtop_auto_sync_desc")
+                        }
+                      />
+                      <Switch
+                        checked={Boolean(webtopConfig.autoSyncEnabled)}
+                        onCheckedChange={handleToggleAutoSync}
+                        aria-label={t("account.webtop_auto_sync_label")}
+                      />
+                    </div>
+                    {webtopConfig.autoSyncPaused && (
+                      <NoticeBanner
+                        variant="warning"
+                        title={t("account.webtop_auto_sync_paused_title")}
+                        description={t("account.webtop_auto_sync_paused_desc")}
+                      >
+                        <button
+                          type="button"
+                          onClick={() => handleToggleAutoSync(true)}
+                          className="text-xs font-semibold text-primary hover:underline"
+                        >
+                          {t("account.webtop_auto_sync_resume")}
+                        </button>
+                      </NoticeBanner>
+                    )}
+                  </div>
+                )}
 
                 {/* Sync Error Alert if any */}
                 {webtopConfig.syncError && (

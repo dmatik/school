@@ -177,6 +177,7 @@ All variables are optional with sensible defaults:
 | `NODE_ENV` | Application environment (`development` / `production`) | `development` |
 | `JWT_SECRET` | Secret key for signing JWT tokens | Auto-generated & persisted in SQLite `settings` table |
 | `ENCRYPTION_KEY` | Secret key for AES-256-GCM Webtop credential encryption | Auto-generated & persisted in SQLite `settings` table |
+| `WEBTOP_LOG_LEVEL` | Webtop logging: `errors` (only errors and wrong-password lockouts) or `all` (every login and call). Set via docker compose / `.env` | `errors` |
 | `RP_ID` | Relying Party ID for WebAuthn passkeys | Auto-detected from hostname / forwarded host |
 | `EXPECTED_ORIGIN` | Comma-separated allowed WebAuthn origins | Auto-detected from request `Origin` and `Host` |
 | `TRUST_PROXY` | Trust reverse proxy headers (`x-forwarded-host`, `x-forwarded-proto`) | `false` (set `true` or `1` behind Nginx/Caddy/Cloudflare) |

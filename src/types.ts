@@ -33,6 +33,11 @@ export interface WebtopConfig {
   lastSyncedAt: string | null;
   syncStatus: 'idle' | 'syncing' | 'success' | 'error';
   syncError: string | null;
+  autoSyncAvailable?: boolean;
+  autoSyncEnabled?: boolean;
+  autoSyncPaused?: boolean;
+  autoSyncPausedReason?: string | null;
+  nextSyncAt?: string | null;
 }
 
 export interface Incident {
