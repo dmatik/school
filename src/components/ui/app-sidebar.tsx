@@ -130,12 +130,7 @@ export function AppSidebar<T extends string = string>({
           <button
             type="button"
             onClick={handleProfileClick}
-            className={cn(
-              "relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
-              activeTab === "account"
-                ? "ring-2 ring-primary ring-offset-2 ring-offset-background"
-                : "hover:opacity-85"
-            )}
+            className="rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 shrink-0 hover:opacity-85 select-none"
             title={t("common.account")}
             aria-label={t("common.account")}
           >
@@ -143,7 +138,7 @@ export function AppSidebar<T extends string = string>({
               size="sm"
               avatarUrl={currentUser.avatar}
               name={displayName || currentUser.username}
-              activeRing={false}
+              activeRing={activeTab === "account"}
             />
           </button>
         )}

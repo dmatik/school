@@ -14,6 +14,7 @@ export interface MobileHeaderProps {
   isScrolled?: boolean
   action?: React.ReactNode
   className?: string
+  fixed?: boolean
 }
 
 export function MobileHeader({
@@ -25,14 +26,16 @@ export function MobileHeader({
   isAccountActive = false,
   isScrolled = false,
   action,
-  className
+  className,
+  fixed = true
 }: MobileHeaderProps) {
   const { t } = useTranslation()
 
   return (
     <header
       className={cn(
-        "md:hidden fixed top-0 inset-x-0 z-30 px-4 py-2.5 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 bg-background transition-all duration-300",
+        "px-4 py-2.5 grid grid-cols-[2.25rem_1fr_2.25rem] items-center gap-2 bg-background transition-all duration-300",
+        fixed && "md:hidden fixed top-0 inset-x-0 z-30",
         isScrolled
           ? "border-b border-border/50 shadow-xs"
           : "border-b border-transparent shadow-none",
@@ -42,10 +45,7 @@ export function MobileHeader({
       <button
         type="button"
         onClick={onAvatarClick}
-        className={cn(
-          "relative rounded-full transition-all focus:outline-none focus:ring-2 focus:ring-primary/40 shrink-0",
-          isAccountActive ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : "hover:opacity-85"
-        )}
+        className="rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 focus-visible:ring-offset-2 shrink-0 hover:opacity-85 select-none"
         title={t("common.account")}
         aria-label={t("common.account")}
       >
@@ -53,7 +53,7 @@ export function MobileHeader({
           size="sm"
           avatarUrl={avatarUrl}
           name={username}
-          activeRing={false}
+          activeRing={isAccountActive}
         />
       </button>
 

@@ -87,8 +87,9 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
           </Button>
         </div>
 
-        <div className="relative h-20 rounded-2xl border overflow-hidden bg-background">
+        <div className="rounded-2xl border overflow-hidden bg-background shadow-xs">
           <MobileHeader
+            fixed={false}
             title="אירועי משמעת"
             titleKey="incidents"
             username="דמיטרי ט."
@@ -100,12 +101,67 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
                 success={syncSuccess}
               />
             }
-            className="relative"
           />
         </div>
 
         <div className="text-xs text-muted-foreground">
           לחץ על כפתור הסנכרון (בצד שמאל/ימין בהתאם לשפה) כדי לצפות באנימציית הסיבוב ובאייקון הווי הירוק.
+        </div>
+      </div>
+    )
+  },
+}
+
+export const MobileHeaderWithPhotoAvatar: StoryObj<typeof MobileHeader> = {
+  render: function Render() {
+    const [syncing, setSyncing] = React.useState(false)
+    const handleSync = () => {
+      setSyncing(true)
+      setTimeout(() => setSyncing(false), 1500)
+    }
+
+    return (
+      <div className="space-y-4 max-w-sm">
+        <div className="text-sm font-medium text-muted-foreground">
+          כותרת עליונה עם תמונת פרופיל (UserAvatar):
+        </div>
+        <div className="rounded-2xl border overflow-hidden bg-background shadow-xs">
+          <MobileHeader
+            fixed={false}
+            title="ניהול מערכת"
+            titleKey="admin"
+            avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"
+            username="דמיטרי טרוסמן"
+            action={<SyncButton onClick={handleSync} syncing={syncing} />}
+          />
+        </div>
+      </div>
+    )
+  },
+}
+
+export const MobileHeaderActiveAccount: StoryObj<typeof MobileHeader> = {
+  render: function Render() {
+    const [syncing, setSyncing] = React.useState(false)
+    const handleSync = () => {
+      setSyncing(true)
+      setTimeout(() => setSyncing(false), 1500)
+    }
+
+    return (
+      <div className="space-y-4 max-w-sm">
+        <div className="text-sm font-medium text-muted-foreground">
+          כותרת עליונה כאשר טאב חשבון פעיל (טבעת פעילה סביב האוואטר):
+        </div>
+        <div className="rounded-2xl border overflow-hidden bg-background shadow-xs">
+          <MobileHeader
+            fixed={false}
+            title="חשבון והגדרות"
+            titleKey="account"
+            username="מנהל מערכת"
+            isAccountActive={true}
+            action={<SyncButton onClick={handleSync} syncing={syncing} />}
+          />
         </div>
       </div>
     )
