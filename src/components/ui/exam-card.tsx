@@ -1,9 +1,10 @@
 import * as React from "react"
 import { useTranslation } from "react-i18next"
 import { format } from "date-fns"
-import { Calendar as CalendarIcon, Award, Edit2 } from "lucide-react"
+import { Calendar as CalendarIcon } from "lucide-react"
 import { Card } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { EditButton } from "@/components/ui/action-button"
 import { SubjectIconBadge } from "@/components/ui/subject-icon-badge"
 import { ChildBadge } from "@/components/ui/child-badge"
 import { cn, parseLocalDate } from "@/lib/utils"
@@ -73,10 +74,10 @@ export function ExamCard({
                 )}
 
                 {grade ? (
-                  <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-bold bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] border border-transparent">
-                    <Award className="w-3 h-3 shrink-0" />
-                    {t("exams.grade_badge", { grade })}
-                  </span>
+                  <StatusBadge
+                    variant="grade"
+                    label={t("exams.grade_badge", { grade })}
+                  />
                 ) : null}
               </div>
             )}
@@ -90,16 +91,13 @@ export function ExamCard({
           )}
 
           {onEdit && (
-            <Button
-              variant="ghost"
+            <EditButton
               size="icon"
               onClick={onEdit}
-              className="h-8 w-8 rounded-full text-muted-foreground hover:text-foreground"
+              className="h-8 w-8 rounded-full"
               title={t("exams.edit_exam_button")}
-            >
-              <Edit2 className="w-4 h-4" />
-              <span className="sr-only">{t("exams.edit_exam_button")}</span>
-            </Button>
+              aria-label={t("exams.edit_exam_button")}
+            />
           )}
         </div>
       </div>

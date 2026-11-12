@@ -42,6 +42,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
   const [isEditOpen, setIsEditOpen] = useState(false)
   const [isPasswordOpen, setIsPasswordOpen] = useState(false)
   const [userToDelete, setUserToDelete] = useState<User | null>(null)
+  const [isDeletingUser, setIsDeletingUser] = useState(false)
   const [activeUser, setActiveUser] = useState<User | null>(null)
 
   // Form states for Create User
@@ -337,8 +338,9 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
   // Handle Delete User
   const handleDeleteUser = async () => {
-    if (!userToDelete) return
+    if (!userToDelete || isDeletingUser) return
 
+    setIsDeletingUser(true)
     try {
       const res = await fetch(`/api/admin/users/${userToDelete.id}`, {
         method: "DELETE",
@@ -366,6 +368,8 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         title: t("common.error"),
         description: err instanceof Error ? err.message : t("admin.delete_failed")
       })
+    } finally {
+      setIsDeletingUser(false)
     }
   }
 
@@ -446,21 +450,23 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       {/* Create User Dialog */}
       <Modal
         open={isCreateOpen}
-        onOpenChange={setIsCreateOpen}
+        onOpenChange={(open) => {
+          setIsCreateOpen(open)
+          if (!open) {
+            setCreateUsername("")
+            setCreatePassword("")
+            setCreateFirstName("")
+            setCreateLastName("")
+            setCreateRole("user")
+            setCreateFamilyRole("parent")
+            setCreateLinkedChildId("")
+          }
+        }}
         title={t("admin.create_user_modal_title")}
         description={t("admin.create_user_modal_desc")}
         onSubmit={handleCreateUser}
-        footer={
-          <>
-            <Button type="button" variant="outline" onClick={() => setIsCreateOpen(false)} className="flex-1 sm:flex-none">
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={isSubmittingCreate} className="flex-1 sm:flex-none">
-              {isSubmittingCreate ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-              {t("admin.create_button")}
-            </Button>
-          </>
-        }
+        submitText={t("admin.create_button")}
+        isSubmitting={isSubmittingCreate}
       >
         <div className="space-y-2">
           <Label htmlFor="create-username">{t("auth.username")}</Label>
@@ -715,21 +721,15 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
       {/* Reset Password Dialog */}
       <Modal
         open={isPasswordOpen}
-        onOpenChange={setIsPasswordOpen}
+        onOpenChange={(open) => {
+          setIsPasswordOpen(open)
+          if (!open) setResetPassword("")
+        }}
         title={t("admin.reset_password_modal_title", { username: activeUser?.username })}
         description={t("admin.reset_password_modal_desc", { username: activeUser?.username })}
         onSubmit={handleResetPassword}
-        footer={
-          <>
-            <Button type="button" variant="outline" onClick={() => setIsPasswordOpen(false)} className="flex-1 sm:flex-none">
-              {t("common.cancel")}
-            </Button>
-            <Button type="submit" disabled={isSubmittingPassword} className="flex-1 sm:flex-none">
-              {isSubmittingPassword ? <Loader2 className="w-4 h-4 animate-spin me-2" /> : null}
-              {t("admin.confirm_reset_password")}
-            </Button>
-          </>
-        }
+        submitText={t("admin.confirm_reset_password")}
+        isSubmitting={isSubmittingPassword}
       >
         <div className="space-y-2">
           <Label htmlFor="reset-pass">{t("admin.new_password")}</Label>
@@ -753,6 +753,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         description={t("admin.delete_user_desc", { username: userToDelete?.username })}
         confirmText={t("common.delete")}
         cancelText={t("common.cancel")}
+        loading={isDeletingUser}
         onConfirm={handleDeleteUser}
       />
       </div>

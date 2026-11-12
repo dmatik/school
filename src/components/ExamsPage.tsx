@@ -8,7 +8,7 @@ import {
   Loader2,
   GraduationCap
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -417,39 +417,33 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
         </div>
       ) : isChild && !currentUser?.linkedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mx-auto mb-3">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {t("exams.title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {t("exams.child_unlinked_desc")}
-            </p>
-          </Card>
+          <EmptyStateCard
+            icon={GraduationCap}
+            iconClassName="bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E]"
+            title={t("exams.title")}
+            description={t("exams.child_unlinked_desc")}
+          />
         </div>
       ) : filteredExams.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
-              <GraduationCap className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {searchQuery
+          <EmptyStateCard
+            icon={GraduationCap}
+            iconClassName="bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5]"
+            title={
+              searchQuery
                 ? t("exams.no_exams_match")
                 : selectedPeriod === "future"
                   ? t("exams.empty_future_title")
-                  : t("exams.empty_past_title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery
+                  : t("exams.empty_past_title")
+            }
+            description={
+              searchQuery
                 ? null
                 : selectedPeriod === "future"
                   ? t("exams.empty_future_desc")
-                  : t("exams.empty_past_desc")}
-            </p>
-          </Card>
+                  : t("exams.empty_past_desc")
+            }
+          />
         </div>
       ) : (
         <div className="space-y-3.5 !mt-0">

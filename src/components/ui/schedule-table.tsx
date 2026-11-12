@@ -236,7 +236,7 @@ export function ScheduleTable({
                     return (
                       <div
                         key={day}
-                        onClick={() => onLessonClick?.(day, hourNum)}
+                        onClick={canEdit ? () => onLessonClick?.(day, hourNum) : undefined}
                         className={cn(
                           "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start p-1 sm:p-1.5 flex items-center justify-center text-center transition-all min-w-0 max-w-full overflow-hidden h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px]",
                           isToday && "bg-primary/[0.02]",
@@ -276,7 +276,7 @@ export function ScheduleTable({
                 return (
                   <div
                     key={day}
-                    onClick={() => onFinishTimeClick?.(day)}
+                    onClick={canEdit ? () => onFinishTimeClick?.(day) : undefined}
                     className={cn(
                       "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start py-1 sm:py-1.5 px-1 sm:px-2 flex flex-col items-center justify-center transition-all min-w-0 max-w-full overflow-hidden h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px]",
                       isToday && "bg-primary/5",

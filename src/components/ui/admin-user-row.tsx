@@ -63,16 +63,18 @@ export function AdminUserRow({
           size="md"
           colorClassName={userChildColor ? cn(userChildColor.bg, "text-white") : undefined}
         />
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-semibold text-foreground">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2 min-w-0">
+            <bdi className="font-semibold text-foreground truncate max-w-[180px] sm:max-w-xs">
               {fullName || user.username}
-            </span>
+            </bdi>
             {fullName && (
-              <span className="text-xs text-muted-foreground">({user.username})</span>
+              <bdi className="text-xs text-muted-foreground truncate max-w-[120px] sm:max-w-[160px]">
+                ({user.username})
+              </bdi>
             )}
             {isSelf && (
-              <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium border border-transparent">
+              <span className="text-[10px] bg-primary/15 text-primary px-1.5 py-0.5 rounded-full font-medium border border-transparent shrink-0">
                 {t("admin.you", "אתה")}
               </span>
             )}

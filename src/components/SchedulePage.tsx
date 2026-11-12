@@ -9,9 +9,9 @@ import {
   Pencil,
   Check
 } from "lucide-react"
-import { Card } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Modal } from "@/components/ui/modal"
+import { Modal, ConfirmModal } from "@/components/ui/modal"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { FilledInput, CounterField, TimePresetInput } from "@/components/ui/form-field"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
@@ -57,6 +57,10 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   // Finish Time Modal state
   const [editingFinishDay, setEditingFinishDay] = useState<number | null>(null)
   const [formFinishTime, setFormFinishTime] = useState("")
+
+  // Confirm clear modal states
+  const [confirmClearLesson, setConfirmClearLesson] = useState(false)
+  const [confirmClearFinishTime, setConfirmClearFinishTime] = useState(false)
 
   // Determine current day of week (0 = Sunday, ..., 5 = Friday, 6 = Saturday)
   const currentDayOfWeek = useMemo(() => new Date().getDay(), [])
@@ -487,27 +491,21 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
         </div>
       ) : isChild && !currentUser?.linkedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mx-auto mb-3">
-              <CalendarDays className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">{t("schedule.title")}</h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {t("schedule.child_unlinked_desc")}
-            </p>
-          </Card>
+          <EmptyStateCard
+            icon={CalendarDays}
+            iconClassName="bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E]"
+            title={t("schedule.title")}
+            description={t("schedule.child_unlinked_desc")}
+          />
         </div>
       ) : !selectedChildId ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
-              <CalendarDays className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">{t("schedule.title")}</h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {t("schedule.no_children_warning")}
-            </p>
-          </Card>
+          <EmptyStateCard
+            icon={CalendarDays}
+            iconClassName="bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5]"
+            title={t("schedule.title")}
+            description={t("schedule.no_children_warning")}
+          />
         </div>
       ) : (
         <ScheduleTable
@@ -548,7 +546,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
               <Button
                 type="button"
                 variant="destructive"
-                onClick={handleClearLesson}
+                onClick={() => setConfirmClearLesson(true)}
                 className="rounded-full me-auto h-9"
               >
                 <Trash2 className="w-4 h-4 me-1.5" />
@@ -587,6 +585,21 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
         </CounterField>
       </Modal>
 
+      {/* Clear Lesson Confirmation Dialog */}
+      <ConfirmModal
+        open={confirmClearLesson}
+        onOpenChange={setConfirmClearLesson}
+        icon={Trash2}
+        title={t("schedule.clear_lesson")}
+        description={t("schedule.clear_lesson_confirm")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        onConfirm={async () => {
+          setConfirmClearLesson(false)
+          await handleClearLesson()
+        }}
+      />
+
       {/* School Finish Time Dialog */}
       <Modal
         open={editingFinishDay !== null}
@@ -607,7 +620,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
               <Button
                 type="button"
                 variant="destructive"
-                onClick={() => handleSaveFinishTime("")}
+                onClick={() => setConfirmClearFinishTime(true)}
                 className="rounded-full me-auto h-9"
               >
                 <Trash2 className="w-4 h-4 me-1.5" />
@@ -644,6 +657,21 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           presets={COMMON_FINISH_PRESETS}
         />
       </Modal>
+
+      {/* Clear Finish Time Confirmation Dialog */}
+      <ConfirmModal
+        open={confirmClearFinishTime}
+        onOpenChange={setConfirmClearFinishTime}
+        icon={Trash2}
+        title={t("schedule.clear_finish_time")}
+        description={t("schedule.clear_finish_time_confirm")}
+        confirmText={t("common.delete")}
+        cancelText={t("common.cancel")}
+        onConfirm={async () => {
+          setConfirmClearFinishTime(false)
+          await handleSaveFinishTime("")
+        }}
+      />
 
       </div>
 

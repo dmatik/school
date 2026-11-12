@@ -19,6 +19,7 @@ import {
   AlertDialogCancel,
   AlertDialogAction,
 } from "@/components/ui/alert-dialog"
+import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 export interface ModalProps {
@@ -30,6 +31,11 @@ export interface ModalProps {
   maxWidth?: "sm" | "md" | "lg"
   onSubmit?: (e: React.FormEvent<HTMLFormElement>) => void
   footer?: React.ReactNode
+  submitText?: React.ReactNode
+  cancelText?: React.ReactNode | false
+  isSubmitting?: boolean
+  submitDisabled?: boolean
+  onCancel?: () => void
   onOpenAutoFocus?: (event: Event) => void
   className?: string
   contentClassName?: string
@@ -52,11 +58,17 @@ export function Modal({
   maxWidth = "md",
   onSubmit,
   footer,
+  submitText,
+  cancelText,
+  isSubmitting = false,
+  submitDisabled = false,
+  onCancel,
   onOpenAutoFocus,
   className,
   contentClassName,
   children,
 }: ModalProps) {
+  const { t } = useTranslation()
   const maxWidthClass =
     maxWidth === "sm"
       ? "sm:max-w-sm"
@@ -64,17 +76,46 @@ export function Modal({
         ? "sm:max-w-lg"
         : "sm:max-w-md"
 
+  // Render explicit footer or standard submit/cancel footer
+  const renderedFooter = React.useMemo(() => {
+    if (footer !== undefined) return footer
+    if (!onSubmit && !submitText) return null
+
+    return (
+      <div className="flex items-center justify-end gap-2 w-full pt-2">
+        {cancelText !== false && (
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onCancel ?? (() => onOpenChange(false))}
+            className="flex-1 sm:flex-none"
+          >
+            {cancelText ?? t("common.cancel")}
+          </Button>
+        )}
+        <Button
+          type={onSubmit ? "submit" : "button"}
+          disabled={isSubmitting || submitDisabled}
+          className="flex-1 sm:flex-none"
+        >
+          {isSubmitting && <Loader2 className="w-4 h-4 animate-spin me-2" />}
+          {submitText ?? t("common.save")}
+        </Button>
+      </div>
+    )
+  }, [footer, onSubmit, submitText, cancelText, onCancel, onOpenChange, t, isSubmitting, submitDisabled])
+
   const content = onSubmit ? (
     <form onSubmit={onSubmit} className={cn("flex flex-col flex-1 space-y-4 py-2", contentClassName)}>
       {children}
-      {footer && <DialogFooter className="pt-2">{footer}</DialogFooter>}
+      {renderedFooter && <DialogFooter className="pt-2">{renderedFooter}</DialogFooter>}
     </form>
   ) : (
     <>
       <div className={cn("flex flex-col flex-1 space-y-4 py-2", contentClassName)}>
         {children}
       </div>
-      {footer && <DialogFooter className="pt-2">{footer}</DialogFooter>}
+      {renderedFooter && <DialogFooter className="pt-2">{renderedFooter}</DialogFooter>}
     </>
   )
 
@@ -106,7 +147,7 @@ export interface ConfirmModalProps {
   icon?: LucideIcon | React.ComponentType<{ className?: string }> | React.ReactNode
   confirmText?: React.ReactNode
   cancelText?: React.ReactNode
-  onConfirm: (e: React.MouseEvent<HTMLButtonElement>) => void
+  onConfirm: (e: React.MouseEvent<HTMLButtonElement>) => Promise<void> | void
   onCancel?: () => void
   loading?: boolean
   disabled?: boolean
@@ -132,6 +173,15 @@ export function ConfirmModal({
   children,
 }: ConfirmModalProps) {
   const { t } = useTranslation()
+
+  const handleConfirmClick = async (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault()
+    try {
+      await onConfirm(e)
+    } catch {
+      // Keep modal open on uncaught error so user is aware
+    }
+  }
 
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
@@ -162,7 +212,7 @@ export function ConfirmModal({
             {cancelText ?? t("common.cancel")}
           </AlertDialogCancel>
           <AlertDialogAction
-            onClick={onConfirm}
+            onClick={handleConfirmClick}
             disabled={loading || disabled}
             className={cn(
               variant === "destructive" &&

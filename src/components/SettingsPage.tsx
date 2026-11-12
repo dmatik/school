@@ -5,15 +5,14 @@ import { PageHeader } from "@/components/ui/page-header"
 import {
   GraduationCap,
   Loader2,
-  CheckCircle2,
   Globe,
-  AlertCircle,
   Check,
   Palette
 } from "lucide-react"
 import { SectionCard } from "@/components/ui/section-card"
 import { InfoBox, InfoItem } from "@/components/ui/info-box"
-import { Input } from "@/components/ui/input"
+import { StatusBadge } from "@/components/ui/status-badge"
+import { NoticeBanner } from "@/components/ui/notice-banner"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import {
@@ -25,7 +24,7 @@ import { toast } from "@/hooks/use-toast"
 import { formatGradeHebrew, formatSystemDateTime } from "@/lib/utils"
 import { ChildBadge } from "@/components/ui/child-badge"
 import { ColorSwatchPicker } from "@/components/ui/color-swatch-picker"
-import { FieldLabel } from "@/components/ui/form-field"
+import { FieldLabel, FilledInput } from "@/components/ui/form-field"
 import { SyncButton } from "@/components/ui/sync-button"
 import { EditButton, DestructiveButton } from "@/components/ui/action-button"
 import type { WebtopConfig, User } from "@/types"
@@ -360,15 +359,15 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
               loadingWebtop ? (
                 <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
               ) : webtopConfig?.configured ? (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8] border border-transparent">
-                  <CheckCircle2 className="w-3.5 h-3.5" />
-                  <span>{t("account.webtop_status_connected")}</span>
-                </div>
+                <StatusBadge
+                  variant="success"
+                  label={t("account.webtop_status_connected")}
+                />
               ) : (
-                <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-transparent">
-                  <Globe className="w-3.5 h-3.5" />
-                  <span>{t("account.webtop_status_not_connected")}</span>
-                </div>
+                <StatusBadge
+                  variant="neutral"
+                  label={t("account.webtop_status_not_connected")}
+                />
               )
             }
             contentClassName="pt-4"
@@ -399,10 +398,10 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
 
                 {/* Sync Error Alert if any */}
                 {webtopConfig.syncError && (
-                  <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-xs flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 shrink-0" />
-                    <span>{t("account.webtop_status_error")}: {webtopConfig.syncError}</span>
-                  </div>
+                  <NoticeBanner
+                    variant="destructive"
+                    description={`${t("account.webtop_status_error")}: ${webtopConfig.syncError}`}
+                  />
                 )}
 
                 {/* Linked Kids Color Selection */}
@@ -475,25 +474,23 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="webtopUser">{t("account.webtop_username")}</Label>
-                    <Input
+                    <FilledInput
                       id="webtopUser"
                       value={webtopUsername}
                       onChange={(e) => setWebtopUsername(e.target.value)}
                       placeholder={t("account.webtop_username_placeholder")}
-                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>
 
                   <div className="space-y-2">
                     <Label htmlFor="webtopPass">{t("account.webtop_password")}</Label>
-                    <Input
+                    <FilledInput
                       id="webtopPass"
                       type="password"
                       value={webtopPassword}
                       onChange={(e) => setWebtopPassword(e.target.value)}
                       placeholder={t("account.webtop_password_placeholder")}
-                      className="bg-muted dark:bg-secondary border-transparent"
                       required
                     />
                   </div>

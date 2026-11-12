@@ -4,12 +4,13 @@ import { PageHeader } from "@/components/ui/page-header"
 import { LiquidTabs } from "@/components/ui/liquid-tabs"
 import { SearchInput } from "@/components/ui/search-input"
 import {
-  AlertCircle,
   GraduationCap,
   CheckCircle2,
   Loader2
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
+import { NoticeBanner } from "@/components/ui/notice-banner"
 import { cn, getChildFirstName } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { format } from "date-fns"
@@ -251,59 +252,61 @@ export function IncidentsPage({ token, syncTrigger, currentUser }: IncidentsPage
         </div>
       ) : !webtopConfig?.configured ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-xl border-dashed border-2 shadow-sm bg-card/60">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E] flex items-center justify-center mb-3 shadow-inner">
-                <GraduationCap className="w-7 h-7" />
-              </div>
-              <CardTitle className="text-xl font-bold">
-                {t("incidents.empty_title")}
-              </CardTitle>
-              <CardDescription className="text-sm max-w-md mx-auto pt-1">
-                {t("incidents.empty_desc")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="rounded-xl bg-muted/60 p-4 border border-border flex items-start gap-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary mt-0.5 shrink-0">
-                  <AlertCircle className="w-4 h-4" />
-                </div>
-                <div className="space-y-1 text-start">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-foreground">
-                      {t("incidents.status_title")}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#3B82C4]/15 text-[#3B82C4] dark:bg-[#3B82C4]/25 dark:text-[#AED4F8] border border-transparent">
-                      {t("incidents.integration_badge")}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("incidents.status_desc")}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyStateCard
+            variant="onboarding"
+            icon={GraduationCap}
+            iconClassName="bg-[#D4973B]/15 text-[#D4973B] dark:bg-[#D4973B]/25 dark:text-[#F5D59E]"
+            title={t("incidents.empty_title")}
+            description={t("incidents.empty_desc")}
+            onboardingNotice={
+              <NoticeBanner
+                title={t("incidents.status_title")}
+                badge={t("incidents.integration_badge")}
+                description={t("incidents.status_desc")}
+              />
+            }
+          />
         </div>
       ) : filteredIncidents.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8] flex items-center justify-center mx-auto mb-3">
-              <CheckCircle2 className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {searchQuery || selectedDate
+          <EmptyStateCard
+            icon={CheckCircle2}
+            iconClassName="bg-[#2CA58D]/15 text-[#2CA58D] dark:bg-[#2CA58D]/25 dark:text-[#9EE8D8]"
+            title={
+              searchQuery || selectedDate
                 ? t("incidents.no_incidents_match")
-                : t("incidents.empty_title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedDate
+                : t("incidents.empty_title")
+            }
+            description={
+              searchQuery || selectedDate
                 ? null
                 : (isChild && !currentUser?.linkedChildId
                     ? t("incidents.child_unlinked_desc")
-                    : t("incidents.empty_desc"))}
-            </p>
-          </Card>
+                    : t("incidents.empty_desc"))
+            }
+            actions={
+              selectedDate && (
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDate(new Date())}
+                    className="text-xs h-8"
+                  >
+                    {t("homework.back_to_today")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDate(undefined)}
+                    className="text-xs h-8"
+                  >
+                    {t("common.all_dates")}
+                  </Button>
+                </div>
+              )
+            }
+          />
         </div>
       ) : (
         <div className="space-y-3.5 !mt-0">

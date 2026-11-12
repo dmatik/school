@@ -6,10 +6,10 @@ import { SearchInput } from "@/components/ui/search-input"
 import {
   BookOpen,
   GraduationCap,
-  Loader2,
-  FileText
+  Loader2
 } from "lucide-react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { EmptyStateCard } from "@/components/ui/empty-state-card"
+import { NoticeBanner } from "@/components/ui/notice-banner"
 import { Button } from "@/components/ui/button"
 import { format } from "date-fns"
 import { LiquidDatePicker } from "@/components/ui/liquid-date-picker"
@@ -235,81 +235,63 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
         </div>
       ) : !webtopConfig?.configured ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-xl border-dashed border-2 shadow-sm bg-card/60">
-            <CardHeader className="text-center pb-4">
-              <div className="mx-auto w-14 h-14 rounded-2xl bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mb-3 shadow-inner">
-                <GraduationCap className="w-7 h-7" />
-              </div>
-              <CardTitle className="text-xl font-bold">
-                {t("homework.empty_title")}
-              </CardTitle>
-              <CardDescription className="text-sm max-w-md mx-auto pt-1">
-                {t("homework.empty_desc")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pt-2">
-              <div className="rounded-xl bg-muted/60 p-4 border border-border flex items-start gap-3">
-                <div className="p-1.5 rounded-lg bg-primary/10 text-primary mt-0.5 shrink-0">
-                  <FileText className="w-4 h-4" />
-                </div>
-                <div className="space-y-1 text-start">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-xs font-semibold text-foreground">
-                      {t("homework.status_title")}
-                    </span>
-                    <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] border border-transparent">
-                      {t("homework.integration_badge")}
-                    </span>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed">
-                    {t("homework.status_desc")}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <EmptyStateCard
+            variant="onboarding"
+            icon={GraduationCap}
+            iconClassName="bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5]"
+            title={t("homework.empty_title")}
+            description={t("homework.empty_desc")}
+            onboardingNotice={
+              <NoticeBanner
+                title={t("homework.status_title")}
+                badge={t("homework.integration_badge")}
+                description={t("homework.status_desc")}
+              />
+            }
+          />
         </div>
       ) : filteredHomework.length === 0 ? (
         <div className="flex-1 flex flex-col items-center justify-center py-12 px-4">
-          <Card className="w-full max-w-md border-dashed border-2 shadow-sm text-center p-8 bg-card/40">
-            <div className="w-12 h-12 rounded-full bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5] flex items-center justify-center mx-auto mb-3">
-              <BookOpen className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-base text-foreground">
-              {selectedDate && !searchQuery
+          <EmptyStateCard
+            icon={BookOpen}
+            iconClassName="bg-[#555DB0]/15 text-[#555DB0] dark:bg-[#555DB0]/25 dark:text-[#C5C8F5]"
+            title={
+              selectedDate && !searchQuery
                 ? t("homework.no_homework_for_date")
                 : searchQuery || selectedDate
                   ? t("homework.no_homework_match")
-                  : t("homework.empty_title")}
-            </h3>
-            <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-              {searchQuery || selectedDate
+                  : t("homework.empty_title")
+            }
+            description={
+              searchQuery || selectedDate
                 ? null
                 : (isChild && !currentUser?.linkedChildId
                     ? t("homework.child_unlinked_desc")
-                    : t("homework.empty_desc"))}
-            </p>
-            {selectedDate && (
-              <div className="flex items-center justify-center gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setSelectedDate(new Date())}
-                  className="text-xs h-8"
-                >
-                  {t("homework.back_to_today")}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setSelectedDate(undefined)}
-                  className="text-xs h-8"
-                >
-                  {t("common.all_dates")}
-                </Button>
-              </div>
-            )}
-          </Card>
+                    : t("homework.empty_desc"))
+            }
+            actions={
+              selectedDate && (
+                <div className="flex items-center justify-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setSelectedDate(new Date())}
+                    className="text-xs h-8"
+                  >
+                    {t("homework.back_to_today")}
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedDate(undefined)}
+                    className="text-xs h-8"
+                  >
+                    {t("common.all_dates")}
+                  </Button>
+                </div>
+              )
+            }
+          />
         </div>
       ) : (
         <div className="space-y-3.5 !mt-0">

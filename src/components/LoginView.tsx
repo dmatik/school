@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useTranslation } from "react-i18next"
 import { Lock, User as UserIcon, Loader2, Fingerprint } from "lucide-react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
+import { IconInput } from "@/components/ui/form-field"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -125,36 +125,30 @@ export function LoginView({
 
             <div className="space-y-1.5">
               <Label htmlFor="username" className="text-xs font-semibold">{t("auth.username")}</Label>
-              <div className="relative">
-                <UserIcon className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="username"
-                  type="text"
-                  autoComplete="username"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
-                  placeholder={t("auth.username_placeholder")}
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                />
-              </div>
+              <IconInput
+                id="username"
+                type="text"
+                icon={UserIcon}
+                autoComplete="username"
+                placeholder={t("auth.username_placeholder")}
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+              />
             </div>
 
             <div className="space-y-1.5">
               <Label htmlFor="password" className="text-xs font-semibold">{t("auth.password")}</Label>
-              <div className="relative">
-                <Lock className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="password"
-                  type="password"
-                  autoComplete="current-password"
-                  className="ps-9 h-9 text-sm rounded-full bg-muted dark:bg-secondary border-transparent"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
+              <IconInput
+                id="password"
+                type="password"
+                icon={Lock}
+                autoComplete="current-password"
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
             </div>
 
             <Button type="submit" className="w-full mt-4 h-10 rounded-full font-semibold shadow-xs hover:shadow-sm transition-all duration-200" disabled={loading || passkeyLoading}>

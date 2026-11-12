@@ -86,6 +86,7 @@ export function ActionButton({
 export function EditButton({
   children,
   icon = Edit2,
+  size = "sm",
   ...props
 }: ActionButtonProps) {
   const { t } = useTranslation()
@@ -93,9 +94,10 @@ export function EditButton({
     <ActionButton
       variant="muted"
       icon={icon}
+      size={size}
       {...props}
     >
-      {children ?? t("common.edit")}
+      {children ?? (size === "icon" ? null : t("common.edit"))}
     </ActionButton>
   )
 }

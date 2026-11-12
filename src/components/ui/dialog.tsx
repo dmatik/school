@@ -50,11 +50,13 @@ const DialogContent = ({
 
     const handleOpenAutoFocus = React.useCallback(
         (event: Event) => {
-            // Prevent auto-focusing edit fields so the user sees the full modal first
+            // Focus the modal container itself so focus is trapped inside the dialog
+            // without auto-triggering mobile virtual keyboards on inputs
             event.preventDefault()
+            containerNode?.focus()
             onOpenAutoFocus?.(event)
         },
-        [onOpenAutoFocus]
+        [onOpenAutoFocus, containerNode]
     )
 
     // Merge external ref with internal state ref
@@ -75,6 +77,7 @@ const DialogContent = ({
             <DialogOverlay />
             <DialogPrimitive.Content
                 ref={setRefs}
+                tabIndex={-1}
                 dir={props.dir ?? (i18n.dir() as "ltr" | "rtl")}
                 style={{ ...viewportStyle, ...style }}
                 onOpenAutoFocus={handleOpenAutoFocus}
