@@ -7,8 +7,30 @@
  *
  * Never pass passwords, tokens, cookies or request bodies to this logger.
  */
+export const WEBTOP_LOG_TIMEZONE = 'Asia/Jerusalem';
+
 const VALID_LEVELS = ['all', 'errors'];
 let warnedInvalid = false;
+
+const jerusalemDateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: WEBTOP_LOG_TIMEZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+  hour: '2-digit',
+  minute: '2-digit',
+  second: '2-digit',
+  hour12: false,
+  hourCycle: 'h23'
+});
+
+export function formatJerusalemTime(date = new Date()) {
+  const parts = jerusalemDateFormatter.formatToParts(date);
+  const map = {};
+  for (const p of parts) map[p.type] = p.value;
+  const ms = String(date.getMilliseconds()).padStart(3, '0');
+  return `${map.year}-${map.month}-${map.day} ${map.hour}:${map.minute}:${map.second}.${ms}`;
+}
 
 export function getLogLevel(env = process.env, sink = console) {
   const raw = (env.WEBTOP_LOG_LEVEL || '').trim().toLowerCase();
@@ -34,7 +56,7 @@ function formatMeta(meta) {
 }
 
 export function createWebtopLogger({ env = process.env, sink = console, now = () => new Date() } = {}) {
-  const line = (tag, msg, meta) => `[Webtop] ${now().toISOString()} ${tag} ${msg}${formatMeta(meta)}`;
+  const line = (tag, msg, meta) => `[Webtop] ${formatJerusalemTime(now())} ${tag} ${msg}${formatMeta(meta)}`;
   // Level is read on every call so it can be changed in tests / at runtime.
   const isAll = () => getLogLevel(env, sink) === 'all';
   return {

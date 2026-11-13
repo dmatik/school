@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createWebtopLogger, getLogLevel, maskUser } from '../../server/webtopLogger.js';
+import { createWebtopLogger, getLogLevel, maskUser, formatJerusalemTime } from '../../server/webtopLogger.js';
 import { WebtopClient, WebtopAuthError, clearWebtopSession } from '../../server/webtop.js';
 
 const makeSink = () => ({ log: vi.fn(), warn: vi.fn(), error: vi.fn() });
@@ -38,6 +38,16 @@ describe('Webtop leveled logger', () => {
   it('masks usernames', () => {
     expect(maskUser('dmitry')).toBe('d****y');
     expect(maskUser('ab')).toBe('**');
+  });
+
+  it('formats timestamp in Asia/Jerusalem timezone', () => {
+    // 2026-01-15T12:34:56.789Z in UTC is winter in Israel (UTC+2) -> 14:34:56.789
+    const winterUtc = new Date('2026-01-15T12:34:56.789Z');
+    expect(formatJerusalemTime(winterUtc)).toBe('2026-01-15 14:34:56.789');
+
+    // 2026-07-15T12:34:56.123Z in UTC is daylight saving in Israel (UTC+3) -> 15:34:56.123
+    const summerUtc = new Date('2026-07-15T12:34:56.123Z');
+    expect(formatJerusalemTime(summerUtc)).toBe('2026-07-15 15:34:56.123');
   });
 });
 
