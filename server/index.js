@@ -972,7 +972,7 @@ async function syncWebtopData() {
 
     // 1. Incidents
     try {
-      const incidents = await client.getIncidents(externalChildId, child.classCode);
+      const incidents = await client.getIncidents(externalChildId, child.classCode, childFullName);
       for (const ev of incidents) {
         allIncidents.push({
           id: `webtop-inc-family-${ev.eventID || crypto.randomUUID()}`,
@@ -993,7 +993,7 @@ async function syncWebtopData() {
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch incidents for child ${child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch incidents for child ${childFullName || child.id}: ${e.message}`);
     }
 
     // 2. Homework & Weekly Lessons across past weeks (current week + last 3 weeks)
@@ -1003,7 +1003,7 @@ async function syncWebtopData() {
 
       for (const weekOffset of weeksToFetch) {
         try {
-          const days = await client.getWeeklyLessonsAndHomework(externalChildId, child.classCode, studyYear, weekOffset);
+          const days = await client.getWeeklyLessonsAndHomework(externalChildId, child.classCode, studyYear, weekOffset, childFullName);
           for (const day of days) {
             const dayDate = day.date ? day.date.split('T')[0] : null;
             if (!dayDate) continue;
@@ -1045,17 +1045,17 @@ async function syncWebtopData() {
           }
         } catch (weekErr) {
           if (weekErr instanceof WebtopAuthError) throw weekErr;
-          webtopLog.warn(`Failed to fetch weekly lessons/homework for child ${child.id} (week ${weekOffset}): ${weekErr.message}`);
+          webtopLog.warn(`Failed to fetch weekly lessons/homework for child ${childFullName || child.id} (week ${weekOffset}): ${weekErr.message}`);
         }
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch weekly homework for child ${child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch weekly homework for child ${childFullName || child.id}: ${e.message}`);
     }
 
     // Fallback/supplemental: fetch today's dashboard homework
     try {
-      const hwLessons = await client.getHomework(externalChildId, child.classCode, child.classNum);
+      const hwLessons = await client.getHomework(externalChildId, child.classCode, child.classNum, childFullName);
       const today = new Date().toISOString().split('T')[0];
       for (const item of hwLessons) {
         const desc = item.homeworkData || item.lessonSubject || '';
@@ -1082,7 +1082,7 @@ async function syncWebtopData() {
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch dashboard homework for child ${child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch dashboard homework for child ${childFullName || child.id}: ${e.message}`);
     }
   }
 

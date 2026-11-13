@@ -110,6 +110,7 @@ export class WebtopClient {
     this.user = null;
     this.credentials = null;
     this.loginCount = 0;
+    this.childNames = new Map();
   }
 
   getHeaders() {
@@ -262,35 +263,45 @@ export class WebtopClient {
 
   async initDashboard() {
     const data = await this.request('/api/dashboard/InitDashboard', {}, 'Failed to initialize Webtop dashboard');
-    return data.data || {};
+    const dash = data.data || {};
+    if (Array.isArray(dash.childrens)) {
+      for (const c of dash.childrens) {
+        const name = [c.firstName, c.lastName].map(s => (s || '').trim()).filter(Boolean).join(' ');
+        if (c.id && name) this.childNames.set(c.id, name);
+      }
+    }
+    return dash;
   }
 
-  async getIncidents(childId, classCode) {
+  async getIncidents(childId, classCode, childName) {
+    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/dashboard/GetPupilDiciplineEvents',
       { id: childId, ClassCode: classCode },
       'Failed to fetch discipline events',
-      { childId, classCode }
+      { childName: name, classCode }
     );
     return data.data?.dataTable?.diciplineEvents || [];
   }
 
-  async getHomework(childId, classCode, classNum) {
+  async getHomework(childId, classCode, classNum, childName) {
+    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/dashboard/GetHomeWork',
       { id: childId, ClassCode: classCode, ClassNumber: classNum },
       'Failed to fetch homework',
-      { childId, classCode, classNum }
+      { childName: name, classCode, classNum }
     );
     return data.data?.dataTable || [];
   }
 
-  async getWeeklyLessonsAndHomework(childId, classCode, studyYear = getWebtopStudyYear(), weekIndex = 0) {
+  async getWeeklyLessonsAndHomework(childId, classCode, studyYear = getWebtopStudyYear(), weekIndex = 0, childName) {
+    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/PupilCard/GetPupilLessonsAndHomework',
       { studentID: childId, classCode, studyYear, weekIndex, moduleID: 11 },
       'Failed to fetch weekly lessons and homework',
-      { childId, classCode, week: weekIndex }
+      { childName: name, classCode, week: weekIndex }
     );
     return Array.isArray(data.data) ? data.data : [];
   }
