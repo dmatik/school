@@ -273,35 +273,37 @@ export class WebtopClient {
     return dash;
   }
 
+  getChildLogMeta(childId, childName) {
+    const name = childName || this.childNames.get(childId);
+    return name ? { childId, childName: name } : { childId };
+  }
+
   async getIncidents(childId, classCode, childName) {
-    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/dashboard/GetPupilDiciplineEvents',
       { id: childId, ClassCode: classCode },
       'Failed to fetch discipline events',
-      { childName: name, classCode }
+      { ...this.getChildLogMeta(childId, childName), classCode }
     );
     return data.data?.dataTable?.diciplineEvents || [];
   }
 
   async getHomework(childId, classCode, classNum, childName) {
-    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/dashboard/GetHomeWork',
       { id: childId, ClassCode: classCode, ClassNumber: classNum },
       'Failed to fetch homework',
-      { childName: name, classCode, classNum }
+      { ...this.getChildLogMeta(childId, childName), classCode, classNum }
     );
     return data.data?.dataTable || [];
   }
 
   async getWeeklyLessonsAndHomework(childId, classCode, studyYear = getWebtopStudyYear(), weekIndex = 0, childName) {
-    const name = childName || this.childNames.get(childId) || childId;
     const data = await this.request(
       '/api/PupilCard/GetPupilLessonsAndHomework',
       { studentID: childId, classCode, studyYear, weekIndex, moduleID: 11 },
       'Failed to fetch weekly lessons and homework',
-      { childName: name, classCode, week: weekIndex }
+      { ...this.getChildLogMeta(childId, childName), classCode, week: weekIndex }
     );
     return Array.isArray(data.data) ? data.data : [];
   }
@@ -369,6 +371,16 @@ export function matchChildWithPrevious(rawChild, previousChildren, index = -1) {
   return null;
 }
 
+function normalizeHashSegment(str) {
+  return (str || '')
+    .toString()
+    .normalize('NFKC')
+    .replace(/[\u0591-\u05C7\u200E\u200F\u200B-\u200D\uFEFF]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 /**
  * Generate a deterministic, stable child identifier from firstName and lastName.
  * Normalizes Unicode with NFKC, strips Hebrew niqqud and invisible direction marks,
@@ -376,20 +388,41 @@ export function matchChildWithPrevious(rawChild, previousChildren, index = -1) {
  * Example output: 'child_177cd5c698aba1ff...'
  */
 export function generateChildId(firstName, lastName) {
-  const clean = (str) =>
-    (str || '')
-      .toString()
-      .normalize('NFKC')
-      .replace(/[\u0591-\u05C7\u200E\u200F\u200B-\u200D\uFEFF]/g, '')
-      .trim()
-      .replace(/\s+/g, ' ')
-      .toLowerCase();
-
-  const normFirst = clean(firstName);
-  const normLast = clean(lastName);
+  const normFirst = normalizeHashSegment(firstName);
+  const normLast = normalizeHashSegment(lastName);
   const serialized = JSON.stringify([normFirst, normLast]);
   const digest = crypto.createHash('sha256').update(serialized).digest('hex').slice(0, 32);
   return `child_${digest}`;
+}
+
+/**
+ * Generate a deterministic, stable incident identifier from its domain attributes.
+ * Immune to Webtop eventID rotations when teachers re-save lesson registers during the day.
+ * Example output: 'webtop-inc-family-8f3a1b...'
+ * @param {{ userId?: string, studentName?: string, childId?: string, studentId?: string, date?: string, hourNum?: number | string | null, subject?: string, type?: string }} [params]
+ */
+export function generateIncidentId({
+  userId = 'family',
+  studentName = '',
+  childId = '',
+  studentId = '',
+  date = '',
+  hourNum = null,
+  subject = '',
+  type = ''
+} = {}) {
+  const effectiveUser = (userId || 'family').toString().trim() || 'family';
+  const normStudent = normalizeHashSegment(studentName) || normalizeHashSegment(childId) || normalizeHashSegment(studentId);
+  const normDate = normalizeHashSegment(date);
+  const parsedHour = hourNum !== null && hourNum !== undefined && hourNum !== '' && !isNaN(Number(hourNum))
+    ? Number(hourNum)
+    : 0;
+  const normSubject = normalizeHashSegment(subject);
+  const normType = normalizeHashSegment(type);
+
+  const serialized = JSON.stringify([normStudent, normDate, parsedHour, normSubject, normType]);
+  const digest = crypto.createHash('sha256').update(serialized).digest('hex').slice(0, 32);
+  return `webtop-inc-${effectiveUser}-${digest}`;
 }
 
 

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
-import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear, matchChildWithPrevious, generateChildId } from '../../server/webtop.js';
+import { encryptPassword, decryptPassword, encryptWebtopPayload, getWebtopStudyYear, matchChildWithPrevious, generateChildId, generateIncidentId } from '../../server/webtop.js';
 import { initDb } from '../../server/db.js';
 
 describe('Webtop Cryptographic & Academic Utilities', () => {
@@ -277,9 +277,9 @@ describe('Webtop Database & Data Models', () => {
     const incidents = db.prepare('SELECT id FROM incidents WHERE user_id = ?').all('user-1') as any[];
     expect(incidents).toHaveLength(2);
     expect(incidents.map(i => i.id).sort()).toEqual([
-      'webtop-inc-user-1-1001',
-      'webtop-inc-user-1-1002'
-    ]);
+      generateIncidentId({ userId: 'user-1', studentName: 'Child One', date: '2026-10-27', type: 'Late' }),
+      generateIncidentId({ userId: 'user-1', studentName: 'Child One', date: '2026-10-27', type: 'Discipline' })
+    ].sort());
 
     // Check homework and completion state preservation
     const homework = db.prepare('SELECT id, completed FROM homework WHERE user_id = ?').all('user-1') as any[];
@@ -330,13 +330,74 @@ describe('Webtop Database & Data Models', () => {
 
     const allIncidents = db.prepare('SELECT id, user_id FROM incidents ORDER BY id ASC').all() as any[];
     expect(allIncidents).toEqual([
-      { id: 'webtop-inc-family-14504350', user_id: 'family' },
-      { id: 'webtop-inc-family-5798619', user_id: 'family' }
-    ]);
+      { id: generateIncidentId({ userId: 'family', studentName: 'כפיר טרוסמן', date: '2026-10-19', hourNum: 3, subject: 'עברית', type: 'אי הכנת ש``ב' }), user_id: 'family' },
+      { id: generateIncidentId({ userId: 'family', studentName: 'כפיר טרוסמן', date: '2026-09-18', hourNum: 4, subject: 'חנ``ג', type: 'אי הבאת ציוד' }), user_id: 'family' }
+    ].sort((a, b) => a.id.localeCompare(b.id)));
 
     const allHw = db.prepare('SELECT id, user_id, completed FROM homework').all() as any[];
     expect(allHw).toEqual([
       { id: 'webtop-hw-family-כפיר_טרוסמן-2026-10-30-2-אנגלית', user_id: 'family', completed: 1 }
+    ]);
+  });
+
+  it('generates deterministic incident IDs and deduplicates family rows with rotated Webtop eventIDs via initDb()', () => {
+    const id1 = generateIncidentId({
+      userId: 'family',
+      studentName: 'כפיר טרוסמן',
+      date: '2026-11-13',
+      hourNum: 2,
+      subject: 'אנגלית',
+      type: 'אי הכנת ש``ב'
+    });
+    const id1Whitespace = generateIncidentId({
+      userId: 'family',
+      studentName: ' כפיר   טרוסמן ',
+      date: '2026-11-13',
+      hourNum: 2,
+      subject: 'אנגלית ',
+      type: 'אי הכנת ש``ב'
+    });
+    const id2 = generateIncidentId({
+      userId: 'family',
+      studentName: 'כפיר טרוסמן',
+      date: '2026-11-13',
+      hourNum: 2,
+      subject: 'אנגלית',
+      type: 'אי הבאת ציוד'
+    });
+
+    expect(id1).toMatch(/^webtop-inc-family-[0-9a-f]{32}$/);
+    expect(id1).toBe(id1Whitespace);
+    expect(id1).not.toBe(id2);
+
+    const now = new Date().toISOString();
+    db.prepare(`
+      INSERT OR IGNORE INTO users (id, username, password_hash, role, created_at, updated_at)
+      VALUES ('family', 'family_placeholder', 'hash', 'user', ?, ?)
+    `).run(now, now);
+
+    const rawOld = JSON.stringify({ eventID: 26920001, eventType: 'אי הכנת ש``ב', subjectName: 'אנגלית' });
+    const rawNew = JSON.stringify({ eventID: 26924841, eventType: 'אי הכנת ש``ב', subjectName: 'אנגלית' });
+
+    db.prepare(
+      "INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data, created_at) VALUES (?, 'family', 'ext-1', 'כפיר טרוסמן', '2026-11-13', 'אי הכנת ש``ב', 'אנגלית', 2, 781543, ?, ?)"
+    ).run('webtop-inc-family-26920001', rawOld, now);
+
+    db.prepare(
+      "INSERT INTO incidents (id, user_id, student_id, student_name, date, type, subject, hour_num, event_code, raw_data, created_at) VALUES (?, 'family', 'ext-1', 'כפיר טרוסמן', '2026-11-13', 'אי הכנת ש``ב', 'אנגלית', 2, 781543, ?, ?)"
+    ).run('webtop-inc-family-26924841', rawNew, now);
+
+    initDb(db);
+
+    const rows = db.prepare('SELECT id, user_id, type, subject, hour_num FROM incidents').all() as any[];
+    expect(rows).toEqual([
+      {
+        id: id1,
+        user_id: 'family',
+        type: 'אי הכנת ש``ב',
+        subject: 'אנגלית',
+        hour_num: 2
+      }
     ]);
   });
 
