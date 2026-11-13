@@ -15,7 +15,7 @@ import {
   verifyAuthenticationResponse,
 } from '@simplewebauthn/server';
 import db, { initDb } from './db.js';
-import { WebtopClient, WebtopAuthError, clearWebtopSession, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId } from './webtop.js';
+import { WebtopClient, WebtopAuthError, clearWebtopSession, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId, generateIncidentId } from './webtop.js';
 import { getWebAuthnConfig, resolveTrustProxy } from './webauthn-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -970,22 +970,37 @@ async function syncWebtopData() {
     const childId = child.id;
     const externalChildId = child.externalId || child.id;
 
+    const childLabel = childFullName ? `${childFullName} (${child.id})` : child.id;
+
     // 1. Incidents
     try {
       const incidents = await client.getIncidents(externalChildId, child.classCode, childFullName);
       for (const ev of incidents) {
+        const incDate = ev.eventDate ? ev.eventDate.split('T')[0] : new Date().toISOString().split('T')[0];
+        const incType = ev.eventType || '';
+        const incSubject = ev.subjectName || '';
+        const incHour = ev.hourNum || null;
         allIncidents.push({
-          id: `webtop-inc-family-${ev.eventID || crypto.randomUUID()}`,
+          id: generateIncidentId({
+            userId: 'family',
+            studentName: childFullName,
+            childId,
+            studentId: externalChildId,
+            date: incDate,
+            hourNum: incHour,
+            subject: incSubject,
+            type: incType
+          }),
           userId: 'family',
           childId,
           studentId: externalChildId,
           studentName: childFullName,
-          date: ev.eventDate ? ev.eventDate.split('T')[0] : new Date().toISOString().split('T')[0],
-          type: ev.eventType || '',
-          subject: ev.subjectName || '',
+          date: incDate,
+          type: incType,
+          subject: incSubject,
           teacher: ev.teacherName || '',
           description: ev.remark || ev.justifiedRemark || '',
-          hourNum: ev.hourNum || null,
+          hourNum: incHour,
           isJustified: ev.isJustified ? 1 : 0,
           eventCode: ev.eventCode || null,
           rawData: JSON.stringify(ev)
@@ -993,7 +1008,7 @@ async function syncWebtopData() {
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch incidents for child ${childFullName || child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch incidents for child ${childLabel}: ${e.message}`);
     }
 
     // 2. Homework & Weekly Lessons across past weeks (current week + last 3 weeks)
@@ -1045,12 +1060,12 @@ async function syncWebtopData() {
           }
         } catch (weekErr) {
           if (weekErr instanceof WebtopAuthError) throw weekErr;
-          webtopLog.warn(`Failed to fetch weekly lessons/homework for child ${childFullName || child.id} (week ${weekOffset}): ${weekErr.message}`);
+          webtopLog.warn(`Failed to fetch weekly lessons/homework for child ${childLabel} (week ${weekOffset}): ${weekErr.message}`);
         }
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch weekly homework for child ${childFullName || child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch weekly homework for child ${childLabel}: ${e.message}`);
     }
 
     // Fallback/supplemental: fetch today's dashboard homework
@@ -1082,11 +1097,17 @@ async function syncWebtopData() {
       }
     } catch (e) {
       if (e instanceof WebtopAuthError) throw e;
-      webtopLog.warn(`Failed to fetch dashboard homework for child ${childFullName || child.id}: ${e.message}`);
+      webtopLog.warn(`Failed to fetch dashboard homework for child ${childLabel}: ${e.message}`);
     }
   }
 
-  // Deduplicate homework by ID
+  // Deduplicate incidents and homework by canonical ID
+  const uniqueIncidentsMap = new Map();
+  for (const inc of allIncidents) {
+    uniqueIncidentsMap.set(inc.id, inc);
+  }
+  const dedupedIncidents = Array.from(uniqueIncidentsMap.values());
+
   const uniqueHomeworkMap = new Map();
   for (const hw of allHomework) {
     uniqueHomeworkMap.set(hw.id, hw);
@@ -1113,32 +1134,31 @@ async function syncWebtopData() {
       updateHomeworkStudentId.run(child.id, child.externalId, childFullName, child.id, child.externalId);
     }
 
-    // Deduplicate existing incidents by eventID (or canonical attributes) and remove legacy user-scoped duplicates
+    // Normalize and deduplicate any existing non-canonical incidents (including legacy user-scoped or volatile eventID rows)
     const existingIncidents = db.prepare(`
-      SELECT id, user_id, child_id, student_name, date, type, subject, hour_num, event_code, raw_data
+      SELECT id, child_id, student_id, student_name, date, type, subject, hour_num
       FROM incidents
-      WHERE user_id != 'family' AND id LIKE 'webtop-inc-%'
+      WHERE id LIKE 'webtop-inc-%'
     `).all();
     for (const oldInc of existingIncidents) {
-      let evId = null;
-      if (oldInc.raw_data) {
-        try {
-          const parsed = JSON.parse(oldInc.raw_data);
-          if (parsed && parsed.eventID) evId = String(parsed.eventID);
-        } catch {}
-      }
-      if (!evId && oldInc.id.startsWith(`webtop-inc-${oldInc.user_id}-`)) {
-        evId = oldInc.id.slice(`webtop-inc-${oldInc.user_id}-`.length);
-      }
-      if (evId) {
-        const canonicalFamilyId = `webtop-inc-family-${evId}`;
-        const hasCanonical = allIncidents.some(i => i.id === canonicalFamilyId) ||
-          db.prepare('SELECT 1 FROM incidents WHERE id = ?').get(canonicalFamilyId);
-        if (hasCanonical) {
-          db.prepare('DELETE FROM incidents WHERE id = ?').run(oldInc.id);
-        } else {
-          db.prepare('UPDATE incidents SET id = ?, user_id = ? WHERE id = ?').run(canonicalFamilyId, 'family', oldInc.id);
-        }
+      const canonicalFamilyId = generateIncidentId({
+        userId: 'family',
+        studentName: oldInc.student_name,
+        childId: oldInc.child_id,
+        studentId: oldInc.student_id,
+        date: oldInc.date,
+        hourNum: oldInc.hour_num,
+        subject: oldInc.subject,
+        type: oldInc.type
+      });
+      if (oldInc.id === canonicalFamilyId) continue;
+
+      const hasCanonical = dedupedIncidents.some(i => i.id === canonicalFamilyId) ||
+        db.prepare('SELECT 1 FROM incidents WHERE id = ?').get(canonicalFamilyId);
+      if (hasCanonical) {
+        db.prepare('DELETE FROM incidents WHERE id = ?').run(oldInc.id);
+      } else {
+        db.prepare('UPDATE incidents SET id = ?, user_id = ? WHERE id = ?').run(canonicalFamilyId, 'family', oldInc.id);
       }
     }
 
@@ -1161,7 +1181,7 @@ async function syncWebtopData() {
         raw_data = excluded.raw_data
     `);
 
-    for (const inc of allIncidents) {
+    for (const inc of dedupedIncidents) {
       upsertIncident.run(
         inc.id, inc.childId, inc.studentId, inc.studentName, inc.date, inc.type,
         inc.subject, inc.teacher, inc.description, inc.hourNum, inc.isJustified,
@@ -1229,15 +1249,15 @@ async function syncWebtopData() {
 
   webtopLog.info('Sync finished', {
     children: linkedChildren.length,
-    incidents: allIncidents.length,
-    homework: allHomework.length,
+    incidents: dedupedIncidents.length,
+    homework: dedupedHomework.length,
     ms: Date.now() - syncStartedAt
   });
 
   return {
     childrenCount: linkedChildren.length,
-    incidentsCount: allIncidents.length,
-    homeworkCount: allHomework.length
+    incidentsCount: dedupedIncidents.length,
+    homeworkCount: dedupedHomework.length
   };
 }
 

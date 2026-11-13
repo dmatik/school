@@ -113,10 +113,8 @@ describe('Webtop client logging', () => {
     const out = all(sink);
     expect(out).toContain('Login ok');
     expect(out).toContain('Call POST /api/dashboard/InitDashboard');
-    expect(out).toContain('Call POST /api/PupilCard/GetPupilLessonsAndHomework childName=Dana Levi classCode=5 week=-1');
-    expect(out).toContain('Call POST /api/dashboard/GetPupilDiciplineEvents childName=Noam Cohen classCode=3');
-    expect(out).not.toContain('child123');
-    expect(out).not.toContain('child456');
+    expect(out).toContain('Call POST /api/PupilCard/GetPupilLessonsAndHomework childId=child123 childName=Dana Levi classCode=5 week=-1');
+    expect(out).toContain('Call POST /api/dashboard/GetPupilDiciplineEvents childId=child456 childName=Noam Cohen classCode=3');
     expect(out).not.toContain('tok-secret');
   });
 
