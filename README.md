@@ -50,6 +50,12 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
 *   **Ephemeral ID Resilience:** Heuristic matching (`matchChildWithPrevious`) maintains child identity, settings, and color selections even when Webtop rotates student session tokens or IDs across days.
 *   **Per-Child Custom Color Badges:** Assign distinctive accent colors (Blue, Emerald, Purple, Amber, Rose, Cyan, Orange, Indigo) to each child, propagating across all homework and incident feeds for effortless multi-child tracking.
 *   **Universal One-Touch Sync:** Quick-sync button available to both parents and children in the desktop header, sidebar, and mobile header to update the family's shared data at any time.
+*   **Safe Automatic Sync (Production Only):**
+    *   **Scheduled & On-Open Refresh:** Runs every ~3 hours (±15% jitter) outside quiet hours (**23:00–06:00 `Asia/Jerusalem`**), and refreshes stale data (>30 minutes old) when opening the app. Remains disabled in development/test so dev stays strictly on-demand.
+    *   **Session Reuse:** Reuses the active Webtop session across syncs and only re-logs in when Webtop reports session expiry.
+    *   **Circuit Breaker & Auto-Pause:** Transient network/server errors back off (`1h` → `4h`), while 2 consecutive authentication failures automatically pause auto-sync and display an in-app warning banner until credentials are updated or resumed in Settings.
+    *   **Parent Kill Switch:** Parents can toggle automatic sync on/off in Settings, and operators can disable it in production via `WEBTOP_AUTO_SYNC=off`.
+*   **Leveled Webtop Logging:** Controlled via `WEBTOP_LOG_LEVEL` (`errors` by default for errors and wrong-password lockouts, or `all` for every login, API call with request parameters, session reuse, and sync summary), formatted in `Asia/Jerusalem` time with masked usernames and zero credential/token exposure.
 
 ### 👨‍👩‍👧‍👦 Family Architecture & Secondary Roles
 *   **Shared Family Data Model:** Homework, incidents, exams, children records, and Webtop credentials belong to the family entity. Deleting individual users preserves the family's academic history.
@@ -130,6 +136,8 @@ services:
     network_mode: bridge
     ports:
       - "5173:5173"
+    environment:
+      - WEBTOP_LOG_LEVEL=${WEBTOP_LOG_LEVEL:-errors}
     volumes:
       - ./data:/app/data
 ```
@@ -177,7 +185,8 @@ All variables are optional with sensible defaults:
 | `NODE_ENV` | Application environment (`development` / `production`) | `development` |
 | `JWT_SECRET` | Secret key for signing JWT tokens | Auto-generated & persisted in SQLite `settings` table |
 | `ENCRYPTION_KEY` | Secret key for AES-256-GCM Webtop credential encryption | Auto-generated & persisted in SQLite `settings` table |
-| `WEBTOP_LOG_LEVEL` | Webtop logging: `errors` (only errors and wrong-password lockouts) or `all` (every login and call). Set via docker compose / `.env` | `errors` |
+| `WEBTOP_AUTO_SYNC` | Production-only kill switch for automatic Webtop sync (`off` to disable; dev/test are always manual) | Enabled when `NODE_ENV=production` |
+| `WEBTOP_LOG_LEVEL` | Webtop logging (`Asia/Jerusalem` timestamps, masked usernames): `errors` (failures & wrong-password lockouts) or `all` (every login, API call with parameters, session reuse & sync summary) | `errors` |
 | `RP_ID` | Relying Party ID for WebAuthn passkeys | Auto-detected from hostname / forwarded host |
 | `EXPECTED_ORIGIN` | Comma-separated allowed WebAuthn origins | Auto-detected from request `Origin` and `Host` |
 | `TRUST_PROXY` | Trust reverse proxy headers (`x-forwarded-host`, `x-forwarded-proto`) | `false` (set `true` or `1` behind Nginx/Caddy/Cloudflare) |
@@ -214,10 +223,12 @@ school/
 ├── e2e/                     # Playwright end-to-end test suites & isolated helpers
 ├── public/                  # PWA manifest, favicons, and Apple touch icons
 ├── server/
+│   ├── autoSync.js          # Production-only scheduler, quiet hours, stale check & circuit breaker
 │   ├── db.js                # Better-SQLite3 schema declarations & initial seed
 │   ├── index.js             # Express 5 REST API, rate limiter & auth handlers
 │   ├── webauthn-config.js   # Dynamic WebAuthn RP ID and origin resolver
-│   └── webtop.js            # Webtop API client, AES encryption & child identity matcher
+│   ├── webtop.js            # Webtop API client, session reuse, AES encryption & child identity matcher
+│   └── webtopLogger.js      # Leveled Webtop logger (Asia/Jerusalem timestamps, masked usernames)
 └── src/
     ├── components/          # Application views & UI components
     │   ├── AccountPage.tsx  # User profile, password reset & passkeys manager
