@@ -174,6 +174,7 @@ function App() {
 
   // Webtop sync state & triggers
   const [webtopConfigured, setWebtopConfigured] = useState(false)
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncSuccess, setSyncSuccess] = useState(false)
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
@@ -205,8 +206,9 @@ function App() {
       if (res.ok) {
         const data = await res.json()
         setWebtopConfigured(Boolean(data.configured))
+        setLastSyncedAt(data.configured ? (data.lastSyncedAt ?? null) : null)
         setAutoSyncPaused(Boolean(data.autoSyncAvailable && data.autoSyncPaused))
-        return data as { configured?: boolean; autoSyncAvailable?: boolean; autoSyncEnabled?: boolean }
+        return data as { configured?: boolean; autoSyncAvailable?: boolean; autoSyncEnabled?: boolean; lastSyncedAt?: string | null }
       }
     } catch {
       // ignore
@@ -290,6 +292,7 @@ function App() {
       }
 
       setSyncTrigger(prev => prev + 1)
+      setLastSyncedAt(new Date().toISOString())
       const summary = t("account.webtop_sync_success", {
         incidents: data.result?.incidentsCount || 0,
         homework: data.result?.homeworkCount || 0
@@ -413,6 +416,7 @@ function App() {
           <MobileHeader
             title={t(`${activeTab}.title`)}
             titleKey={`mobile-header-title-${activeTab}`}
+            lastSyncedAt={webtopConfigured ? lastSyncedAt : null}
             avatarUrl={currentUser.avatar}
             username={currentUser.firstName ? `${currentUser.firstName} ${currentUser.lastName}` : currentUser.username}
             onAvatarClick={() => handleTabChange('account')}

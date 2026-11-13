@@ -39,6 +39,7 @@
     "sync_now": "סנכרן",
     "syncing": "מסנכרן...",
     "sync_success": "סונכרן בהצלחה",
+    "last_sync": "עודכן: {{date}}",
     "clear_search": "נקה חיפוש"
   },
   "incidents": {

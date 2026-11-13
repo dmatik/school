@@ -39,6 +39,7 @@
     "sync_now": "Sync",
     "syncing": "Syncing...",
     "sync_success": "Synced successfully",
+    "last_sync": "Updated: {{date}}",
     "clear_search": "Clear search"
   },
   "incidents": {

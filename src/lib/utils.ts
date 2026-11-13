@@ -120,6 +120,24 @@ export function formatSystemDateTime(dateInput: string | Date | null | undefined
   }
 }
 
+export function formatLastSyncedDateTime(dateInput: string | Date | null | undefined): string {
+  if (!dateInput) return ""
+  if (typeof dateInput === "string") {
+    const trimmed = dateInput.trim()
+    if (!trimmed) return ""
+    if (/^\d{2}\/\d{2}\/\d{4}\s+\d{2}:\d{2}$/.test(trimmed)) {
+      return trimmed
+    }
+  }
+  try {
+    const d = typeof dateInput === "string" ? new Date(dateInput) : dateInput
+    if (isNaN(d.getTime())) return ""
+    return format(d, "dd/MM/yyyy HH:mm")
+  } catch {
+    return ""
+  }
+}
+
 export function formatSystemDate(dateInput: string | Date | null | undefined): string {
   if (!dateInput) return "-"
   try {
