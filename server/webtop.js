@@ -213,7 +213,7 @@ export class WebtopClient {
    * POST to a Webtop API path. If the session has expired, log in once and retry once.
    * Throws WebtopAuthError when the session cannot be renewed.
    */
-  async request(apiPath, body, failureLabel) {
+  async request(apiPath, body, failureLabel, logParams = {}) {
     for (let attempt = 0; attempt < 2; attempt++) {
       const startedAt = Date.now();
       let response;
@@ -225,10 +225,10 @@ export class WebtopClient {
           signal: AbortSignal.timeout(15000)
         });
       } catch (err) {
-        webtopLog.warn(`Call failed POST ${apiPath}`, { error: err.message, ms: Date.now() - startedAt });
+        webtopLog.warn(`Call failed POST ${apiPath}`, { ...logParams, error: err.message, ms: Date.now() - startedAt });
         throw err;
       }
-      webtopLog.info(`Call POST ${apiPath}`, { status: response.status, ms: Date.now() - startedAt, ...(attempt > 0 ? { retry: 'after-relogin' } : {}) });
+      webtopLog.info(`Call POST ${apiPath}`, { ...logParams, status: response.status, ms: Date.now() - startedAt, ...(attempt > 0 ? { retry: 'after-relogin' } : {}) });
 
       let data = null;
       let expired = response.status === 401 || response.status === 403;
@@ -238,18 +238,18 @@ export class WebtopClient {
       }
 
       if (expired) {
-        webtopLog.info(`Session expired on ${apiPath}`, { willRelogin: Boolean(attempt === 0 && this.credentials) });
+        webtopLog.info(`Session expired on ${apiPath}`, { ...logParams, willRelogin: Boolean(attempt === 0 && this.credentials) });
         if (this.credentials) sessionCache.delete(this.credentials.username.trim());
         if (attempt === 0 && this.credentials) {
           await this.login(this.credentials.username, this.credentials.password);
           continue;
         }
-        webtopLog.lockout('Session expired and could not be renewed', { path: apiPath });
+        webtopLog.lockout('Session expired and could not be renewed', { path: apiPath, ...logParams });
         throw new WebtopAuthError('Webtop session expired and could not be renewed');
       }
 
       if (!response.ok) {
-        webtopLog.warn(`Call error POST ${apiPath}`, { status: response.status });
+        webtopLog.warn(`Call error POST ${apiPath}`, { ...logParams, status: response.status });
         throw new Error(`${failureLabel}: HTTP ${response.status}`);
       }
       if (!data.status) {
@@ -269,7 +269,8 @@ export class WebtopClient {
     const data = await this.request(
       '/api/dashboard/GetPupilDiciplineEvents',
       { id: childId, ClassCode: classCode },
-      'Failed to fetch discipline events'
+      'Failed to fetch discipline events',
+      { childId, classCode }
     );
     return data.data?.dataTable?.diciplineEvents || [];
   }
@@ -278,7 +279,8 @@ export class WebtopClient {
     const data = await this.request(
       '/api/dashboard/GetHomeWork',
       { id: childId, ClassCode: classCode, ClassNumber: classNum },
-      'Failed to fetch homework'
+      'Failed to fetch homework',
+      { childId, classCode, classNum }
     );
     return data.data?.dataTable || [];
   }
@@ -287,7 +289,8 @@ export class WebtopClient {
     const data = await this.request(
       '/api/PupilCard/GetPupilLessonsAndHomework',
       { studentID: childId, classCode, studyYear, weekIndex, moduleID: 11 },
-      'Failed to fetch weekly lessons and homework'
+      'Failed to fetch weekly lessons and homework',
+      { childId, classCode, week: weekIndex }
     );
     return Array.isArray(data.data) ? data.data : [];
   }
