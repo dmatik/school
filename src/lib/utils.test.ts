@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { cn, formatGradeHebrew, formatSystemDateTime, formatSystemDate, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from './utils'
+import { cn, formatGradeHebrew, formatSystemDateTime, formatLastSyncedDateTime, formatSystemDate, parseLocalDate, getHomeworkText, consolidateHomework, getChildFirstName } from './utils'
 
 describe('cn utility', () => {
     it('merges tailwind classes correctly', () => {
@@ -64,6 +64,16 @@ describe('formatSystemDateTime and formatSystemDate utilities', () => {
         expect(formatSystemDateTime('invalid-date')).toBe('-')
         expect(formatSystemDate(null)).toBe('-')
         expect(formatSystemDate(undefined)).toBe('-')
+    })
+
+    it('formats last synced date and time as dd/MM/yyyy HH:mm without seconds', () => {
+        const d = new Date(2026, 10, 13, 16, 20, 45)
+        expect(formatLastSyncedDateTime(d)).toBe('13/11/2026 16:20')
+        expect(formatLastSyncedDateTime('2026-11-13T16:20:00')).toBe('13/11/2026 16:20')
+        expect(formatLastSyncedDateTime('13/11/2026 16:20')).toBe('13/11/2026 16:20')
+        expect(formatLastSyncedDateTime(null)).toBe('')
+        expect(formatLastSyncedDateTime(undefined)).toBe('')
+        expect(formatLastSyncedDateTime('invalid-date')).toBe('')
     })
 })
 

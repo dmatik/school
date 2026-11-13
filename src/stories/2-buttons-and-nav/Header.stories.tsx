@@ -1,7 +1,7 @@
 import * as React from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { PageHeader } from "@/components/ui/page-header"
-import { MobileHeader } from "@/components/ui/mobile-header"
+import { MobileHeader, LastSyncedLabel } from "@/components/ui/mobile-header"
 import { SyncButton } from "@/components/ui/sync-button"
 import { Button } from "@/components/ui/button"
 import { Plus } from "lucide-react"
@@ -61,6 +61,7 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
     const [scrolled, setScrolled] = React.useState(false)
     const [syncing, setSyncing] = React.useState(false)
     const [syncSuccess, setSyncSuccess] = React.useState(false)
+    const [lastSyncedAt, setLastSyncedAt] = React.useState<string>("2026-11-13T16:20:00")
 
     const handleSync = () => {
       setSyncing(true)
@@ -68,6 +69,7 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
       setTimeout(() => {
         setSyncing(false)
         setSyncSuccess(true)
+        setLastSyncedAt(new Date().toISOString())
         setTimeout(() => setSyncSuccess(false), 2500)
       }, 1000)
     }
@@ -92,6 +94,7 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
             fixed={false}
             title="אירועי משמעת"
             titleKey="incidents"
+            lastSyncedAt={lastSyncedAt}
             username="דמיטרי ט."
             isScrolled={scrolled}
             action={
@@ -105,7 +108,7 @@ export const MobileAppHeader: StoryObj<typeof MobileHeader> = {
         </div>
 
         <div className="text-xs text-muted-foreground">
-          לחץ על כפתור הסנכרון (בצד שמאל/ימין בהתאם לשפה) כדי לצפות באנימציית הסיבוב ובאייקון הווי הירוק.
+          לחץ על כפתור הסנכרון (בצד שמאל/ימין בהתאם לשפה) כדי לצפות באנימציית הסיבוב, באייקון הווי הירוק ובעדכון השעה.
         </div>
       </div>
     )
@@ -130,6 +133,7 @@ export const MobileHeaderWithPhotoAvatar: StoryObj<typeof MobileHeader> = {
             fixed={false}
             title="ניהול מערכת"
             titleKey="admin"
+            lastSyncedAt="2026-11-13T16:20:00"
             avatarUrl="https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop&crop=faces"
             username="דמיטרי טרוסמן"
             action={<SyncButton onClick={handleSync} syncing={syncing} />}
@@ -158,9 +162,43 @@ export const MobileHeaderActiveAccount: StoryObj<typeof MobileHeader> = {
             fixed={false}
             title="חשבון והגדרות"
             titleKey="account"
+            lastSyncedAt="2026-11-13T16:20:00"
             username="מנהל מערכת"
             isAccountActive={true}
             action={<SyncButton onClick={handleSync} syncing={syncing} />}
+          />
+        </div>
+      </div>
+    )
+  },
+}
+
+export const LastSyncedTimestampLabel: StoryObj<typeof LastSyncedLabel> = {
+  render: function Render() {
+    return (
+      <div className="space-y-4 max-w-sm">
+        <div className="text-sm font-medium text-muted-foreground">
+          רכיב תווית סנכרון אחרון (LastSyncedLabel) והשוואת כותרת עם/בלי שעה:
+        </div>
+        <div className="p-3 rounded-xl border bg-card flex items-center justify-center">
+          <LastSyncedLabel lastSyncedAt="2026-11-13T16:20:00" />
+        </div>
+        <div className="rounded-2xl border overflow-hidden bg-background shadow-xs">
+          <MobileHeader
+            fixed={false}
+            title="שיעורי בית"
+            titleKey="homework-no-sync"
+            username="דמיטרי ט."
+          />
+        </div>
+        <div className="rounded-2xl border overflow-hidden bg-background shadow-xs">
+          <MobileHeader
+            fixed={false}
+            title="שיעורי בית"
+            titleKey="homework-with-sync"
+            lastSyncedAt="2026-11-13T16:20:00"
+            username="דמיטרי ט."
+            action={<SyncButton onClick={() => {}} />}
           />
         </div>
       </div>

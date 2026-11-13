@@ -7,7 +7,7 @@ import { DateBadge } from '../components/ui/date-badge'
 import { DatePicker } from '../components/ui/date-picker'
 import { LiquidDatePicker } from '../components/ui/liquid-date-picker'
 import { PageHeader } from '../components/ui/page-header'
-import { MobileHeader } from '../components/ui/mobile-header'
+import { MobileHeader, LastSyncedLabel } from '../components/ui/mobile-header'
 import { SyncButton } from '../components/ui/sync-button'
 import { ActionButton, EditButton, DestructiveButton } from '../components/ui/action-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
@@ -206,6 +206,32 @@ describe('MobileHeader Component', () => {
 
     rerender(<MobileHeader title="Page" isScrolled={true} />)
     expect(container.querySelector('header')?.className).toContain('border-border/50')
+  })
+
+  it('renders last synced timestamp centered below title without expanding center container height', () => {
+    const { container } = render(
+      <MobileHeader
+        title="שיעורי בית"
+        lastSyncedAt={new Date(2026, 10, 13, 16, 20, 0)}
+        username="Test User"
+      />
+    )
+    const label = container.querySelector('[data-last-synced]')
+    expect(label).toBeInTheDocument()
+    expect(label?.textContent).toContain('13/11/2026 16:20')
+    expect(label?.querySelector('svg')).toBeInTheDocument()
+    expect(label?.parentElement?.className).toContain('h-9')
+    expect(label?.parentElement?.className).toContain('flex-col')
+    expect(label?.parentElement?.className).toContain('items-center')
+    expect(label?.parentElement?.className).toContain('justify-center')
+  })
+
+  it('omits LastSyncedLabel when lastSyncedAt is null or invalid', () => {
+    const { container, rerender } = render(<LastSyncedLabel lastSyncedAt={null} />)
+    expect(container.querySelector('[data-last-synced]')).not.toBeInTheDocument()
+
+    rerender(<LastSyncedLabel lastSyncedAt="invalid-date" />)
+    expect(container.querySelector('[data-last-synced]')).not.toBeInTheDocument()
   })
 })
 

@@ -2,11 +2,15 @@ import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useTranslation } from "react-i18next"
 import { UserAvatar } from "@/components/ui/user-avatar"
-import { cn } from "@/lib/utils"
+import { LastSyncedLabel } from "@/components/ui/last-synced-label"
+import { cn, formatLastSyncedDateTime } from "@/lib/utils"
+
+export { LastSyncedLabel, type LastSyncedLabelProps } from "@/components/ui/last-synced-label"
 
 export interface MobileHeaderProps {
   title: React.ReactNode
   titleKey?: string
+  lastSyncedAt?: string | Date | null
   avatarUrl?: string | null
   username?: string
   onAvatarClick?: () => void
@@ -20,6 +24,7 @@ export interface MobileHeaderProps {
 export function MobileHeader({
   title,
   titleKey,
+  lastSyncedAt,
   avatarUrl,
   username,
   onAvatarClick,
@@ -30,6 +35,7 @@ export function MobileHeader({
   fixed = true
 }: MobileHeaderProps) {
   const { t } = useTranslation()
+  const hasLastSynced = Boolean(formatLastSyncedDateTime(lastSyncedAt))
 
   return (
     <header
@@ -57,7 +63,7 @@ export function MobileHeader({
         />
       </button>
 
-      <div className="min-w-0 flex items-center justify-center overflow-hidden">
+      <div className="min-w-0 h-9 flex flex-col items-center justify-center gap-0.5 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
           <motion.h1
             key={titleKey || (typeof title === "string" ? title : undefined)}
@@ -65,11 +71,15 @@ export function MobileHeader({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -4 }}
             transition={{ duration: 0.15 }}
-            className="text-lg font-bold tracking-tight text-foreground truncate text-center"
+            className={cn(
+              "max-w-full text-lg font-bold tracking-tight text-foreground truncate text-center",
+              hasLastSynced && "leading-none"
+            )}
           >
             {title}
           </motion.h1>
         </AnimatePresence>
+        <LastSyncedLabel lastSyncedAt={lastSyncedAt} />
       </div>
 
       <div className="flex items-center justify-end w-9 h-9 shrink-0">
