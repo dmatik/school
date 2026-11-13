@@ -98,9 +98,11 @@ describe('Webtop client logging', () => {
     const c2 = new WebtopClient();
     await c2.useSession('dmitry', 'pw');
     await c2.initDashboard();
+    await c2.getWeeklyLessonsAndHomework('child123', 5, 2026, -1);
     const out = all(sink);
     expect(out).toContain('Login ok');
     expect(out).toContain('Call POST /api/dashboard/InitDashboard');
+    expect(out).toContain('Call POST /api/PupilCard/GetPupilLessonsAndHomework childId=child123 classCode=5 week=-1');
     expect(out).not.toContain('tok-secret');
   });
 
