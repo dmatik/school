@@ -84,8 +84,18 @@ describe('Webtop client logging', () => {
   });
 
   it('successful login and call are printed only at "all"', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
-      url.includes('Login') ? okJson({ status: true, data: { token: 'tok-secret' } }) : okJson({ status: true, data: {} })));
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.includes('Login')) return okJson({ status: true, data: { token: 'tok-secret' } });
+      if (url.includes('InitDashboard')) {
+        return okJson({
+          status: true,
+          data: {
+            childrens: [{ id: 'child123', firstName: 'Dana', lastName: 'Levi' }]
+          }
+        });
+      }
+      return okJson({ status: true, data: {} });
+    }));
 
     process.env.WEBTOP_LOG_LEVEL = 'errors';
     const c1 = new WebtopClient();
@@ -99,10 +109,14 @@ describe('Webtop client logging', () => {
     await c2.useSession('dmitry', 'pw');
     await c2.initDashboard();
     await c2.getWeeklyLessonsAndHomework('child123', 5, 2026, -1);
+    await c2.getIncidents('child456', 3, 'Noam Cohen');
     const out = all(sink);
     expect(out).toContain('Login ok');
     expect(out).toContain('Call POST /api/dashboard/InitDashboard');
-    expect(out).toContain('Call POST /api/PupilCard/GetPupilLessonsAndHomework childId=child123 classCode=5 week=-1');
+    expect(out).toContain('Call POST /api/PupilCard/GetPupilLessonsAndHomework childName=Dana Levi classCode=5 week=-1');
+    expect(out).toContain('Call POST /api/dashboard/GetPupilDiciplineEvents childName=Noam Cohen classCode=3');
+    expect(out).not.toContain('child123');
+    expect(out).not.toContain('child456');
     expect(out).not.toContain('tok-secret');
   });
 
