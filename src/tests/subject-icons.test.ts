@@ -51,20 +51,51 @@ describe("Subject Icon Mapping", () => {
     expect(getSubjectIcon("נושא לא מוכר כללי")).toBe(BookOpen)
   })
 
-  it("returns dedicated color accent badge for each subject", () => {
+  it("returns dedicated color accent badge and textClass for core subjects and dark grey for the rest", () => {
     const math = getSubjectConfig("מתמטיקה")
+    const geometry = getSubjectConfig("גאומטריה")
     const english = getSubjectConfig("אנגלית")
     const science = getSubjectConfig("מדעים")
+    const pe = getSubjectConfig("חנ״ג")
+    const bible = getSubjectConfig("תנ״ך")
+    const history = getSubjectConfig("היסטוריה")
     const hebrew = getSubjectConfig("עברית")
+    const art = getSubjectConfig("אומנות")
+    const music = getSubjectConfig("מוזיקה")
+    const heritage = getSubjectConfig("בשבילי המורשת")
+    const cultureGeo = getSubjectConfig("תרבות / גאוגרפיה")
 
     expect(math.badgeClass).toContain("blue-500")
+    expect(geometry.badgeClass).toContain("blue-500")
     expect(english.badgeClass).toContain("purple-500")
     expect(science.badgeClass).toContain("emerald-500")
+    expect(pe.badgeClass).toContain("amber-500")
+    expect(bible.badgeClass).toContain("bg-[#8B5E3C]/15")
+    expect(history.badgeClass).toContain("cyan-500")
+    expect(hebrew.badgeClass).toContain("red-500")
 
     expect(math.solidBadgeClass).toContain("bg-[#3B82C4]")
     expect(english.solidBadgeClass).toContain("bg-[#8A63B8]")
     expect(science.solidBadgeClass).toContain("bg-[#2CA58D]")
-    expect(hebrew.solidBadgeClass).toContain("bg-[#555DB0]")
+    expect(pe.solidBadgeClass).toContain("bg-[#D4973B]")
+    expect(bible.solidBadgeClass).toContain("bg-[#8B5E3C]")
+    expect(history.solidBadgeClass).toContain("bg-[#3D98B8]")
+    expect(hebrew.solidBadgeClass).toContain("bg-[#C84B4B]")
+
+    expect(math.textClass).toContain("text-[#3B82C4]")
+    expect(hebrew.textClass).toContain("text-[#C84B4B]")
+
+    // Remaining subjects keep their icons but use dark grey color palette
+    expect(art.icon).toBe(Palette)
+    expect(art.badgeClass).toContain("zinc-500")
+    expect(art.solidBadgeClass).toContain("bg-[#525866]")
+    expect(art.textClass).toContain("text-[#525866]")
+    expect(music.badgeClass).toContain("zinc-500")
+    expect(music.solidBadgeClass).toContain("bg-[#525866]")
+    expect(music.textClass).toContain("text-[#525866]")
+    expect(heritage.icon).toBe(Scroll)
+    expect(heritage.textClass).toContain("text-[#525866]")
+    expect(cultureGeo.textClass).toContain("text-[#525866]")
   })
 })
 
