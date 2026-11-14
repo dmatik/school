@@ -1,7 +1,7 @@
 import * as React from "react"
 import type { Meta, StoryObj } from "@storybook/react"
-import { Button } from "@/components/ui/button"
-import { Plus, Trash2, Check, RefreshCw, Loader2, Fingerprint } from "lucide-react"
+import { Button, LiquidButton } from "@/components/ui/button"
+import { Plus, Trash2, Check, RefreshCw, Loader2, Fingerprint, Printer } from "lucide-react"
 
 const meta: Meta<typeof Button> = {
   title: "2. Buttons & Navigation/Button",
@@ -120,6 +120,20 @@ export const Disabled: Story = {
       <Button disabled variant="secondary">משני מושבת</Button>
       <Button disabled variant="outline">מסגרת מושבתת</Button>
       <Button disabled variant="destructive">מחיקה מושבתת</Button>
+    </div>
+  ),
+}
+
+export const LiquidFilterButton: Story = {
+  render: () => (
+    <div className="flex flex-wrap items-center gap-3">
+      <LiquidButton icon={Printer}>הדפסה</LiquidButton>
+      <LiquidButton icon={Printer} active>
+        הדפסה (פעיל)
+      </LiquidButton>
+      <LiquidButton icon={Printer} disabled>
+        הדפסה (מושבת)
+      </LiquidButton>
     </div>
   ),
 }

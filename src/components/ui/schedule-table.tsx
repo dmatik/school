@@ -63,21 +63,21 @@ export function ScheduleTable({
   // Determine hours range:
   // In edit mode: always display 1 hour below the highest populated lesson in any day (min 1, max 12)
   // In view mode: do not display the last empty row, only show populated hours
-  const hoursToDisplay = useMemo(() => {
-    let maxPopulatedHour = 0
+  const { hoursToDisplay, maxPopulatedHour } = useMemo(() => {
+    let maxPopulated = 0
     for (const l of lessons) {
-      if (l.subject && l.subject.trim() && l.hourNum > maxPopulatedHour) {
-        maxPopulatedHour = l.hourNum
+      if (l.subject && l.subject.trim() && l.hourNum > maxPopulated) {
+        maxPopulated = l.hourNum
       }
     }
     const maxHour = isEditMode
-      ? Math.min(Math.max(maxPopulatedHour + 1, 1), 12)
-      : Math.min(maxPopulatedHour, 12)
+      ? Math.min(Math.max(maxPopulated + 1, 1), 12)
+      : Math.min(maxPopulated, 12)
     const list: number[] = []
     for (let h = 1; h <= maxHour; h++) {
       list.push(h)
     }
-    return list
+    return { hoursToDisplay: list, maxPopulatedHour: maxPopulated }
   }, [lessons, isEditMode])
 
   // Map lessons by [dayOfWeek][hourNum]
@@ -101,7 +101,8 @@ export function ScheduleTable({
   const scrollDay = (direction: "prev" | "next") => {
     if (!scrollContainerRef.current) return
     const container = scrollContainerRef.current
-    const scrollAmount = container.clientWidth / 3
+    const firstDayWidth = dayColRefs.current[0]?.getBoundingClientRect().width
+    const scrollAmount = firstDayWidth || container.clientWidth / 3
     const isRtl = i18n.dir() === "rtl"
     const scrollDelta =
       direction === "next"
@@ -118,9 +119,9 @@ export function ScheduleTable({
   }
 
   return (
-    <div className={cn("flex flex-col", className)}>
+    <div data-schedule-table className={cn("flex flex-col shrink-0 print:w-full print:h-full", className)}>
       {/* Mobile navigation hints (Left/Right scroll controls) */}
-      <div className="md:hidden flex items-center justify-between pb-2 px-1 text-xs text-muted-foreground font-medium">
+      <div className="md:hidden print:hidden flex items-center justify-between pb-2 px-1 text-xs text-muted-foreground font-medium">
         <button
           onClick={() => scrollDay("prev")}
           className="flex items-center gap-1 hover:text-foreground p-1 rounded-md transition-colors"
@@ -142,55 +143,46 @@ export function ScheduleTable({
         </button>
       </div>
 
-      {/* Schedule Table Container */}
-      <div className="w-full border border-border/80 bg-card/80 rounded-xl sm:rounded-2xl shadow-xs overflow-hidden flex">
-        {/* Frozen First Column: # and Hours */}
-        <div className="w-9 sm:w-12 shrink-0 border-e border-border/70 flex flex-col z-10 select-none">
-          {/* Hour header slot */}
+      {/* Unified Schedule Table Container: each row renders both the sticky # cell and all 6 day cells so vertical alignment is guaranteed */}
+      <div
+        ref={scrollContainerRef}
+        style={{
+          overflowY: "hidden",
+          overscrollBehaviorX: "none",
+          overscrollBehaviorY: "auto",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "manipulation"
+        }}
+        className="w-full border border-border/80 print:border-border bg-card/80 rounded-xl sm:rounded-2xl shadow-xs overflow-x-auto overflow-y-hidden md:overflow-x-hidden print:overflow-visible print:flex-1 print:flex print:flex-col no-scrollbar snap-x snap-mandatory overscroll-x-none touch-manipulation"
+      >
+        <div
+          data-schedule-grid
+          className="w-[calc(200%-2.25rem)] min-w-[calc(200%-2.25rem)] sm:w-[calc(200%-3rem)] sm:min-w-[calc(200%-3rem)] md:w-full md:min-w-full print:w-full print:min-w-full print:flex-1 flex flex-col"
+        >
+          {/* Table Header Row: # + Days of the week */}
           <div
+            data-schedule-header
             className={cn(
-              "h-10 border-b border-border/80 flex items-center justify-center font-bold text-xs transition-colors",
+              "h-10 print:h-16 border-b border-border/80 print:border-border flex items-stretch shrink-0 transition-colors",
               childColor ? cn(childColor.bg, "text-white") : "bg-primary text-primary-foreground"
             )}
           >
-            {t("schedule.hour_col_header")}
-          </div>
-          {/* Hour slots */}
-          <div className="flex flex-col divide-y divide-border/60">
-            {hoursToDisplay.map((hourNum) => (
-              <div
-                key={hourNum}
-                className="h-[48px] sm:h-[52px] flex items-center justify-center font-bold text-xs sm:text-sm text-muted-foreground bg-card/95"
-              >
-                <span>{hourNum}</span>
-              </div>
-            ))}
-          </div>
-          {/* Finish time icon slot */}
-          <div className="h-[48px] sm:h-[52px] border-t border-border/80 flex items-center justify-center text-primary bg-muted/95 dark:bg-secondary/95">
-            <Clock className="w-4 h-4 stroke-[2.2px]" />
-          </div>
-        </div>
-
-        {/* Days Scrollable Area */}
-        <div
-          ref={scrollContainerRef}
-          style={{
-            overflowY: "hidden",
-            overscrollBehaviorX: "none",
-            overscrollBehaviorY: "auto",
-            WebkitOverflowScrolling: "touch",
-            touchAction: "manipulation"
-          }}
-          className="flex-1 overflow-x-auto overflow-y-hidden md:overflow-x-hidden no-scrollbar snap-x snap-mandatory min-w-0 overscroll-x-none touch-manipulation"
-        >
-          <div className="w-[200%] min-w-[200%] max-w-[200%] md:w-full md:min-w-full md:max-w-full flex flex-col">
-            {/* Table Header: Days of the week */}
             <div
-              data-schedule-header
+              data-schedule-hour-col
               className={cn(
-                "h-10 backdrop-blur-md border-b border-border/80 flex shrink-0 divide-x rtl:divide-x-reverse transition-colors",
-                childColor ? cn(childColor.bg, "text-white divide-white/20") : "bg-primary text-primary-foreground divide-primary-foreground/20"
+                "w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e flex items-center justify-center font-bold text-xs print:text-xl select-none",
+                childColor
+                  ? cn(childColor.bg, "text-white border-white/20")
+                  : "bg-primary text-primary-foreground border-primary-foreground/20",
+                "print:bg-transparent"
+              )}
+            >
+              {t("schedule.hour_col_header")}
+            </div>
+            <div
+              className={cn(
+                "flex-1 min-w-0 flex items-stretch divide-x rtl:divide-x-reverse",
+                childColor ? "divide-white/20" : "divide-primary-foreground/20"
               )}
             >
               {SCHEDULE_DAYS.map((day) => {
@@ -203,17 +195,17 @@ export function ScheduleTable({
                     }}
                     data-schedule-day={day}
                     className={cn(
-                      "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start",
-                      "flex flex-col items-center justify-center py-2 px-1 text-center transition-colors min-w-0 max-w-full overflow-hidden",
-                      isToday && (childColor ? "bg-black/15 dark:bg-black/25" : "bg-black/15 text-primary-foreground")
+                      "flex-1 min-w-0 snap-start scroll-ms-9 sm:scroll-ms-12",
+                      "flex flex-col items-center justify-center py-2 px-1 text-center transition-colors overflow-hidden",
+                      isToday && (childColor ? "bg-black/15 dark:bg-black/25 print:bg-transparent" : "bg-black/15 text-primary-foreground print:bg-transparent")
                     )}
                   >
                     <div className="flex items-center gap-1 min-w-0 max-w-full">
-                      <span className="font-bold text-xs sm:text-sm truncate text-white">
+                      <span className="font-bold text-xs sm:text-sm print:text-xl truncate text-white">
                         {t(`schedule.days.day_${day}`)}
                       </span>
                       {isToday && (
-                        <span className="inline-flex items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-zinc-900 shadow-xs leading-tight shrink-0">
+                        <span className="inline-flex print:hidden items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-zinc-900 shadow-xs leading-tight shrink-0">
                           {t("schedule.today_badge")}
                         </span>
                       )}
@@ -222,14 +214,26 @@ export function ScheduleTable({
                 )
               })}
             </div>
+          </div>
 
-            {/* Table Rows: Lessons (1..N) */}
-            <div className="flex flex-col divide-y divide-border/60">
-              {hoursToDisplay.map((hourNum) => (
+          {/* Table Rows: Lessons (1..N) */}
+          <div className="flex flex-col divide-y divide-border/60 print:divide-border print:flex-1">
+            {hoursToDisplay.map((hourNum) => (
+              <div
+                key={hourNum}
+                data-schedule-row={hourNum}
+                className={cn(
+                  "h-[48px] sm:h-[52px] print:h-auto print:flex-1 flex items-stretch shrink-0",
+                  isEditMode && hourNum > maxPopulatedHour && "print:hidden"
+                )}
+              >
                 <div
-                  key={hourNum}
-                  className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70"
+                  data-schedule-hour-cell={hourNum}
+                  className="w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e border-border/70 print:border-border flex items-center justify-center font-bold text-xs sm:text-sm print:text-xl text-muted-foreground bg-card print:bg-transparent select-none"
                 >
+                  <span>{hourNum}</span>
+                </div>
+                <div className="flex-1 min-w-0 flex items-stretch divide-x rtl:divide-x-reverse divide-border/70 print:divide-border">
                   {SCHEDULE_DAYS.map((day) => {
                     const lesson = lessonMap.get(`${day}-${hourNum}`)
                     const isToday = currentDayOfWeek === day
@@ -239,8 +243,8 @@ export function ScheduleTable({
                         key={day}
                         onClick={canEdit ? () => onLessonClick?.(day, hourNum) : undefined}
                         className={cn(
-                          "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start p-1 sm:p-1.5 flex items-center justify-center text-center transition-all min-w-0 max-w-full overflow-hidden h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px]",
-                          isToday && "bg-primary/[0.02]",
+                          "flex-1 min-w-0 snap-start scroll-ms-9 sm:scroll-ms-12 p-1 sm:p-1.5 flex items-center justify-center text-center transition-all overflow-hidden",
+                          isToday && "bg-primary/[0.02] print:bg-transparent",
                           canEdit
                             ? "cursor-pointer hover:bg-accent/40 active:scale-[0.99]"
                             : "cursor-default"
@@ -249,7 +253,7 @@ export function ScheduleTable({
                         {lesson ? (
                           <span
                             className={cn(
-                              "font-bold text-xs sm:text-sm line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none",
+                              "font-bold text-xs sm:text-sm print:text-xl line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none",
                               getSubjectConfig(lesson.subject).textClass
                             )}
                             title={lesson.subject}
@@ -257,7 +261,7 @@ export function ScheduleTable({
                             {lesson.subject}
                           </span>
                         ) : canEdit ? (
-                          <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-muted-foreground/40">
+                          <div className="w-full h-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity text-muted-foreground/40 print:hidden">
                             <Plus className="w-3.5 h-3.5" />
                           </div>
                         ) : null}
@@ -265,14 +269,22 @@ export function ScheduleTable({
                     )
                   })}
                 </div>
-              ))}
-            </div>
+              </div>
+            ))}
+          </div>
 
-            {/* Bottom Row: School Dismissal Finish Time */}
+          {/* Bottom Row: School Dismissal Finish Time */}
+          <div
+            data-schedule-dismissal
+            className="h-[48px] sm:h-[52px] print:h-20 border-t border-border/80 print:border-border bg-muted/90 dark:bg-secondary/90 flex items-stretch shrink-0"
+          >
             <div
-              data-schedule-dismissal
-              className="h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px] border-t border-border/80 bg-muted/90 dark:bg-secondary/90 backdrop-blur-md flex shrink-0 divide-x rtl:divide-x-reverse divide-border/70"
+              data-schedule-finish-icon
+              className="w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e border-border/70 print:border-border flex items-center justify-center text-primary bg-muted dark:bg-secondary print:bg-transparent select-none"
             >
+              <Clock className="w-4 h-4 print:w-7 print:h-7 stroke-[2.2px]" />
+            </div>
+            <div className="flex-1 min-w-0 flex items-stretch divide-x rtl:divide-x-reverse divide-border/70 print:divide-border">
               {SCHEDULE_DAYS.map((day) => {
                 const finishTime = finishTimeMap.get(day)
                 const isToday = currentDayOfWeek === day
@@ -282,8 +294,8 @@ export function ScheduleTable({
                     key={day}
                     onClick={canEdit ? () => onFinishTimeClick?.(day) : undefined}
                     className={cn(
-                      "w-[calc(100%/6)] min-w-[calc(100%/6)] max-w-[calc(100%/6)] shrink-0 snap-start py-1 sm:py-1.5 px-1 sm:px-2 flex flex-col items-center justify-center transition-all min-w-0 max-w-full overflow-hidden h-[48px] sm:h-[52px] max-h-[48px] sm:max-h-[52px]",
-                      isToday && "bg-primary/5",
+                      "flex-1 min-w-0 snap-start scroll-ms-9 sm:scroll-ms-12 py-1 sm:py-1.5 px-1 sm:px-2 flex flex-col items-center justify-center transition-all overflow-hidden",
+                      isToday && "bg-primary/5 print:bg-transparent",
                       canEdit
                         ? "cursor-pointer hover:bg-accent/50 active:scale-[0.98]"
                         : "cursor-default"
@@ -293,17 +305,17 @@ export function ScheduleTable({
                     <div className="flex items-center gap-1 min-w-0 max-w-full">
                       <span
                         className={cn(
-                          "text-xs sm:text-sm font-bold tabular-nums tracking-tight truncate",
+                          "text-xs sm:text-sm print:text-xl font-bold tabular-nums tracking-tight truncate",
                           finishTime ? "text-foreground" : "text-muted-foreground/50"
                         )}
                       >
                         {finishTime || "--:--"}
                       </span>
                       {canEdit && (
-                        <Edit2 className="w-3 h-3 text-muted-foreground/70 hover:text-foreground opacity-60 hover:opacity-100 transition-opacity shrink-0" />
+                        <Edit2 className="w-3 h-3 text-muted-foreground/70 hover:text-foreground opacity-60 hover:opacity-100 transition-opacity shrink-0 print:hidden" />
                       )}
                     </div>
-                    <span className="text-[10px] text-muted-foreground/80 font-medium truncate max-w-full">
+                    <span className="text-[10px] print:text-base text-muted-foreground/80 font-medium truncate max-w-full">
                       {t("schedule.finish_time_row")}
                     </span>
                   </div>

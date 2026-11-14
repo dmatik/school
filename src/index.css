@@ -235,3 +235,31 @@
     fill: currentColor;
   }
 }
+
+@page {
+  size: landscape;
+  margin: 8mm;
+}
+
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100% !important;
+    overflow: visible !important;
+    background: #ffffff !important;
+  }
+
+  aside,
+  header,
+  nav[aria-label="Mobile Navigation"],
+  [data-sticky-filters],
+  [data-page-title] {
+    display: none !important;
+  }
+}

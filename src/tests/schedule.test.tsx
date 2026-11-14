@@ -1,6 +1,7 @@
 import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react'
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SchedulePage } from '../components/SchedulePage'
+import { ScheduleTable } from '../components/ui/schedule-table'
 import type { User, ScheduleLesson, ScheduleFinishTime, WebtopConfig } from '../types'
 import Database from 'better-sqlite3'
 import { initDb } from '../../server/db'
@@ -648,6 +649,74 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('renders liquid print button at the end of the filter row and triggers window.print() for parent and child', async () => {
+    const originalPrint = window.print
+    const printMock = vi.fn()
+    window.print = printMock
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('David')).toBeInTheDocument()
+      })
+
+      const stickyFilters = document.querySelector('[data-sticky-filters]')
+      expect(stickyFilters).toBeInTheDocument()
+      expect(stickyFilters?.className).toContain('print:hidden')
+
+      const printBtn = screen.getByRole('button', { name: 'schedule.print' })
+      expect(printBtn).toBeInTheDocument()
+      expect(printBtn.className).toContain('apple-liquid-dock')
+      expect(printBtn.parentElement?.className).toContain('ms-auto')
+      expect(stickyFilters).toContainElement(printBtn)
+
+      fireEvent.click(printBtn)
+      expect(printMock).toHaveBeenCalledTimes(1)
+
+      // Linked child user also gets the print button in the filter row without child tabs
+      cleanup()
+      printMock.mockClear()
+      render(<SchedulePage token="test-token" currentUser={childUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const childPrintBtn = screen.getByRole('button', { name: 'schedule.print' })
+      expect(childPrintBtn).toBeInTheDocument()
+      expect(childPrintBtn.parentElement?.className).not.toContain('ms-auto')
+      fireEvent.click(childPrintBtn)
+      expect(printMock).toHaveBeenCalledTimes(1)
+    } finally {
+      window.print = originalPrint
+    }
+  })
+
+  it('hides the today badge and clears today column highlight when printing', () => {
+    const { container } = render(
+      <ScheduleTable
+        lessons={mockLessons}
+        finishTimes={mockFinishTimes}
+        currentDayOfWeek={1}
+      />
+    )
+
+    const todayBadge = screen.getByText('schedule.today_badge')
+    expect(todayBadge.className).toContain('print:hidden')
+
+    const todayHeader = container.querySelector('[data-schedule-day="1"]')
+    expect(todayHeader?.className).toContain('print:bg-transparent')
+
+    const row1 = container.querySelector('[data-schedule-row="1"]')
+    const row1DayCells = row1?.querySelectorAll('.flex-1.min-w-0.flex.items-stretch > div')
+    expect(row1DayCells?.[1]?.className).toContain('print:bg-transparent')
+
+    const dismissalRow = container.querySelector('[data-schedule-dismissal]')
+    const dismissalDayCells = dismissalRow?.querySelectorAll('.flex-1.min-w-0.flex.items-stretch > div')
+    expect(dismissalDayCells?.[1]?.className).toContain('print:bg-transparent')
   })
 })
 
