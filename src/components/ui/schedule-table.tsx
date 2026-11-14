@@ -170,7 +170,7 @@ export function ScheduleTable({
             <div
               data-schedule-hour-col
               className={cn(
-                "w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e flex items-center justify-center font-bold text-xs print:text-xl select-none",
+                "w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e flex items-center justify-center font-bold text-sm sm:text-base print:text-xl select-none",
                 childColor
                   ? cn(childColor.bg, "text-white border-white/20")
                   : "bg-primary text-primary-foreground border-primary-foreground/20",
@@ -201,11 +201,11 @@ export function ScheduleTable({
                     )}
                   >
                     <div className="flex items-center gap-1 min-w-0 max-w-full">
-                      <span className="font-bold text-xs sm:text-sm print:text-xl truncate text-white">
+                      <span className="font-bold text-sm sm:text-base print:text-xl truncate text-white">
                         {t(`schedule.days.day_${day}`)}
                       </span>
                       {isToday && (
-                        <span className="inline-flex print:hidden items-center px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-white text-zinc-900 shadow-xs leading-tight shrink-0">
+                        <span className="inline-flex print:hidden items-center px-1.5 py-0.2 rounded-full text-[11px] font-bold bg-white text-zinc-900 shadow-xs leading-tight shrink-0">
                           {t("schedule.today_badge")}
                         </span>
                       )}
@@ -223,13 +223,13 @@ export function ScheduleTable({
                 key={hourNum}
                 data-schedule-row={hourNum}
                 className={cn(
-                  "h-[48px] sm:h-[52px] print:h-auto print:flex-1 flex items-stretch shrink-0",
+                  "h-[52px] sm:h-[56px] print:h-auto print:flex-1 flex items-stretch shrink-0",
                   isEditMode && hourNum > maxPopulatedHour && "print:hidden"
                 )}
               >
                 <div
                   data-schedule-hour-cell={hourNum}
-                  className="w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e border-border/70 print:border-border flex items-center justify-center font-bold text-xs sm:text-sm print:text-xl text-muted-foreground bg-card print:bg-transparent select-none"
+                  className="w-9 sm:w-12 print:w-16 shrink-0 sticky print:static start-0 z-10 border-e border-border/70 print:border-border flex items-center justify-center font-bold text-sm sm:text-base print:text-xl text-muted-foreground bg-card print:bg-transparent select-none"
                 >
                   <span>{hourNum}</span>
                 </div>
@@ -253,7 +253,7 @@ export function ScheduleTable({
                         {lesson ? (
                           <span
                             className={cn(
-                              "font-bold text-xs sm:text-sm print:text-xl line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none",
+                              "font-bold text-sm sm:text-base print:text-xl line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none",
                               getSubjectConfig(lesson.subject).textClass
                             )}
                             title={lesson.subject}
@@ -276,7 +276,7 @@ export function ScheduleTable({
           {/* Bottom Row: School Dismissal Finish Time */}
           <div
             data-schedule-dismissal
-            className="h-[48px] sm:h-[52px] print:h-20 border-t border-border/80 print:border-border bg-muted/90 dark:bg-secondary/90 flex items-stretch shrink-0"
+            className="h-[52px] sm:h-[56px] print:h-20 border-t border-border/80 print:border-border bg-muted/90 dark:bg-secondary/90 flex items-stretch shrink-0"
           >
             <div
               data-schedule-finish-icon
@@ -305,7 +305,7 @@ export function ScheduleTable({
                     <div className="flex items-center gap-1 min-w-0 max-w-full">
                       <span
                         className={cn(
-                          "text-xs sm:text-sm print:text-xl font-bold tabular-nums tracking-tight truncate",
+                          "text-sm sm:text-base print:text-xl font-bold tabular-nums tracking-tight truncate",
                           finishTime ? "text-foreground" : "text-muted-foreground/50"
                         )}
                       >
@@ -315,7 +315,7 @@ export function ScheduleTable({
                         <Edit2 className="w-3 h-3 text-muted-foreground/70 hover:text-foreground opacity-60 hover:opacity-100 transition-opacity shrink-0 print:hidden" />
                       )}
                     </div>
-                    <span className="text-[10px] print:text-base text-muted-foreground/80 font-medium truncate max-w-full">
+                    <span className="text-xs print:text-base text-muted-foreground/80 font-medium truncate max-w-full">
                       {t("schedule.finish_time_row")}
                     </span>
                   </div>
