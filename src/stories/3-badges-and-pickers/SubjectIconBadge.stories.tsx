@@ -17,21 +17,21 @@ export default meta
 type Story = StoryObj<typeof SubjectIconBadge>
 
 const ALL_SUBJECTS = [
-  { name: "מתמטיקה", desc: "1. Math / Blue" },
+  { name: "מתמטיקה", desc: "1. Math & Geometry / Blue" },
   { name: "אנגלית", desc: "2. English / Purple" },
   { name: "מדעים", desc: "3. Science / Emerald" },
-  { name: "תנך", desc: "4. Bible & Heritage / Amber" },
-  { name: "אומנות", desc: "5. Art / Rose" },
-  { name: "חינוך גופני", desc: "6. Sports / Orange" },
+  { name: "תנך", desc: "4. Bible / Brown" },
+  { name: "אומנות", desc: "5. Art / Dark Grey" },
+  { name: "חינוך גופני", desc: "6. Sports (חנ״ג) / Yellow" },
   { name: "היסטוריה", desc: "7. History & Civics / Cyan" },
-  { name: "גאוגרפיה", desc: "8. Geography / Teal" },
-  { name: "מוזיקה", desc: "9. Music / Fuchsia" },
-  { name: "מחשבים", desc: "10. Coding / Sky" },
-  { name: "דרמה", desc: "11. Drama / Violet" },
-  { name: "כישורי חיים", desc: "12. Life Skills / Pink" },
-  { name: "פרטני", desc: "13. Enrichment / Yellow" },
-  { name: "עברית ולשון", desc: "14. Hebrew / Indigo" },
-  { name: "נושא כללי", desc: "15. Default Fallback" },
+  { name: "גאוגרפיה", desc: "8. Geography / Dark Grey" },
+  { name: "מוזיקה", desc: "9. Music / Dark Grey" },
+  { name: "מחשבים", desc: "10. Coding / Dark Grey" },
+  { name: "דרמה", desc: "11. Drama / Dark Grey" },
+  { name: "כישורי חיים", desc: "12. Life Skills / Dark Grey" },
+  { name: "פרטני", desc: "13. Enrichment / Dark Grey" },
+  { name: "עברית ולשון", desc: "14. Hebrew / Red" },
+  { name: "נושא כללי", desc: "15. Default / Dark Grey" },
 ]
 
 export const AllSubjectsGallerySolid: Story = {

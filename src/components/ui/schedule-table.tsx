@@ -3,6 +3,7 @@ import { useTranslation } from "react-i18next"
 import { Clock, Plus, Edit2, ChevronLeft, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getChildColor } from "@/lib/child-colors"
+import { getSubjectConfig } from "@/lib/subject-icons"
 import type { ScheduleLesson, ScheduleFinishTime } from "@/types"
 
 export const SCHEDULE_DAYS = [0, 1, 2, 3, 4, 5] as const // Sunday to Friday
@@ -247,7 +248,10 @@ export function ScheduleTable({
                       >
                         {lesson ? (
                           <span
-                            className="font-bold text-xs sm:text-sm text-foreground line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none"
+                            className={cn(
+                              "font-bold text-xs sm:text-sm line-clamp-2 break-words [word-break:break-word] [overflow-wrap:anywhere] leading-tight max-w-full text-center px-1 select-none",
+                              getSubjectConfig(lesson.subject).textClass
+                            )}
                             title={lesson.subject}
                           >
                             {lesson.subject}
