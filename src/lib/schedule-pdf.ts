@@ -51,7 +51,7 @@ function drawRoundedRectPath(
 function drawClockIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
   ctx.save()
   ctx.strokeStyle = color
-  ctx.lineWidth = 4.5
+  ctx.lineWidth = 5
   ctx.lineCap = "round"
   ctx.lineJoin = "round"
 
@@ -262,10 +262,10 @@ export function generateSchedulePdfFile({
   const tableY = Math.round((CANVAS_HEIGHT - tableH) / 2)
   const borderRadius = 32
 
-  const hourColW = 140
+  const hourColW = 150
   const dayColW = (tableW - hourColW) / SCHEDULE_DAYS.length
-  const headerH = 138
-  const dismissalH = 172
+  const headerH = 150
+  const dismissalH = 186
 
   const maxPopulatedHour = lessons.reduce((max, item) => Math.max(max, item.hourNum), 0)
   const rowCount = Math.max(6, maxPopulatedHour)
@@ -283,7 +283,7 @@ export function generateSchedulePdfFile({
   }
 
   const headerBgHex = extractHexFromTailwindClass(getChildAccentColor(childColor), "#2463eb")
-  const borderColor = "#dbe2ea"
+  const borderColor = "#94a3b8"
   const fontFamily = "'Heebo', 'Assistant', sans-serif"
 
   // Clip everything inside the rounded table container
@@ -310,7 +310,7 @@ export function generateSchedulePdfFile({
   ctx.textBaseline = "middle"
   ctx.direction = isRtl ? "rtl" : "ltr"
   ctx.fillStyle = "#ffffff"
-  ctx.font = `700 43px ${fontFamily}`
+  ctx.font = `700 52px ${fontFamily}`
 
   const headerCenterY = tableY + headerH / 2
   ctx.fillText(t("schedule.hour_col_header"), hourX + hourColW / 2, headerCenterY)
@@ -320,8 +320,8 @@ export function generateSchedulePdfFile({
   }
 
   // Header vertical dividers
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.25)"
-  ctx.lineWidth = 2
+  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"
+  ctx.lineWidth = 2.5
   for (let i = 1; i <= SCHEDULE_DAYS.length; i++) {
     const lineX = isRtl ? tableX + i * dayColW : tableX + hourColW + (i - 1) * dayColW
     ctx.beginPath()
@@ -337,8 +337,8 @@ export function generateSchedulePdfFile({
     const rowCenterY = rowY + lessonRowH / 2
 
     // Hour number cell
-    ctx.fillStyle = "#64748b"
-    ctx.font = `700 43px ${fontFamily}`
+    ctx.fillStyle = "#475569"
+    ctx.font = `700 52px ${fontFamily}`
     ctx.fillText(String(hourNum), hourX + hourColW / 2, rowCenterY)
 
     // Day cells
@@ -349,10 +349,10 @@ export function generateSchedulePdfFile({
       const x = dayX(day)
       const subjectHex = extractHexFromTailwindClass(getSubjectConfig(lesson.subject).textClass, "#525866")
       ctx.fillStyle = subjectHex
-      ctx.font = `700 43px ${fontFamily}`
+      ctx.font = `700 52px ${fontFamily}`
 
-      const lines = wrapTextLines(ctx, lesson.subject, dayColW - 36, 2)
-      const lineHeight = 50
+      const lines = wrapTextLines(ctx, lesson.subject, dayColW - 32, 2)
+      const lineHeight = 58
       const totalTextH = lines.length * lineHeight
       const startY = rowCenterY - totalTextH / 2 + lineHeight / 2
 
@@ -364,7 +364,7 @@ export function generateSchedulePdfFile({
     // Horizontal row separator
     if (idx > 0) {
       ctx.strokeStyle = borderColor
-      ctx.lineWidth = 2
+      ctx.lineWidth = 2.5
       ctx.beginPath()
       ctx.moveTo(tableX, rowY)
       ctx.lineTo(tableX + tableW, rowY)
@@ -379,14 +379,14 @@ export function generateSchedulePdfFile({
 
   // Top border of dismissal row
   ctx.strokeStyle = borderColor
-  ctx.lineWidth = 2
+  ctx.lineWidth = 2.5
   ctx.beginPath()
   ctx.moveTo(tableX, dismissalY)
   ctx.lineTo(tableX + tableW, dismissalY)
   ctx.stroke()
 
   // Clock icon in # column
-  drawClockIcon(ctx, hourX + hourColW / 2, dismissalY + dismissalH / 2, 23, "#2463eb")
+  drawClockIcon(ctx, hourX + hourColW / 2, dismissalY + dismissalH / 2, 27, "#2463eb")
 
   for (const day of SCHEDULE_DAYS) {
     const x = dayX(day)
@@ -394,13 +394,13 @@ export function generateSchedulePdfFile({
     const centerX = x + dayColW / 2
 
     ctx.fillStyle = finishTime ? "#0f172a" : "#94a3b8"
-    ctx.font = `700 43px ${fontFamily}`
-    ctx.fillText(finishTime || "--:--", centerX, dismissalY + dismissalH * 0.37)
+    ctx.font = `700 52px ${fontFamily}`
+    ctx.fillText(finishTime || "--:--", centerX, dismissalY + dismissalH * 0.36)
 
     ctx.fillStyle = "#64748b"
-    ctx.font = `500 34px ${fontFamily}`
+    ctx.font = `500 40px ${fontFamily}`
     ctx.fillText(
-      truncateWithEllipsis(ctx, t("schedule.finish_time_row"), dayColW - 28),
+      truncateWithEllipsis(ctx, t("schedule.finish_time_row"), dayColW - 24),
       centerX,
       dismissalY + dismissalH * 0.72
     )
@@ -408,7 +408,7 @@ export function generateSchedulePdfFile({
 
   // Vertical column dividers across all lesson + dismissal rows
   ctx.strokeStyle = borderColor
-  ctx.lineWidth = 2
+  ctx.lineWidth = 2.5
   for (let i = 1; i <= SCHEDULE_DAYS.length; i++) {
     const lineX = isRtl ? tableX + i * dayColW : tableX + hourColW + (i - 1) * dayColW
     ctx.beginPath()
@@ -421,7 +421,7 @@ export function generateSchedulePdfFile({
 
   // Crisp outer rounded border
   ctx.strokeStyle = borderColor
-  ctx.lineWidth = 2.5
+  ctx.lineWidth = 3
   drawRoundedRectPath(ctx, tableX, tableY, tableW, tableH, borderRadius)
   ctx.stroke()
 
