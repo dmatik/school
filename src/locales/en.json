@@ -41,7 +41,8 @@
     "sync_success": "Synced successfully",
     "last_sync": "Updated: {{date}}",
     "clear_search": "Clear search",
-    "print": "Print"
+    "print": "Print",
+    "share": "Share"
   },
   "incidents": {
     "title": "School Incidents",
@@ -208,7 +209,8 @@
     "changes_discarded": "Changes discarded",
     "scroll_backward": "Scroll backward",
     "scroll_forward": "Scroll forward",
-    "print": "Print"
+    "print": "Print",
+    "share": "Share"
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",
