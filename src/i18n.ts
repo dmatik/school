@@ -10,7 +10,7 @@ i18n
   .use(initReactI18next);
 
 i18n.on('languageChanged', (lng) => {
-  if (lng === 'he') {
+  if (lng.startsWith('he')) {
     document.documentElement.dir = 'rtl';
     document.documentElement.lang = 'he';
   } else {
@@ -27,7 +27,7 @@ i18n.init({
   fallbackLng: 'he',
   debug: false,
   detection: {
-    order: ['localStorage', 'navigator'],
+    order: ['localStorage'],
     caches: ['localStorage'],
   },
   interpolation: {
