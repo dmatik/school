@@ -2,6 +2,7 @@ import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/re
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SchedulePage } from '../components/SchedulePage'
 import { ScheduleTable } from '../components/ui/schedule-table'
+import { buildPdfFromJpeg, generateSchedulePdfFile } from '../lib/schedule-pdf'
 import type { User, ScheduleLesson, ScheduleFinishTime, WebtopConfig } from '../types'
 import Database from 'better-sqlite3'
 import { initDb } from '../../server/db'
@@ -651,10 +652,22 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     }
   })
 
-  it('renders liquid print button at the end of the filter row and triggers window.print() for parent and child', async () => {
-    const originalPrint = window.print
-    const printMock = vi.fn()
-    window.print = printMock
+  it('renders liquid share button in filter row, shares PDF on mobile, and opens PDF in new tab on desktop', async () => {
+    const originalShare = navigator.share
+    const originalCanShare = navigator.canShare
+    const originalUserAgent = navigator.userAgent
+    const originalOpen = window.open
+    const shareMock = vi.fn().mockResolvedValue(undefined)
+    const canShareMock = vi.fn().mockReturnValue(true)
+    const openMock = vi.fn().mockReturnValue({} as Window)
+
+    Object.defineProperty(navigator, 'share', { value: shareMock, configurable: true, writable: true })
+    Object.defineProperty(navigator, 'canShare', { value: canShareMock, configurable: true, writable: true })
+    Object.defineProperty(navigator, 'userAgent', {
+      value: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15',
+      configurable: true
+    })
+    window.open = openMock
 
     try {
       render(<SchedulePage token="test-token" currentUser={parentUser} />)
@@ -667,32 +680,74 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       expect(stickyFilters).toBeInTheDocument()
       expect(stickyFilters?.className).toContain('print:hidden')
 
-      const printBtn = screen.getByRole('button', { name: 'schedule.print' })
-      expect(printBtn).toBeInTheDocument()
-      expect(printBtn.className).toContain('apple-liquid-dock')
-      expect(printBtn.parentElement?.className).toContain('ms-auto')
-      expect(stickyFilters).toContainElement(printBtn)
+      const shareBtn = screen.getByRole('button', { name: 'schedule.share' })
+      expect(shareBtn).toBeInTheDocument()
+      expect(shareBtn.className).toContain('apple-liquid-dock')
+      expect(shareBtn.parentElement?.className).toContain('ms-auto')
+      expect(stickyFilters).toContainElement(shareBtn)
 
-      fireEvent.click(printBtn)
-      expect(printMock).toHaveBeenCalledTimes(1)
+      fireEvent.click(shareBtn)
+      await waitFor(() => {
+        expect(shareMock).toHaveBeenCalledTimes(1)
+      })
+      const sharedArg = shareMock.mock.calls[0][0] as { files: File[] }
+      expect(sharedArg.files).toHaveLength(1)
+      expect(sharedArg.files[0].type).toBe('application/pdf')
+      expect(sharedArg.files[0].name).toBe('schedule.pdf')
+      expect(openMock).not.toHaveBeenCalled()
 
-      // Linked child user also gets the print button in the filter row without child tabs
+      // Desktop mode: opens PDF in a new tab instead of invoking macOS share sheet
+      Object.defineProperty(navigator, 'userAgent', {
+        value: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15',
+        configurable: true
+      })
+      shareMock.mockClear()
+      fireEvent.click(shareBtn)
+      await waitFor(() => {
+        expect(openMock).toHaveBeenCalledTimes(1)
+      })
+      expect(String(openMock.mock.calls[0][0])).toMatch(/^blob:/)
+      expect(openMock.mock.calls[0][1]).toBe('_blank')
+      expect(shareMock).not.toHaveBeenCalled()
+
+      // Linked child user also gets the share button at the start of the filter row (no ms-auto)
       cleanup()
-      printMock.mockClear()
       render(<SchedulePage token="test-token" currentUser={childUser} />)
 
       await waitFor(() => {
         expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
       })
 
-      const childPrintBtn = screen.getByRole('button', { name: 'schedule.print' })
-      expect(childPrintBtn).toBeInTheDocument()
-      expect(childPrintBtn.parentElement?.className).not.toContain('ms-auto')
-      fireEvent.click(childPrintBtn)
-      expect(printMock).toHaveBeenCalledTimes(1)
+      const childShareBtn = screen.getByRole('button', { name: 'schedule.share' })
+      expect(childShareBtn).toBeInTheDocument()
+      expect(childShareBtn.parentElement?.className).not.toContain('ms-auto')
     } finally {
-      window.print = originalPrint
+      Object.defineProperty(navigator, 'share', { value: originalShare, configurable: true, writable: true })
+      Object.defineProperty(navigator, 'canShare', { value: originalCanShare, configurable: true, writable: true })
+      Object.defineProperty(navigator, 'userAgent', { value: originalUserAgent, configurable: true })
+      window.open = originalOpen
     }
+  })
+
+  it('generates a valid A4 landscape PDF binary', async () => {
+    const dummyJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xd9])
+    const pdfBytes = buildPdfFromJpeg(dummyJpeg, 2400, 1697)
+    const pdfText = new TextDecoder().decode(pdfBytes)
+    expect(pdfText.startsWith('%PDF-1.4')).toBe(true)
+    expect(pdfText).toContain('/MediaBox [0 0 841.89 595.28]')
+    expect(pdfText).toContain('%%EOF')
+
+    const file = generateSchedulePdfFile({
+      lessons: mockLessons,
+      finishTimes: mockFinishTimes,
+      childColor: 'emerald',
+      isRtl: true,
+      t: ((key: string) => key) as unknown as import('i18next').TFunction
+    })
+    expect(file.type).toBe('application/pdf')
+    expect(file.name).toBe('schedule.pdf')
+    const header = new TextDecoder().decode((await file.arrayBuffer()).slice(0, 8))
+    expect(header).toBe('%PDF-1.4')
   })
 
   it('hides the today badge and clears today column highlight when printing', () => {

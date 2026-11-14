@@ -247,7 +247,7 @@ test.describe('Weekly Schedule Flow', () => {
     }
   });
 
-  test('print button renders in filter row and print media shows only full 6-day schedule table even on mobile', async ({ page }) => {
+  test('share button renders in filter row, exports landscape PDF, and print media shows only full 6-day schedule table even on mobile', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
@@ -258,9 +258,15 @@ test.describe('Weekly Schedule Flow', () => {
     await dockButtons.nth(3).click();
     await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
 
-    // Print button should be visible in the filter row
-    const printBtn = page.locator('[data-schedule-print-btn]');
-    await expect(printBtn).toBeVisible();
+    // Share button should be visible in the filter row and open the PDF in a new tab on desktop UA
+    const shareBtn = page.locator('[data-schedule-share-btn]');
+    await expect(shareBtn).toBeVisible();
+    const [popup] = await Promise.all([
+      page.waitForEvent('popup'),
+      shareBtn.click()
+    ]);
+    expect(popup).toBeTruthy();
+    await popup.close();
 
     // Emulate print media from mobile viewport
     await page.emulateMedia({ media: 'print' });

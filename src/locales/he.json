@@ -41,7 +41,8 @@
     "sync_success": "סונכרן בהצלחה",
     "last_sync": "עודכן: {{date}}",
     "clear_search": "נקה חיפוש",
-    "print": "הדפסה"
+    "print": "הדפסה",
+    "share": "שיתוף"
   },
   "incidents": {
     "title": "אירועי משמעת",
@@ -208,7 +209,8 @@
     "changes_discarded": "השינויים בוטלו",
     "scroll_backward": "גלול אחורה",
     "scroll_forward": "גלול קדימה",
-    "print": "הדפסה"
+    "print": "הדפסה",
+    "share": "שיתוף"
   },
   "auth": {
     "login_subtitle": "התחברות למערכת בית הספר",

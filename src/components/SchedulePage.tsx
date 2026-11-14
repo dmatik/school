@@ -8,7 +8,7 @@ import {
   CalendarDays,
   Pencil,
   Check,
-  Printer
+  Share2
 } from "lucide-react"
 import { Button, LiquidButton } from "@/components/ui/button"
 import { Modal, ConfirmModal } from "@/components/ui/modal"
@@ -17,6 +17,7 @@ import { FilledInput, CounterField, TimePresetInput } from "@/components/ui/form
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
 import { getChildColor } from "@/lib/child-colors"
+import { shareSchedulePdf } from "@/lib/schedule-pdf"
 import { ScheduleTable } from "@/components/ui/schedule-table"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
 import type { ScheduleLesson, ScheduleFinishTime, WebtopConfig, User as UserType } from "@/types"
@@ -30,7 +31,7 @@ interface SchedulePageProps {
 const COMMON_FINISH_PRESETS = ["11:45", "12:45", "13:30", "14:15", "15:00", "16:00"]
 
 export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePageProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const isChild = currentUser?.familyRole === "child"
   const isParent = !isChild
 
@@ -459,13 +460,18 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     isParent && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0
   )
 
-  const handlePrint = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+  const handleShare = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
     const button = e.currentTarget
     button.blur()
-    window.print()
-    button.blur()
     requestAnimationFrame(() => button.blur())
-  }, [])
+    void shareSchedulePdf({
+      lessons,
+      finishTimes,
+      childColor: currentChild?.color,
+      isRtl: i18n.dir() === "rtl",
+      t
+    })
+  }, [lessons, finishTimes, currentChild?.color, i18n, t])
 
   const childTabItems = useMemo(() => (
     webtopConfig?.linkedChildren?.map((c) => ({
@@ -499,16 +505,16 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           {selectedChildId && (
             <div className={cn("shrink-0", hasChildFilter && "ms-auto")}>
               <LiquidButton
-                data-schedule-print-btn
-                icon={Printer}
+                data-schedule-share-btn
+                icon={Share2}
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={handlePrint}
+                onClick={handleShare}
                 disabled={loading}
                 className="hover:text-muted-foreground focus:text-muted-foreground active:text-muted-foreground"
-                title={t("schedule.print")}
-                aria-label={t("schedule.print")}
+                title={t("schedule.share")}
+                aria-label={t("schedule.share")}
               >
-                {t("schedule.print")}
+                {t("schedule.share")}
               </LiquidButton>
             </div>
           )}
