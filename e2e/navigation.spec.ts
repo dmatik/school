@@ -114,7 +114,7 @@ test.describe('Navigation Flow', () => {
     await expect(page.locator('aside nav').getByText(/ניהול מערכת|Administration/)).not.toBeVisible();
 
     // Webtop Sync button remains available in aside footer
-    const syncBtn = page.locator('aside').getByRole('button', { name: /סנכרון|Sync/ });
+    const syncBtn = page.locator('aside').getByRole('button', { name: /סנכרן|סנכרון|Sync/ });
     await expect(syncBtn).toBeVisible();
   });
 
@@ -155,7 +155,7 @@ test.describe('Navigation Flow', () => {
     await expect(page.locator('main [data-page-title]')).not.toBeVisible();
 
     // Floating round Add User button should be visible on AdminPage
-    const floatingAddUserBtn = page.locator('button[aria-label="הוספת משתמש"], button[aria-label="Add User"]').first();
+    const floatingAddUserBtn = page.locator('button[aria-label="הוסף משתמש"], button[aria-label="Add User"]').first();
     await expect(floatingAddUserBtn).toBeVisible();
     await floatingAddUserBtn.click();
     // Modal should open
