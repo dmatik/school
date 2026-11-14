@@ -399,7 +399,7 @@ function App() {
 
   return (
     <DirectionProvider dir={i18n.dir()}>
-      <div className="fixed inset-0 flex h-dvh w-full bg-background text-foreground overflow-hidden">
+      <div className="fixed inset-0 flex h-dvh w-full bg-background text-foreground overflow-hidden print:static print:h-[98vh] print:overflow-visible print:bg-white">
         {/* Desktop Sidebar Navigation */}
         <AppSidebar
           currentUser={currentUser}
@@ -411,7 +411,7 @@ function App() {
         />
 
         {/* Main Content Area */}
-        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative">
+        <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden relative print:h-full print:overflow-visible">
           {/* Mobile Header */}
           <MobileHeader
             title={t(`${activeTab}.title`)}
@@ -428,7 +428,7 @@ function App() {
           {autoSyncPaused && (
             <NoticeBanner
               variant="warning"
-              className="mx-3 mt-3 rounded-xl"
+              className="mx-3 mt-3 rounded-xl print:hidden"
               title={t("account.webtop_auto_sync_paused_title")}
               description={t("account.webtop_auto_sync_paused_desc")}
             >
@@ -445,8 +445,8 @@ function App() {
           )}
 
           {/* Main Body */}
-          <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full">
-            <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto h-full">
+          <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full print:h-full print:overflow-visible">
+            <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto h-full print:h-full print:max-w-none">
               <AnimatePresence mode="wait">
                 <motion.div
                   key={activeTab}
@@ -454,7 +454,7 @@ function App() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -10 }}
                   transition={{ duration: 0.2 }}
-                  className="h-full"
+                  className="h-full print:h-full"
                 >
                   <Suspense fallback={<LoadingSpinner />}>
                     {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}

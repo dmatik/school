@@ -131,12 +131,9 @@ export function DatePicker({
                     <PopoverTrigger asChild>
                         <Button
                             type="button"
-                            variant="ghost"
+                            variant="liquid"
                             className={cn(
-                                "h-10 py-0 px-3.5 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock flex items-center gap-2 select-none focus:outline-none focus-visible:outline-none font-medium",
-                                date
-                                    ? "text-foreground"
-                                    : "text-muted-foreground hover:text-foreground",
+                                date && "text-foreground",
                                 clearable && date && "pe-8",
                                 className
                             )}

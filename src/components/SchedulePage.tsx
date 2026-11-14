@@ -7,9 +7,10 @@ import {
   Loader2,
   CalendarDays,
   Pencil,
-  Check
+  Check,
+  Printer
 } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button, LiquidButton } from "@/components/ui/button"
 import { Modal, ConfirmModal } from "@/components/ui/modal"
 import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { FilledInput, CounterField, TimePresetInput } from "@/components/ui/form-field"
@@ -454,6 +455,18 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
   }
 
+  const hasChildFilter = Boolean(
+    isParent && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0
+  )
+
+  const handlePrint = useCallback((e: React.MouseEvent<HTMLButtonElement>) => {
+    const button = e.currentTarget
+    button.blur()
+    window.print()
+    button.blur()
+    requestAnimationFrame(() => button.blur())
+  }, [])
+
   const childTabItems = useMemo(() => (
     webtopConfig?.linkedChildren?.map((c) => ({
       id: c.id,
@@ -462,25 +475,43 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   ), [webtopConfig?.linkedChildren])
 
   return (
-    <div className="relative h-full w-full overflow-hidden">
-      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+    <div className="relative h-full w-full overflow-hidden print:h-full print:overflow-visible">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full print:h-full print:overflow-visible print:p-0 print:max-w-none print:items-center print:justify-center">
         {/* Header Bar (Desktop only) */}
-        <PageHeader title={t("schedule.title")} />
+        <PageHeader title={t("schedule.title")} className="print:hidden" />
 
-      {/* Filter Bar: Child Selection (Below Title, Parents only) */}
-      {isParent && webtopConfig?.linkedChildren && webtopConfig.linkedChildren.length > 0 && (
+      {/* Filter Bar: Child Selection (Parents) & Print Button */}
+      {(hasChildFilter || Boolean(selectedChildId)) && (
         <div
           data-sticky-filters
-          className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-1 pb-2 shrink-0"
+          className="sticky top-0 md:top-[61px] z-20 flex items-center justify-between gap-2 pt-1 pb-2 shrink-0 print:hidden"
         >
-          <LiquidTabs
-            data-schedule-child-selector
-            aria-label={t("schedule.select_child")}
-            items={childTabItems}
-            selectedId={selectedChildId}
-            onSelect={handleSelectChild}
-            layoutId="scheduleChildLiquidPill"
-          />
+          {hasChildFilter && (
+            <LiquidTabs
+              data-schedule-child-selector
+              aria-label={t("schedule.select_child")}
+              items={childTabItems}
+              selectedId={selectedChildId}
+              onSelect={handleSelectChild}
+              layoutId="scheduleChildLiquidPill"
+            />
+          )}
+          {selectedChildId && (
+            <div className={cn("shrink-0", hasChildFilter && "ms-auto")}>
+              <LiquidButton
+                data-schedule-print-btn
+                icon={Printer}
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={handlePrint}
+                disabled={loading}
+                className="hover:text-muted-foreground focus:text-muted-foreground active:text-muted-foreground"
+                title={t("schedule.print")}
+                aria-label={t("schedule.print")}
+              >
+                {t("schedule.print")}
+              </LiquidButton>
+            </div>
+          )}
         </div>
       )}
 
@@ -519,6 +550,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           onFinishTimeClick={handleOpenFinishModal}
           scrollContainerRef={scrollContainerRef}
           dayColRefs={dayColRefs}
+          className="print:w-[92%] print:h-[88%]"
         />
       )}
 
@@ -685,6 +717,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           colorClassName={childColor ? cn(childColor.bg, "text-white") : undefined}
           title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
           ariaLabel={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
+          className="print:hidden"
         />
       )}
     </div>

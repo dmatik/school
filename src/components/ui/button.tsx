@@ -18,6 +18,8 @@ const buttonVariants = cva(
                     "bg-secondary text-secondary-foreground hover:bg-secondary/80",
                 ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
+                liquid:
+                    "h-10 py-0 px-3.5 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock flex items-center gap-2 select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium text-muted-foreground hover:text-foreground",
             },
             size: {
                 default: "h-10 px-5 py-2 rounded-full",
@@ -58,5 +60,53 @@ function Button({
 }
 Button.displayName = "Button"
 
+export interface LiquidButtonProps extends Omit<ButtonProps, "variant"> {
+    /** Optional leading icon rendered at the same scale as LiquidDatePicker. */
+    icon?: React.ComponentType<{ className?: string }>
+    /** Marks the button as active (high-contrast foreground text/icon). */
+    active?: boolean
+}
+
+/**
+ * Apple Liquid Glass pill button matching the filter-row aesthetic of LiquidDatePicker.
+ */
+function LiquidButton({
+    icon: Icon,
+    active = false,
+    children,
+    className,
+    type = "button",
+    ref,
+    ...props
+}: LiquidButtonProps & { ref?: React.Ref<HTMLButtonElement> }) {
+    return (
+        <Button
+            ref={ref}
+            type={type}
+            variant="liquid"
+            className={cn(
+                active && "text-foreground",
+                className
+            )}
+            {...props}
+        >
+            {Icon && (
+                <Icon
+                    className={cn(
+                        "w-5 h-5 shrink-0 stroke-[1.85px] transition-colors",
+                        active ? "text-foreground" : "text-current"
+                    )}
+                />
+            )}
+            {children && (
+                <span className="text-base whitespace-nowrap translate-y-px">
+                    {children}
+                </span>
+            )}
+        </Button>
+    )
+}
+LiquidButton.displayName = "LiquidButton"
+
 // eslint-disable-next-line react-refresh/only-export-components
-export { Button, buttonVariants }
+export { Button, LiquidButton, buttonVariants }

@@ -20,6 +20,8 @@ import { SelectField, SelectItem } from '../components/ui/select'
 import { InfoBox, InfoItem } from '../components/ui/info-box'
 import { SectionCard, SectionCardHeader, SectionCardTitle, SectionCardDescription, SectionCardContent } from '../components/ui/section-card'
 import { ScheduleTable } from '../components/ui/schedule-table'
+import { LiquidButton } from '../components/ui/button'
+import { Printer } from 'lucide-react'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -755,7 +757,7 @@ describe('ScheduleTable Component', () => {
     fireEvent.click(screen.getByText('English'))
     expect(onLessonClick).toHaveBeenCalledWith(1, 3)
 
-    const dismissalCells = container.querySelector('[data-schedule-dismissal]')!.children
+    const dismissalCells = container.querySelector('[data-schedule-dismissal]')!.lastElementChild!.children
     fireEvent.click(dismissalCells[4])
     expect(onFinishTimeClick).toHaveBeenCalledWith(4)
   })
@@ -1739,6 +1741,92 @@ describe('InfoBox & InfoItem Component', () => {
     expect(screen.getByText('Col 1')).toBeInTheDocument()
     expect(screen.getByText('Val 1')).toBeInTheDocument()
     expect(screen.getByText('Col 3')).toBeInTheDocument()
+  })
+})
+
+describe('LiquidButton & ScheduleTable Print Support', () => {
+  it('renders LiquidButton with apple-liquid-dock pill styling matching LiquidDatePicker', () => {
+    const onClick = vi.fn()
+    render(
+      <LiquidButton icon={Printer} onClick={onClick} aria-label="Print">
+        Print
+      </LiquidButton>
+    )
+
+    const btn = screen.getByRole('button', { name: 'Print' })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('apple-liquid-dock')
+    expect(btn.className).toContain('rounded-full')
+    expect(btn.className).toContain('h-10')
+    expect(btn.querySelector('svg')).toBeInTheDocument()
+
+    fireEvent.click(btn)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('applies full-table print overrides to ScheduleTable so all 6 days print even from mobile', () => {
+    const { container } = render(
+      <ScheduleTable
+        lessons={[{ dayOfWeek: 0, hourNum: 1, subject: 'Math' }]}
+        finishTimes={[{ dayOfWeek: 0, finishTime: '13:30' }]}
+        isEditMode={true}
+        canEdit={true}
+      />
+    )
+
+    // Days grid expands to 100% on print (overriding mobile calc(200% - ...))
+    const daysGrid = container.querySelector('[data-schedule-grid]')
+    expect(daysGrid).toBeInTheDocument()
+    expect(daysGrid?.className).toContain('print:w-full')
+    expect(daysGrid?.className).toContain('print:min-w-full')
+
+    // Horizontal scroll container disables overflow clipping on print
+    const scrollWrap = daysGrid?.parentElement
+    expect(scrollWrap?.className).toContain('print:overflow-visible')
+
+    // Mobile scroll hints are hidden on print
+    const mobileHints = container.querySelector('.md\\:hidden')
+    expect(mobileHints?.className).toContain('print:hidden')
+  })
+
+  it('renders each row with both its sticky hour cell and day cells in a unified flex row so they stay aligned', () => {
+    const { container } = render(
+      <ScheduleTable
+        lessons={[
+          { dayOfWeek: 0, hourNum: 1, subject: 'Math' },
+          { dayOfWeek: 0, hourNum: 6, subject: 'Art' }
+        ]}
+        finishTimes={[{ dayOfWeek: 0, finishTime: '13:30' }]}
+      />
+    )
+
+    const root = container.querySelector('[data-schedule-table]')
+    expect(root?.className).toContain('shrink-0')
+
+    // Header row contains sticky # column and day columns
+    const headerRow = container.querySelector('[data-schedule-header]')
+    const headerHourCol = headerRow?.querySelector('[data-schedule-hour-col]')
+    expect(headerHourCol).toBeInTheDocument()
+    expect(headerHourCol?.className).toContain('sticky')
+    expect(headerHourCol?.className).toContain('start-0')
+    expect(headerRow?.querySelectorAll('[data-schedule-day]')).toHaveLength(6)
+
+    // Each lesson row contains its own sticky hour cell
+    const rows = container.querySelectorAll('[data-schedule-row]')
+    expect(rows).toHaveLength(6)
+    rows.forEach((row, idx) => {
+      const hourCell = row.querySelector(`[data-schedule-hour-cell="${idx + 1}"]`)
+      expect(hourCell).toBeInTheDocument()
+      expect(hourCell?.className).toContain('sticky')
+      expect(hourCell?.className).toContain('start-0')
+    })
+
+    // Dismissal row contains sticky clock cell
+    const dismissalRow = container.querySelector('[data-schedule-dismissal]')
+    const finishIcon = dismissalRow?.querySelector('[data-schedule-finish-icon]')
+    expect(finishIcon).toBeInTheDocument()
+    expect(finishIcon?.className).toContain('sticky')
+    expect(finishIcon?.className).toContain('start-0')
   })
 })
 

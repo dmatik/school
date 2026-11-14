@@ -40,7 +40,8 @@
     "syncing": "Syncing...",
     "sync_success": "Synced successfully",
     "last_sync": "Updated: {{date}}",
-    "clear_search": "Clear search"
+    "clear_search": "Clear search",
+    "print": "Print"
   },
   "incidents": {
     "title": "School Incidents",
@@ -206,7 +207,8 @@
     "changes_saved": "Schedule saved successfully",
     "changes_discarded": "Changes discarded",
     "scroll_backward": "Scroll backward",
-    "scroll_forward": "Scroll forward"
+    "scroll_forward": "Scroll forward",
+    "print": "Print"
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",

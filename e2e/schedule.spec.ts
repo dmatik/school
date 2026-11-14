@@ -72,6 +72,25 @@ test.describe('Weekly Schedule Flow', () => {
     // Check scroll hints exist on mobile
     await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).toBeVisible();
     await expect(page.locator('button[aria-label="Scroll backward"], button[aria-label="גלול אחורה"]')).toBeVisible();
+
+    // Verify header # column and day header share identical vertical bounds, as well as dismissal row
+    const hourColBox = await page.locator('[data-schedule-hour-col]').boundingBox();
+    const firstDayBox = await page.locator('[data-schedule-header] [data-schedule-day]').first().boundingBox();
+    expect(hourColBox).not.toBeNull();
+    expect(firstDayBox).not.toBeNull();
+    if (hourColBox && firstDayBox) {
+      expect(Math.abs(hourColBox.y - firstDayBox.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(hourColBox.height - firstDayBox.height)).toBeLessThanOrEqual(1);
+    }
+
+    const dismissalRowBox = await page.locator('[data-schedule-dismissal]').boundingBox();
+    const finishIconBox = await page.locator('[data-schedule-finish-icon]').boundingBox();
+    expect(dismissalRowBox).not.toBeNull();
+    expect(finishIconBox).not.toBeNull();
+    if (dismissalRowBox && finishIconBox) {
+      expect(Math.abs(dismissalRowBox.y - finishIconBox.y)).toBeLessThanOrEqual(1);
+      expect(Math.abs(dismissalRowBox.height - finishIconBox.height)).toBeLessThanOrEqual(1);
+    }
   });
 
   test('mobile modal renders full screen and keeps input and actions visible', async ({ page }) => {
@@ -226,5 +245,57 @@ test.describe('Weekly Schedule Flow', () => {
       // Specifically at the bottom-left of the page
       expect(box.x).toBeLessThan(200);
     }
+  });
+
+  test('print button renders in filter row and print media shows only full 6-day schedule table even on mobile', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    // Switch to mobile viewport (375x667) where screen mode only shows 3 days
+    await page.setViewportSize({ width: 375, height: 667 });
+
+    const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
+    await dockButtons.nth(3).click();
+    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+
+    // Print button should be visible in the filter row
+    const printBtn = page.locator('[data-schedule-print-btn]');
+    await expect(printBtn).toBeVisible();
+
+    // Emulate print media from mobile viewport
+    await page.emulateMedia({ media: 'print' });
+
+    // Chrome (sidebar, mobile header, mobile dock, filters, FAB, mobile scroll hints) must be hidden
+    await expect(page.locator('aside')).not.toBeVisible();
+    await expect(page.locator('header')).not.toBeVisible();
+    await expect(page.locator('nav[aria-label="Mobile Navigation"]')).not.toBeVisible();
+    await expect(page.locator('[data-sticky-filters]')).not.toBeVisible();
+    await expect(page.locator('button[aria-label="הפעל מצב עריכה"], button[aria-label="Enable edit mode"]')).not.toBeVisible();
+    await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).not.toBeVisible();
+
+    // Full 6-day table must be visible and fit within the table container width
+    const table = page.locator('[data-schedule-table]');
+    await expect(table).toBeVisible();
+
+    const dayHeaders = page.locator('[data-schedule-header] [data-schedule-day]');
+    await expect(dayHeaders).toHaveCount(6);
+    for (let i = 0; i < 6; i++) {
+      await expect(dayHeaders.nth(i)).toBeVisible();
+    }
+
+    const tableBox = await table.boundingBox();
+    const firstDayBox = await dayHeaders.first().boundingBox();
+    const lastDayBox = await dayHeaders.last().boundingBox();
+    expect(tableBox).not.toBeNull();
+    expect(firstDayBox).not.toBeNull();
+    expect(lastDayBox).not.toBeNull();
+    if (tableBox && firstDayBox && lastDayBox) {
+      expect(firstDayBox.x).toBeGreaterThanOrEqual(tableBox.x - 1);
+      expect(firstDayBox.x + firstDayBox.width).toBeLessThanOrEqual(tableBox.x + tableBox.width + 1);
+      expect(lastDayBox.x).toBeGreaterThanOrEqual(tableBox.x - 1);
+      expect(lastDayBox.x + lastDayBox.width).toBeLessThanOrEqual(tableBox.x + tableBox.width + 1);
+    }
+
+    await page.emulateMedia({ media: 'screen' });
   });
 });
