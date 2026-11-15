@@ -1,6 +1,6 @@
 import * as React from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { RefreshCw, Check } from "lucide-react"
+import { RefreshCw } from "lucide-react"
 import { useTranslation } from "react-i18next"
 import { cn } from "@/lib/utils"
 
@@ -56,11 +56,9 @@ function isScrollableAtTop(target: EventTarget | null, boundary: HTMLElement | n
 export function PullToRefresh({
   onRefresh,
   refreshing = false,
-  success = false,
   disabled = false,
-  threshold = 84,
-  maxPull = 128,
-  refreshOffset = 56,
+  threshold = 108,
+  maxPull = 156,
   children,
   className,
 }: PullToRefreshProps) {
@@ -108,7 +106,7 @@ export function PullToRefresh({
           resetTouch()
           return
         }
-        if (deltaY <= 8) {
+        if (deltaY <= 12) {
           return
         }
         if (!isScrollableAtTop(e.target, containerRef.current)) {
@@ -138,19 +136,15 @@ export function PullToRefresh({
 
   const progress = Math.min(1, pullDistance / threshold)
   const isReady = pullDistance >= threshold
-  const showIndicator = pullDistance > 4 || refreshing || success
+  const showIndicator = pullDistance > 4
 
-  const statusLabel = success
-    ? t("common.sync_success")
-    : refreshing
-      ? t("common.syncing")
-      : isReady
-        ? t("common.release_to_refresh")
-        : t("common.pull_to_refresh")
+  const statusLabel = isReady
+    ? t("common.release_to_refresh")
+    : t("common.pull_to_refresh")
 
-  const isDragging = pullDistance > 0 && !refreshing && !success
-  const contentOffset = refreshing || success ? refreshOffset : Math.round(pullDistance)
-  const indicatorY = refreshing || success ? 0 : Math.max(-8, Math.round(pullDistance * 0.2 - 8))
+  const isDragging = pullDistance > 0
+  const contentOffset = Math.round(pullDistance)
+  const indicatorY = Math.max(-8, Math.round(pullDistance * 0.2 - 8))
 
   return (
     <div
@@ -170,9 +164,9 @@ export function PullToRefresh({
             aria-label={statusLabel}
             initial={{ opacity: 0, y: -12, scale: 0.85 }}
             animate={{
-              opacity: refreshing || success ? 1 : Math.min(1, 0.35 + progress * 0.65),
+              opacity: Math.min(1, 0.35 + progress * 0.65),
               y: indicatorY,
-              scale: refreshing || success ? 1 : 0.85 + progress * 0.15,
+              scale: 0.85 + progress * 0.15,
             }}
             exit={{ opacity: 0, y: -12, scale: 0.85 }}
             transition={{ duration: 0.16, ease: "easeOut" }}
@@ -181,26 +175,20 @@ export function PullToRefresh({
             <div
               className={cn(
                 "flex items-center justify-center w-9 h-9 rounded-full border shadow-md backdrop-blur-md transition-colors",
-                success
-                  ? "border-emerald-500/40 bg-emerald-500/15 text-emerald-600 dark:text-emerald-400"
-                  : isReady || refreshing
-                    ? "border-primary/40 bg-card/95 text-primary"
-                    : "border-border/60 bg-card/90 text-muted-foreground"
+                isReady
+                  ? "border-primary/40 bg-card/95 text-primary"
+                  : "border-border/60 bg-card/90 text-muted-foreground"
               )}
               title={statusLabel}
             >
-              {success ? (
-                <Check className="w-4 h-4 stroke-[2.5px]" />
-              ) : (
-                <RefreshCw
-                  className={cn("w-4 h-4", refreshing && "animate-spin")}
-                  style={
-                    refreshing
-                      ? undefined
-                      : { transform: `rotate(${Math.round(progress * 180)}deg)` }
-                  }
-                />
-              )}
+              <RefreshCw
+                className={cn("w-4 h-4", isReady && "animate-spin")}
+                style={
+                  isReady
+                    ? undefined
+                    : { transform: `rotate(${Math.round(progress * 180)}deg)` }
+                }
+              />
               <span className="sr-only">{statusLabel}</span>
             </div>
           </motion.div>

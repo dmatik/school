@@ -3,10 +3,10 @@ import { describe, it, expect, vi } from 'vitest'
 import { PullToRefresh } from '../components/ui/pull-to-refresh'
 
 describe('PullToRefresh Component', () => {
-  it('triggers onRefresh when pulled down past threshold at scrollTop 0', () => {
+  it('triggers onRefresh when pulled down past default higher threshold at scrollTop 0', () => {
     const onRefresh = vi.fn()
     render(
-      <PullToRefresh onRefresh={onRefresh} threshold={60}>
+      <PullToRefresh onRefresh={onRefresh}>
         <div data-testid="scroll-area" style={{ overflowY: 'auto' }}>
           Content
         </div>
@@ -19,18 +19,27 @@ describe('PullToRefresh Component', () => {
     fireEvent.touchStart(scrollArea, {
       touches: [{ clientX: 100, clientY: 100 }]
     })
+    // deltaY = 210 -> damped = 210 * 0.55 = 115.5 >= 108 default threshold
     fireEvent.touchMove(scrollArea, {
-      touches: [{ clientX: 100, clientY: 260 }]
+      touches: [{ clientX: 100, clientY: 310 }]
     })
+
+    // While pulled past threshold, spinning arrows animation starts on indicator
+    const status = screen.getByRole('status')
+    expect(status).toBeInTheDocument()
+    expect(status.querySelector('svg')).toHaveClass('animate-spin')
+
     fireEvent.touchEnd(scrollArea)
 
     expect(onRefresh).toHaveBeenCalledTimes(1)
+    // Content immediately snaps back up with no offset
+    expect(screen.getByTestId('pull-to-refresh-content').style.transform).toBe('')
   })
 
-  it('does not trigger onRefresh when pulled down less than threshold', () => {
+  it('does not trigger onRefresh on moderate pulls below the increased default threshold (108)', () => {
     const onRefresh = vi.fn()
     render(
-      <PullToRefresh onRefresh={onRefresh} threshold={64}>
+      <PullToRefresh onRefresh={onRefresh}>
         <div data-testid="scroll-area" style={{ overflowY: 'auto' }}>
           Content
         </div>
@@ -43,9 +52,14 @@ describe('PullToRefresh Component', () => {
     fireEvent.touchStart(scrollArea, {
       touches: [{ clientX: 100, clientY: 100 }]
     })
+    // deltaY = 160 -> damped = 88 (< 108 default threshold)
     fireEvent.touchMove(scrollArea, {
-      touches: [{ clientX: 100, clientY: 160 }]
+      touches: [{ clientX: 100, clientY: 260 }]
     })
+
+    const status = screen.getByRole('status')
+    expect(status.querySelector('svg')).not.toHaveClass('animate-spin')
+
     fireEvent.touchEnd(scrollArea)
 
     expect(onRefresh).not.toHaveBeenCalled()
@@ -102,27 +116,23 @@ describe('PullToRefresh Component', () => {
     expect(onRefresh).not.toHaveBeenCalled()
   })
 
-  it('renders refreshing and success status indicators and shifts content below indicator', () => {
+  it('does not keep page indicator or content offset when refreshing or success is true after release', () => {
     const { rerender } = render(
-      <PullToRefresh onRefresh={vi.fn()} refreshing={true} refreshOffset={56}>
+      <PullToRefresh onRefresh={vi.fn()} refreshing={true}>
         <div>Content</div>
       </PullToRefresh>
     )
 
-    expect(screen.getByRole('status')).toBeInTheDocument()
-    expect(screen.getByTestId('pull-to-refresh-content')).toHaveStyle({
-      transform: 'translate3d(0, 56px, 0)'
-    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pull-to-refresh-content').style.transform).toBe('')
 
     rerender(
-      <PullToRefresh onRefresh={vi.fn()} refreshing={false} success={true} refreshOffset={56}>
+      <PullToRefresh onRefresh={vi.fn()} refreshing={false} success={true}>
         <div>Content</div>
       </PullToRefresh>
     )
 
-    expect(screen.getByRole('status')).toBeInTheDocument()
-    expect(screen.getByTestId('pull-to-refresh-content')).toHaveStyle({
-      transform: 'translate3d(0, 56px, 0)'
-    })
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
+    expect(screen.getByTestId('pull-to-refresh-content').style.transform).toBe('')
   })
 })
