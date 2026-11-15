@@ -7,7 +7,7 @@ import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { createAutoSync } from './autoSync.js';
-import { webtopLog, maskUser } from './webtopLogger.js';
+import { webtopLog, appLog, maskUser } from './webtopLogger.js';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -239,8 +239,12 @@ app.post('/api/auth/login', rateLimitAuth(20, 60000), (req, res) => {
   const isPasswordValid = bcrypt.compareSync(password, hashToCompare);
 
   if (!user || !isPasswordValid) {
+    appLog.warn('User login failed', { method: 'password', user: username.trim(), reason: 'invalid_credentials' });
     return res.status(401).json({ error: 'Invalid username or password' });
   }
+
+  const familyRole = user.role === 'admin' ? 'parent' : (user.family_role || 'parent');
+  appLog.info('User login ok', { method: 'password', user: user.username, role: user.role, familyRole });
 
   const token = jwt.sign(
     { id: user.id, username: user.username, role: user.role, tokenVersion: user.token_version || 0 },
@@ -254,7 +258,7 @@ app.post('/api/auth/login', rateLimitAuth(20, 60000), (req, res) => {
       id: user.id,
       username: user.username,
       role: user.role,
-      familyRole: user.role === 'admin' ? 'parent' : (user.family_role || 'parent'),
+      familyRole,
       linkedChildId: user.role === 'admin' ? null : (user.linked_child_id || null),
       firstName: user.first_name || '',
       lastName: user.last_name || '',
@@ -338,6 +342,7 @@ app.post('/api/auth/passkey/register-verify', authenticate, async (req, res) => 
       return res.status(409).json({ error: 'Passkey already registered to another user' });
     }
 
+    const cleanDeviceName = deviceName?.trim() || 'Passkey';
     db.prepare(`
       INSERT OR REPLACE INTO authenticators (
         id, user_id, public_key, counter, device_type, backed_up, transports, device_name, created_at, last_used_at
@@ -350,16 +355,18 @@ app.post('/api/auth/passkey/register-verify', authenticate, async (req, res) => 
       credentialDeviceType,
       credentialBackedUp ? 1 : 0,
       JSON.stringify(credential.transports || []),
-      deviceName?.trim() || 'Passkey',
+      cleanDeviceName,
       now,
       now
     );
+
+    appLog.info('Passkey registered', { user: req.user.username, device: cleanDeviceName, deviceType: credentialDeviceType });
 
     res.json({
       verified: true,
       passkey: {
         id: credential.id,
-        deviceName: deviceName?.trim() || 'Passkey',
+        deviceName: cleanDeviceName,
         createdAt: now
       }
     });
@@ -400,6 +407,8 @@ app.post('/api/auth/passkey/login-options', rateLimitAuth(20, 60000), async (req
       expiresAt: Date.now() + 2 * 60 * 1000,
     });
 
+    appLog.info('Passkey login started', { user: username && typeof username === 'string' && username.trim() ? username.trim() : 'discoverable' });
+
     res.json({ options, challengeId });
   } catch (err) {
     console.error('Error generating passkey login options:', err);
@@ -418,16 +427,19 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
     const stored = webauthnChallenges.get(challengeId);
     webauthnChallenges.delete(challengeId);
     if (!stored || stored.expiresAt < Date.now()) {
+      appLog.warn('User login failed', { method: 'passkey', user: stored?.username || 'unknown', reason: 'invalid_challenge' });
       return res.status(400).json({ error: 'Challenge expired or invalid. Please try again.' });
     }
 
     const authenticator = db.prepare('SELECT * FROM authenticators WHERE id = ?').get(response.id);
     if (!authenticator) {
+      appLog.warn('User login failed', { method: 'passkey', user: stored?.username || 'unknown', reason: 'unknown_passkey' });
       return res.status(400).json({ error: 'Passkey not recognized' });
     }
 
     const user = db.prepare('SELECT * FROM users WHERE id = ?').get(authenticator.user_id);
     if (!user) {
+      appLog.warn('User login failed', { method: 'passkey', user: stored?.username || 'unknown', reason: 'user_not_found' });
       return res.status(400).json({ error: 'User associated with this passkey not found' });
     }
 
@@ -447,6 +459,7 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
     });
 
     if (!verification.verified) {
+      appLog.warn('User login failed', { method: 'passkey', user: user.username, reason: 'verification_failed' });
       return res.status(400).json({ error: 'Passkey authentication failed' });
     }
 
@@ -454,6 +467,9 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
     const now = new Date().toISOString();
     db.prepare('UPDATE authenticators SET counter = ?, last_used_at = ? WHERE id = ?')
       .run(newCounter, now, authenticator.id);
+
+    const familyRole = user.role === 'admin' ? 'parent' : (user.family_role || 'parent');
+    appLog.info('User login ok', { method: 'passkey', user: user.username, role: user.role, familyRole, device: authenticator.device_name || 'Passkey' });
 
     const token = jwt.sign(
       { id: user.id, username: user.username, role: user.role, tokenVersion: user.token_version || 0 },
@@ -467,7 +483,7 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
         id: user.id,
         username: user.username,
         role: user.role,
-        familyRole: user.role === 'admin' ? 'parent' : (user.family_role || 'parent'),
+        familyRole,
         linkedChildId: user.role === 'admin' ? null : (user.linked_child_id || null),
         firstName: user.first_name || '',
         lastName: user.last_name || '',
@@ -475,6 +491,7 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
       }
     });
   } catch (err) {
+    appLog.warn('User login failed', { method: 'passkey', user: 'unknown', reason: err.message || 'error' });
     console.error('Error verifying passkey login:', err);
     res.status(400).json({ error: err.message || 'Passkey authentication failed' });
   }
@@ -494,6 +511,7 @@ app.get('/api/auth/passkeys', authenticate, (req, res) => {
 // DELETE /api/auth/passkeys/:id
 app.delete('/api/auth/passkeys/:id', authenticate, (req, res) => {
   db.prepare('DELETE FROM authenticators WHERE id = ? AND user_id = ?').run(req.params.id, req.user.id);
+  appLog.info('Passkey deleted', { user: req.user.username, passkeyId: req.params.id });
   res.json({ success: true });
 });
 
@@ -504,6 +522,7 @@ app.patch('/api/auth/passkeys/:id', authenticate, (req, res) => {
     return res.status(400).json({ error: 'Device name is required' });
   }
   db.prepare('UPDATE authenticators SET device_name = ? WHERE id = ? AND user_id = ?').run(deviceName.trim(), req.params.id, req.user.id);
+  appLog.info('Passkey renamed', { user: req.user.username, passkeyId: req.params.id, device: deviceName.trim() });
   res.json({ success: true });
 });
 
@@ -562,6 +581,12 @@ app.put('/api/auth/profile', authenticate, (req, res) => {
   );
 
   const updatedUser = db.prepare('SELECT id, username, role, family_role, linked_child_id, first_name, last_name, avatar FROM users WHERE id = ?').get(req.user.id);
+  appLog.info('Profile updated', {
+    user: req.user.username,
+    firstName: cleanFirst,
+    lastName: cleanLast,
+    avatar: validatedAvatar ? 'set' : 'cleared'
+  });
   res.json({
     user: {
       id: updatedUser.id,
@@ -589,6 +614,7 @@ app.put('/api/auth/password', authenticate, (req, res) => {
 
   const user = db.prepare('SELECT password_hash FROM users WHERE id = ?').get(req.user.id);
   if (!user || !bcrypt.compareSync(currentPassword, user.password_hash)) {
+    appLog.warn('Password change failed', { user: req.user.username, reason: 'wrong_current_password' });
     return res.status(400).json({ error: 'Incorrect current password' });
   }
 
@@ -597,6 +623,7 @@ app.put('/api/auth/password', authenticate, (req, res) => {
   const now = new Date().toISOString();
 
   db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1, updated_at = ? WHERE id = ?').run(newHash, now, req.user.id);
+  appLog.info('Password changed', { user: req.user.username });
   res.json({ success: true });
 });
 
@@ -683,6 +710,14 @@ app.post('/api/admin/users', authenticate, requireAdmin, (req, res) => {
       now
     );
 
+    appLog.info('Admin created user', {
+      by: req.user.username,
+      targetUser: cleanUsername,
+      role: userRole,
+      familyRole: userFamilyRole,
+      linkedChildId: userLinkedChildId || 'none'
+    });
+
     res.status(201).json({
       user: {
         id,
@@ -766,6 +801,15 @@ app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
     );
 
     const updated = db.prepare('SELECT id, username, first_name, last_name, avatar, role, family_role, linked_child_id, created_at FROM users WHERE id = ?').get(id);
+    const updatedFamilyRole = updated.role === 'admin' ? 'parent' : (updated.family_role || 'parent');
+    const updatedLinkedChildId = updated.role === 'admin' ? null : (updated.linked_child_id || null);
+    appLog.info('Admin updated user', {
+      by: req.user.username,
+      targetUser: updated.username,
+      role: updated.role,
+      familyRole: updatedFamilyRole,
+      linkedChildId: updatedLinkedChildId || 'none'
+    });
     res.json({
       user: {
         id: updated.id,
@@ -774,8 +818,8 @@ app.put('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
         lastName: updated.last_name || '',
         avatar: updated.avatar || '',
         role: updated.role,
-        familyRole: updated.role === 'admin' ? 'parent' : (updated.family_role || 'parent'),
-        linkedChildId: updated.role === 'admin' ? null : (updated.linked_child_id || null),
+        familyRole: updatedFamilyRole,
+        linkedChildId: updatedLinkedChildId,
         createdAt: updated.created_at
       }
     });
@@ -795,7 +839,7 @@ app.put('/api/admin/users/:id/password', authenticate, requireAdmin, (req, res) 
       return res.status(400).json({ error: 'Password must be at least 4 characters long' });
     }
 
-    const user = db.prepare('SELECT id FROM users WHERE id = ?').get(id);
+    const user = db.prepare('SELECT id, username FROM users WHERE id = ?').get(id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -805,6 +849,7 @@ app.put('/api/admin/users/:id/password', authenticate, requireAdmin, (req, res) 
     const now = new Date().toISOString();
 
     db.prepare('UPDATE users SET password_hash = ?, token_version = token_version + 1, updated_at = ? WHERE id = ?').run(passwordHash, now, id);
+    appLog.info('Admin reset user password', { by: req.user.username, targetUser: user.username });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to reset password:', err);
@@ -821,7 +866,7 @@ app.delete('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
       return res.status(400).json({ error: 'cannot_delete_self' });
     }
 
-    const user = db.prepare('SELECT id, role FROM users WHERE id = ?').get(id);
+    const user = db.prepare('SELECT id, username, role FROM users WHERE id = ?').get(id);
     if (!user) {
       return res.status(404).json({ error: 'User not found' });
     }
@@ -834,6 +879,7 @@ app.delete('/api/admin/users/:id', authenticate, requireAdmin, (req, res) => {
     }
 
     db.prepare('DELETE FROM users WHERE id = ?').run(id);
+    appLog.info('Admin deleted user', { by: req.user.username, targetUser: user.username });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete user:', err);
@@ -866,12 +912,20 @@ app.get('/api/users', authenticate, requireAdmin, (req, res) => {
 
 /* --- Webtop Sync & Data Endpoints --- */
 
+function formatErrorDetail(err) {
+  const msg = err?.message || String(err || 'Unknown error');
+  const cause = err?.cause;
+  if (!cause) return msg;
+  const causeDetail = [cause.code, cause.message].filter(Boolean).join(': ') || String(cause);
+  return causeDetail ? `${msg} (${causeDetail})` : msg;
+}
+
 // Wrong-password failures are lockout events; everything else is a regular failure.
 function logWebtopFailure(context, err) {
   if (err instanceof WebtopAuthError) {
     webtopLog.lockout(`${context}: ${err.message}`);
   } else {
-    webtopLog.warn(`${context}: ${err?.message || err}`);
+    webtopLog.warn(`${context}: ${formatErrorDetail(err)}`);
   }
 }
 
@@ -1468,6 +1522,8 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       logWebtopFailure('Initial sync warning', syncErr);
     }
 
+    appLog.info('Webtop config updated', { user: req.user.username, webtopUser: maskUser(username) });
+
     res.json({
       success: true,
       username,
@@ -1511,6 +1567,8 @@ app.patch('/api/webtop/child', authenticate, requireParent, (req, res) => {
       `).run(targetChildId, new Date().toISOString(), creds.id);
     }
 
+    appLog.info('Active child switched', { user: req.user.username, childId: targetChildId });
+
     res.json({ success: true, selectedChildId: targetChildId });
   } catch (err) {
     console.error('Failed to switch child:', err);
@@ -1552,6 +1610,8 @@ app.patch('/api/webtop/child-color', authenticate, requireParent, (req, res) => 
       ORDER BY class_code ASC, first_name ASC
     `).all();
 
+    appLog.info('Child color updated', { user: req.user.username, childId, color: cleanColor || 'default' });
+
     res.json({ success: true, linkedChildren });
   } catch (err) {
     console.error('Failed to update child color:', err);
@@ -1567,10 +1627,12 @@ app.post('/api/webtop/sync', authenticate, async (req, res) => {
       return res.status(400).json({ error: 'Webtop credentials not configured' });
     }
 
+    appLog.info('Manual sync triggered', { user: req.user.username });
     const result = await runWebtopSync();
     res.json({ success: true, result });
   } catch (err) {
     logWebtopFailure('Failed to sync Webtop data', err);
+    const errMsg = formatErrorDetail(err) || 'Sync failed';
     // Persist error status
     const creds = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
     if (creds) {
@@ -1578,10 +1640,10 @@ app.post('/api/webtop/sync', authenticate, async (req, res) => {
         UPDATE webtop_credentials
         SET sync_status = 'error', sync_error = ?, updated_at = ?
         WHERE id = ?
-      `).run(err.message || 'Sync failed', new Date().toISOString(), creds.id);
+      `).run(errMsg, new Date().toISOString(), creds.id);
     }
 
-    res.status(500).json({ error: err.message || 'Failed to sync Webtop data' });
+    res.status(500).json({ error: errMsg });
   }
 });
 
@@ -1609,6 +1671,7 @@ app.put('/api/webtop/auto-sync', authenticate, requireParent, (req, res) => {
   if (!autoSync.setEnabled(enabled)) {
     return res.status(400).json({ error: 'Webtop credentials not configured' });
   }
+  appLog.info('Auto-sync toggled', { user: req.user.username, enabled });
   res.json({ success: true, ...autoSync.getStatus() });
 });
 
@@ -1623,6 +1686,7 @@ app.delete('/api/webtop/config', authenticate, requireParent, (req, res) => {
       db.prepare("DELETE FROM children WHERE external_source = 'webtop'").run();
     });
     deleteTx();
+    appLog.info('Webtop config deleted', { user: req.user.username });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete Webtop config:', err);
@@ -1711,7 +1775,7 @@ app.get('/api/homework', authenticate, (req, res) => {
 // PATCH /api/homework/:id/toggle
 app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
   try {
-    const item = db.prepare('SELECT id, child_id, student_id, completed FROM homework WHERE id = ?').get(req.params.id);
+    const item = db.prepare('SELECT id, child_id, student_id, student_name, subject, completed FROM homework WHERE id = ?').get(req.params.id);
     if (!item) {
       return res.status(404).json({ error: 'Homework item not found' });
     }
@@ -1724,6 +1788,14 @@ app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
 
     const newCompleted = item.completed ? 0 : 1;
     db.prepare('UPDATE homework SET completed = ? WHERE id = ?').run(newCompleted, req.params.id);
+
+    appLog.info('Homework toggled', {
+      user: req.user.username,
+      homeworkId: req.params.id,
+      student: item.student_name || 'unknown',
+      subject: item.subject || 'unknown',
+      completed: Boolean(newCompleted)
+    });
 
     res.json({ success: true, completed: Boolean(newCompleted) });
   } catch (err) {
@@ -1828,6 +1900,15 @@ app.post('/api/exams', authenticate, requireParent, (req, res) => {
       VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, child.id, studentName, cleanName, cleanDescription, cleanDate, cleanGrade, now, now);
 
+    appLog.info('Exam created', {
+      user: req.user.username,
+      examId: id,
+      student: studentName,
+      name: cleanName,
+      date: cleanDate,
+      grade: cleanGrade || 'none'
+    });
+
     res.status(201).json({
       exam: {
         id,
@@ -1914,6 +1995,15 @@ app.put('/api/exams/:id', authenticate, requireParent, (req, res) => {
       WHERE id = ?
     `).run(targetChildId, targetStudentName, targetName, targetDescription, targetDate, targetGrade, now, req.params.id);
 
+    appLog.info('Exam updated', {
+      user: req.user.username,
+      examId: req.params.id,
+      student: targetStudentName,
+      name: targetName,
+      date: targetDate,
+      grade: targetGrade || 'none'
+    });
+
     res.json({
       exam: {
         id: req.params.id,
@@ -1936,12 +2026,18 @@ app.put('/api/exams/:id', authenticate, requireParent, (req, res) => {
 // DELETE /api/exams/:id
 app.delete('/api/exams/:id', authenticate, requireParent, (req, res) => {
   try {
-    const existing = db.prepare('SELECT id FROM exams WHERE id = ?').get(req.params.id);
+    const existing = db.prepare('SELECT id, student_name, name FROM exams WHERE id = ?').get(req.params.id);
     if (!existing) {
       return res.status(404).json({ error: 'not_found', message: 'Exam not found' });
     }
 
     db.prepare('DELETE FROM exams WHERE id = ?').run(req.params.id);
+    appLog.info('Exam deleted', {
+      user: req.user.username,
+      examId: req.params.id,
+      student: existing.student_name || 'unknown',
+      name: existing.name || 'unknown'
+    });
     res.json({ success: true });
   } catch (err) {
     console.error('Failed to delete exam:', err);
@@ -2038,6 +2134,7 @@ app.put('/api/schedule/lesson', authenticate, requireParent, (req, res) => {
         WHERE child_id = ? AND day_of_week = ? AND hour_num = ?
       `).run(child.id, parsedDay, parsedHour);
 
+      appLog.info('Schedule lesson updated', { user: req.user.username, childId: child.id, day: parsedDay, hour: parsedHour, subject: 'cleared' });
       return res.json({ deleted: true, dayOfWeek: parsedDay, hourNum: parsedHour });
     }
 
@@ -2060,6 +2157,7 @@ app.put('/api/schedule/lesson', authenticate, requireParent, (req, res) => {
       WHERE child_id = ? AND day_of_week = ? AND hour_num = ?
     `).get(child.id, parsedDay, parsedHour);
 
+    appLog.info('Schedule lesson updated', { user: req.user.username, childId: child.id, day: parsedDay, hour: parsedHour, subject: cleanSubject });
     res.json({ lesson: saved });
   } catch (err) {
     console.error('Failed to update schedule lesson:', err);
@@ -2099,6 +2197,7 @@ app.put('/api/schedule/finish-time', authenticate, requireParent, (req, res) => 
         WHERE child_id = ? AND day_of_week = ?
       `).run(child.id, parsedDay);
 
+      appLog.info('Schedule finish time updated', { user: req.user.username, childId: child.id, day: parsedDay, finishTime: 'cleared' });
       return res.json({ deleted: true, dayOfWeek: parsedDay });
     }
 
@@ -2124,6 +2223,7 @@ app.put('/api/schedule/finish-time', authenticate, requireParent, (req, res) => 
       WHERE child_id = ? AND day_of_week = ?
     `).get(child.id, parsedDay);
 
+    appLog.info('Schedule finish time updated', { user: req.user.username, childId: child.id, day: parsedDay, finishTime: cleanTime });
     res.json({ finishTime: saved });
   } catch (err) {
     console.error('Failed to update finish time:', err);
@@ -2219,6 +2319,13 @@ app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
       WHERE child_id = ?
       ORDER BY day_of_week ASC
     `).all(child.id);
+
+    appLog.info('Schedule batch updated', {
+      user: req.user.username,
+      childId: child.id,
+      lessons: updatedLessons.length,
+      finishTimes: updatedFinishTimes.length
+    });
 
     res.json({ success: true, lessons: updatedLessons, finishTimes: updatedFinishTimes });
   } catch (err) {

@@ -1,9 +1,9 @@
 /**
- * Leveled logger used only for Webtop logins, calls and lockouts.
+ * Leveled logger used for Webtop syncs and App user logins / state-changing operations.
  *
- * WEBTOP_LOG_LEVEL:
- *   all    - everything: each login, every Webtop call, session events, sync summaries, plus errors
- *   errors - (default) only errors: failures and wrong-password lockouts; no routine info
+ * LOG_LEVEL:
+ *   all    - everything: app logins, state-changing operations, every Webtop call, session events, sync summaries, plus errors
+ *   errors - (default) only errors: failures, failed app logins, and wrong-password lockouts; no routine info
  *
  * Never pass passwords, tokens, cookies or request bodies to this logger.
  */
@@ -33,12 +33,12 @@ export function formatJerusalemTime(date = new Date()) {
 }
 
 export function getLogLevel(env = process.env, sink = console) {
-  const raw = (env.WEBTOP_LOG_LEVEL || '').trim().toLowerCase();
+  const raw = (env.LOG_LEVEL || '').trim().toLowerCase();
   if (!raw) return 'errors';
   if (VALID_LEVELS.includes(raw)) return raw;
   if (!warnedInvalid) {
     warnedInvalid = true;
-    sink.warn(`[Webtop] Invalid WEBTOP_LOG_LEVEL "${raw}", falling back to "errors" (valid: ${VALID_LEVELS.join(', ')})`);
+    sink.warn(`[Logger] Invalid LOG_LEVEL "${raw}", falling back to "errors" (valid: ${VALID_LEVELS.join(', ')})`);
   }
   return 'errors';
 }
@@ -50,13 +50,17 @@ export function maskUser(username) {
   return `${u[0]}${'*'.repeat(Math.min(u.length - 2, 6))}${u[u.length - 1]}`;
 }
 
-function formatMeta(meta) {
-  if (!meta) return '';
-  return ' ' + Object.entries(meta).map(([k, v]) => `${k}=${v}`).join(' ');
+function sanitizeLogValue(value) {
+  return String(value).replace(/[\r\n\x00-\x1f\x7f]+/g, ' ').trim();
 }
 
-export function createWebtopLogger({ env = process.env, sink = console, now = () => new Date() } = {}) {
-  const line = (tag, msg, meta) => `[Webtop] ${formatJerusalemTime(now())} ${tag} ${msg}${formatMeta(meta)}`;
+function formatMeta(meta) {
+  if (!meta) return '';
+  return ' ' + Object.entries(meta).map(([k, v]) => `${k}=${sanitizeLogValue(v)}`).join(' ');
+}
+
+export function createWebtopLogger({ env = process.env, sink = console, now = () => new Date(), prefix = 'Webtop' } = {}) {
+  const line = (tag, msg, meta) => `[${prefix}] ${formatJerusalemTime(now())} ${tag} ${sanitizeLogValue(msg)}${formatMeta(meta)}`;
   // Level is read on every call so it can be changed in tests / at runtime.
   const isAll = () => getLogLevel(env, sink) === 'all';
   return {
@@ -64,7 +68,7 @@ export function createWebtopLogger({ env = process.env, sink = console, now = ()
     info(msg, meta) {
       if (isAll()) sink.log(line('INFO', msg, meta));
     },
-    /** Non-auth failures: printed at both levels (as before). */
+    /** Non-auth failures / failed app logins: printed at both levels. */
     warn(msg, meta) {
       sink.warn(line('WARN', msg, meta));
     },
@@ -75,4 +79,6 @@ export function createWebtopLogger({ env = process.env, sink = console, now = ()
   };
 }
 
-export const webtopLog = createWebtopLogger();
+export const createLogger = createWebtopLogger;
+export const webtopLog = createWebtopLogger({ prefix: 'Webtop' });
+export const appLog = createWebtopLogger({ prefix: 'App' });
