@@ -55,7 +55,7 @@ Engineered as an Apple-inspired Progressive Web App (PWA) with native bilingual 
     *   **Session Reuse:** Reuses the active Webtop session across syncs and only re-logs in when Webtop reports session expiry.
     *   **Circuit Breaker & Auto-Pause:** Transient network/server errors back off (`1h` → `4h`), while 2 consecutive authentication failures automatically pause auto-sync and display an in-app warning banner until credentials are updated or resumed in Settings.
     *   **Parent Kill Switch:** Parents can toggle automatic sync on/off in Settings, and operators can disable it in production via `WEBTOP_AUTO_SYNC=off`.
-*   **Leveled Webtop Logging:** Controlled via `WEBTOP_LOG_LEVEL` (`errors` by default for errors and wrong-password lockouts, or `all` for every login, API call with request parameters, session reuse, and sync summary), formatted in `Asia/Jerusalem` time with masked usernames and zero credential/token exposure.
+*   **Leveled Logging:** Controlled via `LOG_LEVEL` (`errors` by default for failures, failed app logins, and wrong-password lockouts, or `all` for `[App]` user logins and state-changing operations plus `[Webtop]` logins, API calls with request parameters, session reuse, and sync summaries), formatted in `Asia/Jerusalem` time with zero credential/token exposure.
 
 ### 👨‍👩‍👧‍👦 Family Architecture & Secondary Roles
 *   **Shared Family Data Model:** Homework, incidents, exams, children records, and Webtop credentials belong to the family entity. Deleting individual users preserves the family's academic history.
@@ -137,7 +137,7 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - WEBTOP_LOG_LEVEL=${WEBTOP_LOG_LEVEL:-errors}
+      - LOG_LEVEL=${LOG_LEVEL:-errors}
     volumes:
       - ./data:/app/data
 ```
@@ -186,7 +186,7 @@ All variables are optional with sensible defaults:
 | `JWT_SECRET` | Secret key for signing JWT tokens | Auto-generated & persisted in SQLite `settings` table |
 | `ENCRYPTION_KEY` | Secret key for AES-256-GCM Webtop credential encryption | Auto-generated & persisted in SQLite `settings` table |
 | `WEBTOP_AUTO_SYNC` | Production-only kill switch for automatic Webtop sync (`off` to disable; dev/test are always manual) | Enabled when `NODE_ENV=production` |
-| `WEBTOP_LOG_LEVEL` | Webtop logging (`Asia/Jerusalem` timestamps, masked usernames): `errors` (failures & wrong-password lockouts) or `all` (every login, API call with parameters, session reuse & sync summary) | `errors` |
+| `LOG_LEVEL` | Server logging (`Asia/Jerusalem` timestamps): `errors` (failures, failed app logins & wrong-password lockouts) or `all` (`[App]` user logins & state-changing operations + `[Webtop]` logins, API calls with parameters, session reuse & sync summary) | `errors` |
 | `RP_ID` | Relying Party ID for WebAuthn passkeys | Auto-detected from hostname / forwarded host |
 | `EXPECTED_ORIGIN` | Comma-separated allowed WebAuthn origins | Auto-detected from request `Origin` and `Host` |
 | `TRUST_PROXY` | Trust reverse proxy headers (`x-forwarded-host`, `x-forwarded-proto`) | `false` (set `true` or `1` behind Nginx/Caddy/Cloudflare) |
@@ -228,7 +228,7 @@ school/
 │   ├── index.js             # Express 5 REST API, rate limiter & auth handlers
 │   ├── webauthn-config.js   # Dynamic WebAuthn RP ID and origin resolver
 │   ├── webtop.js            # Webtop API client, session reuse, AES encryption & child identity matcher
-│   └── webtopLogger.js      # Leveled Webtop logger (Asia/Jerusalem timestamps, masked usernames)
+│   └── webtopLogger.js      # Leveled [Webtop] and [App] logger (Asia/Jerusalem timestamps)
 └── src/
     ├── components/          # Application views & UI components
     │   ├── AccountPage.tsx  # User profile, password reset & passkeys manager

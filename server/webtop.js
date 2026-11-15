@@ -95,6 +95,43 @@ export class WebtopAuthError extends Error {
 
 const SESSION_EXPIRED_PATTERN = /expired|unauthori[sz]ed|not authenticated|not logged|session|פג תוקף|לא מחובר/i;
 
+const TRANSIENT_NET_CODES = new Set([
+  'ECONNRESET',
+  'ETIMEDOUT',
+  'ECONNREFUSED',
+  'EPIPE',
+  'EAI_AGAIN',
+  'UND_ERR_CONNECT_TIMEOUT',
+  'UND_ERR_SOCKET',
+  'UND_ERR_HEADERS_TIMEOUT'
+]);
+
+function isTransientNetworkError(err) {
+  if (!err || err.name === 'AbortError' || err.name === 'TimeoutError') return false;
+  const code = err.code || err.cause?.code;
+  if (code && TRANSIENT_NET_CODES.has(code)) return true;
+  return err.name === 'TypeError' && err.message === 'fetch failed' && Boolean(err.cause);
+}
+
+async function fetchWithRetry(url, buildOptions, maxRetries = 2) {
+  let lastError;
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await fetch(url, buildOptions());
+    } catch (err) {
+      lastError = err;
+      if (attempt === maxRetries || !isTransientNetworkError(err)) {
+        throw err;
+      }
+      const delayMs = process.env.NODE_ENV === 'test' ? 0 : 250 * (attempt + 1);
+      if (delayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, delayMs));
+      }
+    }
+  }
+  throw lastError;
+}
+
 // In-memory session cache keyed by username so that repeated syncs reuse one login.
 const sessionCache = new Map();
 
@@ -157,7 +194,12 @@ export class WebtopClient {
     try {
       response = await this.loginFetch(trimmedUser, trimmedPass);
     } catch (err) {
-      webtopLog.warn('Login request failed', { user, error: err.message, ms: Date.now() - startedAt });
+      webtopLog.warn('Login request failed', {
+        user,
+        error: err.message,
+        ...(err.cause ? { cause: err.cause.code || err.cause.message || String(err.cause) } : {}),
+        ms: Date.now() - startedAt
+      });
       throw err;
     }
     this.loginCount += 1;
@@ -193,7 +235,7 @@ export class WebtopClient {
   }
 
   loginFetch(trimmedUser, trimmedPass) {
-    return fetch(`${WEBTOP_API_BASE}/api/user/LoginByUserNameAndPassword`, {
+    return fetchWithRetry(`${WEBTOP_API_BASE}/api/user/LoginByUserNameAndPassword`, () => ({
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify({
@@ -207,7 +249,7 @@ export class WebtopClient {
         deviceDataJson: '{}'
       }),
       signal: AbortSignal.timeout(15000)
-    });
+    }));
   }
 
   /**
@@ -219,14 +261,19 @@ export class WebtopClient {
       const startedAt = Date.now();
       let response;
       try {
-        response = await fetch(`${WEBTOP_API_BASE}${apiPath}`, {
+        response = await fetchWithRetry(`${WEBTOP_API_BASE}${apiPath}`, () => ({
           method: 'POST',
           headers: this.getHeaders(),
           body: JSON.stringify(body),
           signal: AbortSignal.timeout(15000)
-        });
+        }));
       } catch (err) {
-        webtopLog.warn(`Call failed POST ${apiPath}`, { ...logParams, error: err.message, ms: Date.now() - startedAt });
+        webtopLog.warn(`Call failed POST ${apiPath}`, {
+          ...logParams,
+          error: err.message,
+          ...(err.cause ? { cause: err.cause.code || err.cause.message || String(err.cause) } : {}),
+          ms: Date.now() - startedAt
+        });
         throw err;
       }
       webtopLog.info(`Call POST ${apiPath}`, { ...logParams, status: response.status, ms: Date.now() - startedAt, ...(attempt > 0 ? { retry: 'after-relogin' } : {}) });

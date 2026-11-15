@@ -8,8 +8,8 @@ services:
     ports:
       - "8080:5173"
     environment:
-      # Webtop log level: "errors" (default; only errors/lockouts) or "all" (every login & call)
-      - WEBTOP_LOG_LEVEL=${WEBTOP_LOG_LEVEL:-errors}
+      # Log level: "errors" (default; failures, failed app logins & lockouts) or "all" (app logins, mutations & Webtop calls)
+      - LOG_LEVEL=${LOG_LEVEL:-errors}
     volumes:
       - ./data:/app/data
     restart: always

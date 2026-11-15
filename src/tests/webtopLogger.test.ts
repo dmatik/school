@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createWebtopLogger, getLogLevel, maskUser, formatJerusalemTime } from '../../server/webtopLogger.js';
+import { createWebtopLogger, createLogger, getLogLevel, maskUser, formatJerusalemTime } from '../../server/webtopLogger.js';
 import { WebtopClient, WebtopAuthError, clearWebtopSession } from '../../server/webtop.js';
 
 const makeSink = () => ({ log: vi.fn(), warn: vi.fn(), error: vi.fn() });
@@ -9,13 +9,13 @@ describe('Webtop leveled logger', () => {
   it('defaults to errors and falls back on invalid values', () => {
     const sink = makeSink();
     expect(getLogLevel({}, sink as unknown as Console)).toBe('errors');
-    expect(getLogLevel({ WEBTOP_LOG_LEVEL: 'ALL' }, sink as unknown as Console)).toBe('all');
-    expect(getLogLevel({ WEBTOP_LOG_LEVEL: 'verbose' }, sink as unknown as Console)).toBe('errors');
+    expect(getLogLevel({ LOG_LEVEL: 'ALL' }, sink as unknown as Console)).toBe('all');
+    expect(getLogLevel({ LOG_LEVEL: 'verbose' }, sink as unknown as Console)).toBe('errors');
   });
 
   it('level "all" prints info, warnings and lockouts', () => {
     const sink = makeSink();
-    const log = createWebtopLogger({ env: { WEBTOP_LOG_LEVEL: 'all' }, sink: sink as unknown as Console });
+    const log = createWebtopLogger({ env: { LOG_LEVEL: 'all' }, sink: sink as unknown as Console });
     log.info('Login attempt');
     log.warn('Call failed');
     log.lockout('Login rejected');
@@ -26,13 +26,39 @@ describe('Webtop leveled logger', () => {
 
   it('level "errors" prints warnings and lockouts but no info', () => {
     const sink = makeSink();
-    const log = createWebtopLogger({ env: { WEBTOP_LOG_LEVEL: 'errors' }, sink: sink as unknown as Console });
+    const log = createWebtopLogger({ env: { LOG_LEVEL: 'errors' }, sink: sink as unknown as Console });
     log.info('Login attempt');
     log.warn('Call failed');
     log.lockout('Login rejected');
     expect(sink.log).not.toHaveBeenCalled();
     expect(sink.warn).toHaveBeenCalledTimes(1);
     expect(sink.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('supports [App] prefix with unmasked usernames and sanitizes newlines', () => {
+    const sink = makeSink();
+    const appLogger = createLogger({ env: { LOG_LEVEL: 'all' }, sink: sink as unknown as Console, prefix: 'App' });
+    appLogger.info('User login ok', { method: 'password', user: 'dana', role: 'user' });
+    appLogger.warn('User login failed', { method: 'password', user: 'bad\nuser', reason: 'invalid_credentials' });
+
+    expect(sink.log).toHaveBeenCalledTimes(1);
+    expect(sink.log.mock.calls[0][0]).toContain('[App]');
+    expect(sink.log.mock.calls[0][0]).toContain('INFO User login ok method=password user=dana role=user');
+    expect(sink.warn).toHaveBeenCalledTimes(1);
+    expect(sink.warn.mock.calls[0][0]).toContain('[App]');
+    expect(sink.warn.mock.calls[0][0]).toContain('WARN User login failed method=password user=bad user reason=invalid_credentials');
+    expect(sink.warn.mock.calls[0][0]).not.toContain('\n');
+  });
+
+  it('[App] logger prints failed logins at "errors" level but suppresses info', () => {
+    const sink = makeSink();
+    const appLogger = createLogger({ env: { LOG_LEVEL: 'errors' }, sink: sink as unknown as Console, prefix: 'App' });
+    appLogger.info('User login ok', { method: 'password', user: 'dana' });
+    appLogger.warn('User login failed', { method: 'password', user: 'dana', reason: 'invalid_credentials' });
+
+    expect(sink.log).not.toHaveBeenCalled();
+    expect(sink.warn).toHaveBeenCalledTimes(1);
+    expect(sink.warn.mock.calls[0][0]).toContain('[App]');
   });
 
   it('masks usernames', () => {
@@ -65,12 +91,12 @@ describe('Webtop client logging', () => {
   afterEach(() => {
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
-    delete process.env.WEBTOP_LOG_LEVEL;
+    delete process.env.LOG_LEVEL;
   });
 
   it('wrong password logs a lockout line at both levels, without secrets', async () => {
     for (const level of ['all', 'errors']) {
-      process.env.WEBTOP_LOG_LEVEL = level;
+      process.env.LOG_LEVEL = level;
       sink.error.mockClear();
       clearWebtopSession();
       vi.stubGlobal('fetch', vi.fn(async () => okJson({ status: false, message: 'bad' })));
@@ -97,13 +123,13 @@ describe('Webtop client logging', () => {
       return okJson({ status: true, data: {} });
     }));
 
-    process.env.WEBTOP_LOG_LEVEL = 'errors';
+    process.env.LOG_LEVEL = 'errors';
     const c1 = new WebtopClient();
     await c1.useSession('dmitry', 'pw');
     await c1.initDashboard();
     expect(all(sink)).toBe('');
 
-    process.env.WEBTOP_LOG_LEVEL = 'all';
+    process.env.LOG_LEVEL = 'all';
     clearWebtopSession();
     const c2 = new WebtopClient();
     await c2.useSession('dmitry', 'pw');
@@ -119,12 +145,35 @@ describe('Webtop client logging', () => {
   });
 
   it('non-auth call failures are printed at "errors" level', async () => {
-    process.env.WEBTOP_LOG_LEVEL = 'errors';
+    process.env.LOG_LEVEL = 'errors';
     vi.stubGlobal('fetch', vi.fn(async (url: string) =>
       url.includes('Login') ? okJson({ status: true, data: { token: 't' } }) : new Response('', { status: 503 })));
     const c = new WebtopClient();
     await c.useSession('dmitry', 'pw');
     await expect(c.initDashboard()).rejects.toThrow();
     expect(sink.warn).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries transient ECONNRESET fetch errors on login and API calls', async () => {
+    process.env.LOG_LEVEL = 'all';
+    let loginAttempts = 0;
+    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+      if (url.includes('Login')) {
+        loginAttempts++;
+        if (loginAttempts === 1) {
+          const err = new TypeError('fetch failed') as TypeError & { cause?: { code: string; message: string } };
+          err.cause = { code: 'ECONNRESET', message: 'Client network socket disconnected before secure TLS connection was established' };
+          throw err;
+        }
+        return okJson({ status: true, data: { token: 'tok' } });
+      }
+      return okJson({ status: true, data: { childrens: [] } });
+    }));
+
+    const c = new WebtopClient();
+    await c.useSession('dmitry', 'pw');
+    await c.initDashboard();
+    expect(loginAttempts).toBe(2);
+    expect(sink.warn).not.toHaveBeenCalled();
   });
 });
