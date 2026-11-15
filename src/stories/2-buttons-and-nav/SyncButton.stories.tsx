@@ -131,28 +131,30 @@ export const PullToRefreshStates: Story = {
     return (
       <div className="space-y-4 max-w-md">
         <div className="text-sm font-semibold text-muted-foreground">
-          משיכה למטה לרענון (Pull-to-Refresh):
+          משיכה למטה לרענון (Pull-to-Refresh — המשך אנימציה בכותרת בלבד):
         </div>
-        <div className="h-64 rounded-2xl border border-border/60 bg-card overflow-hidden">
-          <PullToRefresh
-            onRefresh={handleRefresh}
-            refreshing={refreshing}
-            success={success}
-          >
-            <div className="h-full overflow-y-auto overscroll-y-contain p-4 space-y-2">
-              <p className="text-xs text-muted-foreground">
-                במכשיר מגע ניתן למשוך כלפי מטה בראש הרשימה כדי לרענן נתונים.
-              </p>
-              <div className="pt-2 flex gap-2">
-                <SyncButton
-                  variant="outline"
-                  onClick={handleRefresh}
-                  syncing={refreshing}
-                  success={success}
-                />
+        <div className="rounded-2xl border border-border/60 bg-card overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/50 bg-background">
+            <span className="text-sm font-bold text-foreground">כותרת הדף</span>
+            <SyncButton
+              variant="icon"
+              onClick={handleRefresh}
+              syncing={refreshing}
+              success={success}
+            />
+          </div>
+          <div className="h-56">
+            <PullToRefresh
+              onRefresh={handleRefresh}
+              refreshing={refreshing}
+            >
+              <div className="h-full overflow-y-auto overscroll-y-contain p-4 space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  במכשיר מגע ניתן למשוך כלפי מטה בראש הרשימה כדי להפעיל רענון. בעת חציית סף המשיכה מתחילה אנימציית החצים המסתובבים, וברגע שחרור המשיכה התוכן חוזר למעלה והמשך הסנכרון וסימן ההצלחה מוצגים בכפתור הסנכרון בכותרת בלבד.
+                </p>
               </div>
-            </div>
-          </PullToRefresh>
+            </PullToRefresh>
+          </div>
         </div>
       </div>
     )

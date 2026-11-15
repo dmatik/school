@@ -178,7 +178,6 @@ function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncSuccess, setSyncSuccess] = useState(false)
-  const [syncSource, setSyncSource] = useState<'button' | 'pull' | null>(null)
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
@@ -263,13 +262,11 @@ function App() {
           homework: customEvent.detail?.homeworkCount || 0
         }))
       }
-      setSyncSource('button')
       setSyncSuccess(true)
       checkWebtopConfig()
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
-        setSyncSource(null)
       }, 3000)
     }
 
@@ -280,9 +277,8 @@ function App() {
     }
   }, [t, checkWebtopConfig])
 
-  const handleSync = async (source: 'button' | 'pull' = 'button') => {
+  const handleSync = async () => {
     if (!token || syncing) return
-    setSyncSource(source)
     setSyncing(true)
     setSyncSuccess(false)
     if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
@@ -313,23 +309,19 @@ function App() {
         })
         setSyncSummary(summary)
 
-        if (source === 'button') {
-          window.dispatchEvent(new CustomEvent("webtop:synced", {
-            detail: {
-              incidentsCount: data.result?.incidentsCount || 0,
-              homeworkCount: data.result?.homeworkCount || 0
-            }
-          }))
-        }
+        window.dispatchEvent(new CustomEvent("webtop:synced", {
+          detail: {
+            incidentsCount: data.result?.incidentsCount || 0,
+            homeworkCount: data.result?.homeworkCount || 0
+          }
+        }))
       }
 
       setSyncSuccess(true)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
-        setSyncSource(null)
       }, 2000)
     } catch (err: unknown) {
-      setSyncSource(null)
       toast({
         variant: "destructive",
         title: t("common.error"),
@@ -386,12 +378,12 @@ function App() {
   }, [t, currentUser?.role])
 
   const renderWebtopSyncButton = () => {
-    if (!webtopConfigured) return null
+    if (!webtopConfigured && !syncing && !syncSuccess) return null
     return (
       <SyncButton
-        onClick={() => handleSync('button')}
-        syncing={syncing && syncSource === 'button'}
-        success={syncSuccess && syncSource === 'button'}
+        onClick={() => handleSync()}
+        syncing={syncing}
+        success={syncSuccess}
         disabled={syncing}
         summary={syncSummary}
       />
@@ -467,9 +459,8 @@ function App() {
           {/* Main Body */}
           <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full print:h-full print:overflow-visible">
             <PullToRefresh
-              onRefresh={() => handleSync('pull')}
-              refreshing={syncing && syncSource === 'pull'}
-              success={syncSuccess && syncSource === 'pull'}
+              onRefresh={() => handleSync()}
+              refreshing={syncing}
               disabled={syncing}
               className="print:overflow-visible"
             >
