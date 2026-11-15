@@ -39,6 +39,8 @@
     "sync_now": "סנכרן",
     "syncing": "מסנכרן...",
     "sync_success": "סונכרן בהצלחה",
+    "pull_to_refresh": "משוך למטה לרענון",
+    "release_to_refresh": "שחרר לרענון",
     "last_sync": "עודכן: {{date}}",
     "clear_search": "נקה חיפוש",
     "print": "הדפסה",

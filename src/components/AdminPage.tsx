@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { PageHeader } from "@/components/ui/page-header"
 import { SearchInput } from "@/components/ui/search-input"
@@ -28,9 +28,10 @@ import type { User, UserRole, FamilyRole, WebtopChild } from "@/types"
 interface AdminPageProps {
   currentUser: User
   token: string
+  syncTrigger?: number
 }
 
-export function AdminPage({ currentUser, token }: AdminPageProps) {
+export function AdminPage({ currentUser, token, syncTrigger }: AdminPageProps) {
   const { t } = useTranslation()
   const [users, setUsers] = useState<User[]>([])
   const [webtopChildren, setWebtopChildren] = useState<WebtopChild[]>([])
@@ -114,10 +115,14 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
     return err || t(fallbackKey)
   }, [t])
 
+  const hasLoadedUsersRef = useRef(false)
+
   // Fetch Users & Webtop Children
   const fetchUsers = useCallback(async () => {
     try {
-      setLoading(true)
+      if (!hasLoadedUsersRef.current) {
+        setLoading(true)
+      }
       const [usersRes, configRes] = await Promise.all([
         fetch("/api/admin/users", {
           headers: {
@@ -136,6 +141,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
         throw new Error(msg)
       }
       const data = await usersRes.json()
+      hasLoadedUsersRef.current = true
       setUsers(data.users || [])
 
       if (configRes.ok) {
@@ -155,7 +161,7 @@ export function AdminPage({ currentUser, token }: AdminPageProps) {
 
   useEffect(() => {
     fetchUsers()
-  }, [fetchUsers])
+  }, [fetchUsers, syncTrigger])
 
   // Handle Create User
   const handleCreateUser = async (e: React.FormEvent) => {

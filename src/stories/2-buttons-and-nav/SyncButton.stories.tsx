@@ -1,6 +1,7 @@
 import * as React from "react"
 import type { Meta, StoryObj } from "@storybook/react"
 import { SyncButton } from "@/components/ui/sync-button"
+import { PullToRefresh } from "@/components/ui/pull-to-refresh"
 
 const meta: Meta<typeof SyncButton> = {
   title: "2. Buttons & Navigation/SyncButton",
@@ -110,4 +111,50 @@ export const IconModes: Story = {
       </div>
     </div>
   ),
+}
+
+export const PullToRefreshStates: Story = {
+  render: function Render() {
+    const [refreshing, setRefreshing] = React.useState(false)
+    const [success, setSuccess] = React.useState(false)
+
+    const handleRefresh = () => {
+      setRefreshing(true)
+      setSuccess(false)
+      setTimeout(() => {
+        setRefreshing(false)
+        setSuccess(true)
+        setTimeout(() => setSuccess(false), 2000)
+      }, 1200)
+    }
+
+    return (
+      <div className="space-y-4 max-w-md">
+        <div className="text-sm font-semibold text-muted-foreground">
+          משיכה למטה לרענון (Pull-to-Refresh):
+        </div>
+        <div className="h-64 rounded-2xl border border-border/60 bg-card overflow-hidden">
+          <PullToRefresh
+            onRefresh={handleRefresh}
+            refreshing={refreshing}
+            success={success}
+          >
+            <div className="h-full overflow-y-auto overscroll-y-contain p-4 space-y-2">
+              <p className="text-xs text-muted-foreground">
+                במכשיר מגע ניתן למשוך כלפי מטה בראש הרשימה כדי לרענן נתונים.
+              </p>
+              <div className="pt-2 flex gap-2">
+                <SyncButton
+                  variant="outline"
+                  onClick={handleRefresh}
+                  syncing={refreshing}
+                  success={success}
+                />
+              </div>
+            </div>
+          </PullToRefresh>
+        </div>
+      </div>
+    )
+  },
 }

@@ -180,7 +180,7 @@ export function HomeworkPage({ token, syncTrigger, currentUser }: HomeworkPagePr
   ], [webtopConfig?.linkedChildren, t])
 
   return (
-    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-0 md:pb-6 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+    <div className="h-full flex flex-col pt-[3.75rem] pb-24 px-4 md:pt-0 md:pb-6 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
       {/* Page Header (Desktop only) */}
       <PageHeader title={t("homework.title")} />
 

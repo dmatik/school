@@ -39,6 +39,8 @@
     "sync_now": "Sync",
     "syncing": "Syncing...",
     "sync_success": "Synced successfully",
+    "pull_to_refresh": "Pull down to refresh",
+    "release_to_refresh": "Release to refresh",
     "last_sync": "Updated: {{date}}",
     "clear_search": "Clear search",
     "print": "Print",
