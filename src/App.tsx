@@ -22,6 +22,7 @@ import {
 import { MobileHeader } from "@/components/ui/mobile-header"
 import { LiquidDock, type DockItem } from "@/components/ui/liquid-dock"
 import { SyncButton } from "@/components/ui/sync-button"
+import { PullToRefresh } from "@/components/ui/pull-to-refresh"
 import { NoticeBanner } from "@/components/ui/notice-banner"
 import { toast } from "@/hooks/use-toast"
 import type { User } from "@/types"
@@ -177,6 +178,7 @@ function App() {
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncSuccess, setSyncSuccess] = useState(false)
+  const [syncSource, setSyncSource] = useState<'button' | 'pull' | null>(null)
   const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
@@ -261,11 +263,13 @@ function App() {
           homework: customEvent.detail?.homeworkCount || 0
         }))
       }
+      setSyncSource('button')
       setSyncSuccess(true)
       checkWebtopConfig()
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
+        setSyncSource(null)
       }, 3000)
     }
 
@@ -276,41 +280,56 @@ function App() {
     }
   }, [t, checkWebtopConfig])
 
-  const handleSync = async () => {
+  const handleSync = async (source: 'button' | 'pull' = 'button') => {
     if (!token || syncing) return
+    setSyncSource(source)
     setSyncing(true)
     setSyncSuccess(false)
-    try {
-      const res = await fetch("/api/webtop/sync", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
-      })
+    if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
 
-      const data = await res.json()
-      if (!res.ok) {
-        throw new Error(data.error || t("account.sync_failed"))
+    try {
+      // 1. Immediately refresh internal DB state across active views
+      setSyncTrigger(prev => prev + 1)
+      const cfg = await checkWebtopConfig()
+      const isConfigured = cfg?.configured ?? webtopConfigured
+
+      // 2. If Webtop is configured, fetch latest from Webtop (reusing active session if valid)
+      if (isConfigured) {
+        const res = await fetch("/api/webtop/sync", {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` }
+        })
+
+        const data = await res.json()
+        if (!res.ok) {
+          throw new Error(data.error || t("account.sync_failed"))
+        }
+
+        setSyncTrigger(prev => prev + 1)
+        setLastSyncedAt(new Date().toISOString())
+        const summary = t("account.webtop_sync_success", {
+          incidents: data.result?.incidentsCount || 0,
+          homework: data.result?.homeworkCount || 0
+        })
+        setSyncSummary(summary)
+
+        if (source === 'button') {
+          window.dispatchEvent(new CustomEvent("webtop:synced", {
+            detail: {
+              incidentsCount: data.result?.incidentsCount || 0,
+              homeworkCount: data.result?.homeworkCount || 0
+            }
+          }))
+        }
       }
 
-      setSyncTrigger(prev => prev + 1)
-      setLastSyncedAt(new Date().toISOString())
-      const summary = t("account.webtop_sync_success", {
-        incidents: data.result?.incidentsCount || 0,
-        homework: data.result?.homeworkCount || 0
-      })
-      setSyncSummary(summary)
       setSyncSuccess(true)
-      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
-      }, 3000)
-
-      window.dispatchEvent(new CustomEvent("webtop:synced", {
-        detail: {
-          incidentsCount: data.result?.incidentsCount || 0,
-          homeworkCount: data.result?.homeworkCount || 0
-        }
-      }))
+        setSyncSource(null)
+      }, 2000)
     } catch (err: unknown) {
+      setSyncSource(null)
       toast({
         variant: "destructive",
         title: t("common.error"),
@@ -370,9 +389,10 @@ function App() {
     if (!webtopConfigured) return null
     return (
       <SyncButton
-        onClick={handleSync}
-        syncing={syncing}
-        success={syncSuccess}
+        onClick={() => handleSync('button')}
+        syncing={syncing && syncSource === 'button'}
+        success={syncSuccess && syncSource === 'button'}
+        disabled={syncing}
         summary={syncSummary}
       />
     )
@@ -446,40 +466,50 @@ function App() {
 
           {/* Main Body */}
           <main className="flex-1 min-h-0 overflow-hidden relative flex flex-col h-full print:h-full print:overflow-visible">
-            <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto h-full print:h-full print:max-w-none">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activeTab}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                  className="h-full print:h-full"
-                >
-                  <Suspense fallback={<LoadingSpinner />}>
-                    {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                    {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                    {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                    {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                    {activeTab === 'settings' && <SettingsPage token={token} currentUser={currentUser} />}
-                    {activeTab === 'admin' && currentUser.role === 'admin' && (
-                      <AdminPage
-                        currentUser={currentUser}
-                        token={token}
-                      />
-                    )}
-                    {activeTab === 'account' && (
-                      <AccountPage
-                        user={currentUser}
-                        token={token}
-                        onUpdateUser={(updated) => setCurrentUser(updated)}
-                        onLogout={handleLogout}
-                      />
-                    )}
-                  </Suspense>
-                </motion.div>
-              </AnimatePresence>
-            </div>
+            <PullToRefresh
+              onRefresh={() => handleSync('pull')}
+              refreshing={syncing && syncSource === 'pull'}
+              success={syncSuccess && syncSource === 'pull'}
+              disabled={syncing}
+              className="print:overflow-visible"
+            >
+              <div className="w-full flex-1 min-h-0 max-w-7xl mx-auto h-full print:h-full print:max-w-none">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activeTab}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -10 }}
+                    transition={{ duration: 0.2 }}
+                    className="h-full print:h-full"
+                  >
+                    <Suspense fallback={<LoadingSpinner />}>
+                      {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'settings' && <SettingsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'admin' && currentUser.role === 'admin' && (
+                        <AdminPage
+                          currentUser={currentUser}
+                          token={token}
+                          syncTrigger={syncTrigger}
+                        />
+                      )}
+                      {activeTab === 'account' && (
+                        <AccountPage
+                          user={currentUser}
+                          token={token}
+                          syncTrigger={syncTrigger}
+                          onUpdateUser={(updated) => setCurrentUser(updated)}
+                          onLogout={handleLogout}
+                        />
+                      )}
+                    </Suspense>
+                  </motion.div>
+                </AnimatePresence>
+              </div>
+            </PullToRefresh>
           </main>
 
           {/* Mobile Bottom Navigation - Floating Liquid Glass Dock */}

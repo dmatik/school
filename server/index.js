@@ -1446,6 +1446,7 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       return res.status(400).json({ error: 'Username and password are required' });
     }
 
+    clearWebtopSession(); // credentials changed: drop any cached session before logging in
     const client = new WebtopClient();
     await client.login(username, password);
     const dash = await client.initDashboard();
@@ -1497,7 +1498,6 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       effectiveChildId = linkedChildren[0]?.id || null;
     }
 
-    clearWebtopSession(); // credentials changed: drop any cached session
     const encryptedPass = encryptPassword(password);
     const existing = db.prepare('SELECT id FROM webtop_credentials ORDER BY updated_at DESC LIMIT 1').get();
 

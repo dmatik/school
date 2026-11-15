@@ -131,6 +131,16 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
     loadData()
   }, [loadData, syncTrigger])
 
+  useEffect(() => {
+    const handleWebtopSync = () => {
+      loadData()
+    }
+    window.addEventListener("webtop:synced", handleWebtopSync)
+    return () => {
+      window.removeEventListener("webtop:synced", handleWebtopSync)
+    }
+  }, [loadData])
+
   // Filter and sort exams
   const filteredExams = useMemo(() => {
     const todayStr = format(new Date(), "yyyy-MM-dd")
@@ -368,7 +378,7 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header with Title (Desktop only) */}
         <PageHeader title={t("exams.title")} />
 

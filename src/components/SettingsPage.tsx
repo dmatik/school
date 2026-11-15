@@ -32,10 +32,11 @@ import type { WebtopConfig, User } from "@/types"
 
 interface SettingsPageProps {
   token: string
+  syncTrigger?: number
   currentUser?: User | null
 }
 
-export function SettingsPage({ token, currentUser }: SettingsPageProps) {
+export function SettingsPage({ token, syncTrigger, currentUser }: SettingsPageProps) {
   const { t, i18n } = useTranslation()
   const { theme, setTheme } = useTheme()
   const isChild = currentUser?.familyRole === "child"
@@ -54,15 +55,20 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
   const [disconnectingWebtop, setDisconnectingWebtop] = useState(false)
   const [isEditingWebtop, setIsEditingWebtop] = useState(false)
 
+  const hasLoadedWebtopRef = useRef(false)
+
   const loadWebtopConfig = useCallback(async () => {
     if (isChild) return
-    setLoadingWebtop(true)
+    if (!hasLoadedWebtopRef.current) {
+      setLoadingWebtop(true)
+    }
     try {
       const res = await fetch("/api/webtop/config", {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (res.ok) {
         const data: WebtopConfig = await res.json()
+        hasLoadedWebtopRef.current = true
         setWebtopConfig(data)
         if (data.username) {
           setWebtopUsername(data.username)
@@ -79,7 +85,7 @@ export function SettingsPage({ token, currentUser }: SettingsPageProps) {
     if (!isChild) {
       loadWebtopConfig()
     }
-  }, [loadWebtopConfig, isChild])
+  }, [loadWebtopConfig, isChild, syncTrigger])
 
   useEffect(() => {
     if (isChild) return

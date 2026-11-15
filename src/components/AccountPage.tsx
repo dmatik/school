@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
 import { PageHeader } from "@/components/ui/page-header"
 import { User, Lock, Check, Shield, Loader2, Fingerprint, Plus, Smartphone, Laptop, Key, Users, Baby } from "lucide-react"
@@ -20,11 +20,12 @@ import type { User as UserType } from "@/types"
 interface AccountPageProps {
   user: UserType
   token: string
+  syncTrigger?: number
   onUpdateUser: (updated: UserType) => void
   onLogout: () => void
 }
 
-export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPageProps) {
+export function AccountPage({ user, token, syncTrigger, onUpdateUser, onLogout }: AccountPageProps) {
   const { t } = useTranslation()
 
   // Profile Form State
@@ -49,10 +50,15 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   const [deletingPasskey, setDeletingPasskey] = useState(false)
   const [passkeySupported, setPasskeySupported] = useState(false)
 
+  const hasLoadedPasskeysRef = useRef(false)
+
   const loadPasskeys = useCallback(async () => {
-    setLoadingPasskeys(true)
+    if (!hasLoadedPasskeysRef.current) {
+      setLoadingPasskeys(true)
+    }
     try {
       const list = await fetchUserPasskeys(token)
+      hasLoadedPasskeysRef.current = true
       setPasskeys(list)
     } catch (err) {
       console.error("Failed to load passkeys:", err)
@@ -64,7 +70,7 @@ export function AccountPage({ user, token, onUpdateUser, onLogout }: AccountPage
   useEffect(() => {
     setPasskeySupported(isPasskeySupported())
     loadPasskeys()
-  }, [loadPasskeys])
+  }, [loadPasskeys, syncTrigger])
 
   const handleStartAddPasskey = () => {
     if (!passkeySupported) {
