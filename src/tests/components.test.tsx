@@ -12,6 +12,13 @@ import { SyncButton } from '../components/ui/sync-button'
 import { ActionButton, EditButton, DestructiveButton } from '../components/ui/action-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
+import {
+  BookOpenFull,
+  AlertCircleFull,
+  CalendarDaysFull,
+  SettingsFull,
+  FileCheckFull,
+} from '../components/ui/nav-icons'
 import { SectionDateHeader } from '../components/ui/section-date-header'
 import { HomeworkCard } from '../components/ui/homework-card'
 import { IncidentCard } from '../components/ui/incident-card'
@@ -520,6 +527,51 @@ describe('LiquidDock Component', () => {
 
     expect(btn.className).toContain('w-[68px]')
     expect(btn.className).toContain('text-primary')
+  })
+
+  it('renders duotone active navigation icons with dock-icon-full and fill="none" inner detail paths', () => {
+    const iconPairs = [
+      { name: 'BookOpenFull', Component: BookOpenFull, minFillNoneCount: 1 },
+      { name: 'CalendarDaysFull', Component: CalendarDaysFull, minFillNoneCount: 9 },
+      { name: 'AlertCircleFull', Component: AlertCircleFull, minFillNoneCount: 2 },
+      { name: 'SettingsFull', Component: SettingsFull, minFillNoneCount: 1 },
+      { name: 'FileCheckFull', Component: FileCheckFull, minFillNoneCount: 2 },
+    ]
+
+    for (const { Component, minFillNoneCount } of iconPairs) {
+      const { container: dockContainer, unmount: unmountDock } = render(
+        <LiquidDockItem
+          active={true}
+          onClick={vi.fn()}
+          icon={DummyIcon}
+          activeIcon={Component}
+          label="Active Tab"
+        />
+      )
+      const dockSvg = dockContainer.querySelector('svg')
+      expect(dockSvg).toBeInTheDocument()
+      expect(dockSvg?.getAttribute('class')).toContain('dock-icon-full')
+      expect(dockSvg?.getAttribute('class')).toContain('text-primary')
+      expect(dockSvg?.getAttribute('stroke')).toBe('currentColor')
+      expect(dockSvg?.querySelectorAll('[fill="none"]').length).toBeGreaterThanOrEqual(minFillNoneCount)
+      unmountDock()
+
+      const { container: sidebarContainer, unmount: unmountSidebar } = render(
+        <SidebarNavButton
+          active={true}
+          onClick={vi.fn()}
+          icon={DummyIcon}
+          activeIcon={Component}
+          label="Active Sidebar"
+        />
+      )
+      const sidebarSvg = sidebarContainer.querySelector('svg')
+      expect(sidebarSvg).toBeInTheDocument()
+      expect(sidebarSvg?.getAttribute('class')).toContain('dock-icon-full')
+      expect(sidebarSvg?.getAttribute('class')).toContain('text-primary')
+      expect(sidebarSvg?.querySelectorAll('[fill="none"]').length).toBeGreaterThanOrEqual(minFillNoneCount)
+      unmountSidebar()
+    }
   })
 })
 
