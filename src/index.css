@@ -230,9 +230,12 @@
     box-shadow: none;
   }
 
-  /* Dock / Tab Bar Filled Active Icon Styles */
+  /* Dock / Tab Bar Duotone Active Icon Styles */
   .dock-icon-full {
-    fill: currentColor;
+    fill: hsl(var(--primary) / 0.20);
+  }
+  .dark .dock-icon-full {
+    fill: hsl(var(--primary) / 0.26);
   }
 }
 
