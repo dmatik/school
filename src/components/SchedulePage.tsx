@@ -16,7 +16,6 @@ import { EmptyStateCard } from "@/components/ui/empty-state-card"
 import { FilledInput, CounterField, TimePresetInput } from "@/components/ui/form-field"
 import { cn } from "@/lib/utils"
 import { toast } from "@/hooks/use-toast"
-import { getChildColor } from "@/lib/child-colors"
 import { shareSchedulePdf } from "@/lib/schedule-pdf"
 import { ScheduleTable } from "@/components/ui/schedule-table"
 import { FloatingActionButton } from "@/components/ui/floating-action-button"
@@ -141,10 +140,6 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
     return webtopConfig.linkedChildren[0] || null
   }, [webtopConfig, selectedChildId, currentUser?.linkedChildId])
-
-  const childColor = useMemo(() => {
-    return getChildColor(currentChild?.color)
-  }, [currentChild?.color])
 
   // Load schedule data for current child
   const loadSchedule = useCallback(async (childId: string, showSpinner = false) => {
@@ -726,7 +721,6 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
           icon={Pencil}
           activeIcon={Check}
           active={isEditMode}
-          colorClassName={childColor ? cn(childColor.bg, "text-white") : undefined}
           title={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
           ariaLabel={isEditMode ? t("schedule.edit_mode_disable") : t("schedule.edit_mode_enable")}
           className="print:hidden"

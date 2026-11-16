@@ -9,7 +9,7 @@ const meta: Meta<typeof FloatingActionButton> = {
   parameters: {
     docs: {
       description: {
-        component: "Floating circular action button (FAB) used in ExamsPage, SchedulePage, and AdminPage, supporting static and toggle states.",
+        component: "Floating circular action button (FAB) styled with Apple Liquid Glass (`apple-liquid-dock`) used in ExamsPage, SchedulePage, and AdminPage, supporting static and toggle states.",
       },
     },
   },
@@ -22,7 +22,7 @@ export const PrimaryAddButton: Story = {
   render: () => (
     <div className="space-y-4">
       <div className="text-sm text-muted-foreground">
-        כפתור הוספה צף ראשי (משמש ב-ExamsPage וב-AdminPage):
+        כפתור הוספה צף ראשי בסגנון זכוכית נוזלית (משמש ב-ExamsPage וב-AdminPage):
       </div>
       <div className="flex items-center gap-4">
         <FloatingActionButton
@@ -31,7 +31,7 @@ export const PrimaryAddButton: Story = {
           title="הוסף מבחן חדש"
           onClick={() => alert("Add clicked")}
         />
-        <span className="text-sm font-medium">50px × 50px עגול עם צל מרחף</span>
+        <span className="text-sm font-medium">50px × 50px עגול בסגנון Apple Liquid Glass</span>
       </div>
     </div>
   ),
@@ -44,7 +44,7 @@ export const EditModeToggleSchedule: Story = {
     return (
       <div className="space-y-4">
         <div className="text-sm text-muted-foreground">
-          כפתור מעבר מצב עריכה (משמש ב-SchedulePage):
+          כפתור מעבר מצב עריכה בסגנון זכוכית נוזלית (משמש ב-SchedulePage):
         </div>
         <div className="flex items-center gap-4">
           <FloatingActionButton
@@ -52,7 +52,6 @@ export const EditModeToggleSchedule: Story = {
             icon={Pencil}
             activeIcon={Check}
             active={isEditMode}
-            colorClassName={isEditMode ? "bg-emerald-600 text-white" : "bg-primary text-white"}
             title={isEditMode ? "סיום עריכה" : "הפעל מצב עריכה"}
             onClick={() => setIsEditMode((prev) => !prev)}
           />
@@ -63,51 +62,4 @@ export const EditModeToggleSchedule: Story = {
       </div>
     )
   },
-}
-
-export const ChildColorThemed: Story = {
-  render: () => (
-    <div className="space-y-4">
-      <div className="text-sm text-muted-foreground">
-        כפתור צף מותאם לצבע הילד הנבחר במערכת השעות:
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <FloatingActionButton
-          asFixedOverlay={false}
-          icon={Plus}
-          colorClassName="bg-[#3B82C4] text-white"
-          title="כחול"
-          onClick={() => {}}
-        />
-        <FloatingActionButton
-          asFixedOverlay={false}
-          icon={Plus}
-          colorClassName="bg-[#2CA58D] text-white"
-          title="ירוק אמרלד"
-          onClick={() => {}}
-        />
-        <FloatingActionButton
-          asFixedOverlay={false}
-          icon={Plus}
-          colorClassName="bg-[#8A63B8] text-white"
-          title="סגול"
-          onClick={() => {}}
-        />
-        <FloatingActionButton
-          asFixedOverlay={false}
-          icon={Plus}
-          colorClassName="bg-[#D4973B] text-white"
-          title="ענבר"
-          onClick={() => {}}
-        />
-        <FloatingActionButton
-          asFixedOverlay={false}
-          icon={Plus}
-          colorClassName="bg-[#C86478] text-white"
-          title="ורוד ורד"
-          onClick={() => {}}
-        />
-      </div>
-    </div>
-  ),
 }

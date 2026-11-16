@@ -29,7 +29,8 @@ import { InfoBox, InfoItem } from '../components/ui/info-box'
 import { SectionCard, SectionCardHeader, SectionCardTitle, SectionCardDescription, SectionCardContent } from '../components/ui/section-card'
 import { ScheduleTable } from '../components/ui/schedule-table'
 import { LiquidButton } from '../components/ui/button'
-import { Printer } from 'lucide-react'
+import { FloatingActionButton } from '../components/ui/floating-action-button'
+import { Printer, Pencil, Check } from 'lucide-react'
 import { Calendar } from '../components/ui/calendar'
 import { Toast, ToastClose, ToastTitle, ToastDescription, ToastProvider, ToastViewport } from '../components/ui/toast'
 import type { User } from '../types'
@@ -1949,6 +1950,60 @@ describe('LiquidButton & ScheduleTable Print Support', () => {
   })
 })
 
+describe('FloatingActionButton', () => {
+  it('renders with neutral apple-liquid-dock styling and no colored background', () => {
+    const onClick = vi.fn()
+    render(
+      <FloatingActionButton
+        asFixedOverlay={false}
+        onClick={onClick}
+        ariaLabel="Add item"
+      />
+    )
 
+    const btn = screen.getByRole('button', { name: 'Add item' })
+    expect(btn).toBeInTheDocument()
+    expect(btn.className).toContain('apple-liquid-dock')
+    expect(btn.className).toContain('text-foreground')
+    expect(btn.className).toContain('rounded-full')
+    expect(btn.className).not.toContain('bg-primary')
+    expect(btn.className).not.toContain('shadow-md')
 
+    fireEvent.click(btn)
+    expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('switches between icon and activeIcon while preserving neutral liquid glass styling', () => {
+    const { rerender } = render(
+      <FloatingActionButton
+        asFixedOverlay={false}
+        icon={Pencil}
+        activeIcon={Check}
+        active={false}
+        onClick={vi.fn()}
+        ariaLabel="Toggle edit"
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Toggle edit' })
+    expect(btn.querySelector('svg.lucide-pencil')).toBeInTheDocument()
+    expect(btn.querySelector('svg.lucide-check')).not.toBeInTheDocument()
+
+    rerender(
+      <FloatingActionButton
+        asFixedOverlay={false}
+        icon={Pencil}
+        activeIcon={Check}
+        active={true}
+        onClick={vi.fn()}
+        ariaLabel="Toggle edit"
+      />
+    )
+
+    expect(btn.querySelector('svg.lucide-check')).toBeInTheDocument()
+    expect(btn.querySelector('svg.lucide-pencil')).not.toBeInTheDocument()
+    expect(btn.className).toContain('apple-liquid-dock')
+    expect(btn.className).toContain('text-foreground')
+  })
+})
 
