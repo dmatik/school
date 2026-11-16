@@ -18,6 +18,7 @@
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:ui": "playwright test --ui",
+    "screenshots": "node scripts/generate-screenshots.mjs",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006 --disable-telemetry",
     "build-storybook": "storybook build --disable-telemetry"
   },
