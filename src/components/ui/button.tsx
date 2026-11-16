@@ -19,7 +19,7 @@ const buttonVariants = cva(
                 ghost: "hover:bg-accent hover:text-accent-foreground",
                 link: "text-primary underline-offset-4 hover:underline",
                 liquid:
-                    "h-10 py-0 px-3.5 rounded-full border border-transparent shadow-xs transition-all shrink-0 apple-liquid-dock flex items-center gap-2 select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium text-muted-foreground hover:text-foreground",
+                    "h-10 py-0 px-3.5 rounded-full transition-all shrink-0 apple-liquid-dock flex items-center gap-2 select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 focus-visible:ring-offset-0 font-medium text-muted-foreground dark:text-foreground/85 hover:text-foreground",
             },
             size: {
                 default: "h-10 px-5 py-2 rounded-full",

@@ -77,8 +77,8 @@ export const PeriodSelectorFuturePast: Story = {
     const [selectedPeriod, setSelectedPeriod] = React.useState("future")
 
     const items = [
-      { id: "future", label: "עתידיים" },
-      { id: "past", label: "היסטוריה" },
+      { id: "future", label: "עתיד" },
+      { id: "past", label: "עבר" },
     ]
 
     return (

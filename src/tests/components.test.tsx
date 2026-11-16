@@ -12,6 +12,7 @@ import { SyncButton } from '../components/ui/sync-button'
 import { ActionButton, EditButton, DestructiveButton } from '../components/ui/action-button'
 import { AppSidebar, SidebarNavButton, type SidebarNavItem } from '../components/ui/app-sidebar'
 import { LiquidDock, LiquidDockItem, type DockItem } from '../components/ui/liquid-dock'
+import { LiquidTabs } from '../components/ui/liquid-tabs'
 import {
   BookOpenFull,
   AlertCircleFull,
@@ -87,7 +88,10 @@ describe('DatePicker Component', () => {
     const { rerender } = render(<DatePicker variant="liquid-icon" setDate={() => {}} />)
     const btn = screen.getByRole('button')
     expect(btn).toHaveAttribute('data-date-selected', 'false')
+    expect(btn.className).toContain('apple-liquid-dock')
     expect(btn.className).toContain('text-muted-foreground')
+    expect(btn.className).not.toContain('border-transparent')
+    expect(btn.className).not.toContain('shadow-xs')
     expect(btn.className).not.toContain('!bg-primary')
 
     const testDate = new Date(2026, 9, 28)
@@ -143,7 +147,7 @@ describe('DatePicker Component', () => {
 describe('LiquidDatePicker Component', () => {
   it('renders default placeholder and data-date-selected="false" when no date is set', () => {
     render(<LiquidDatePicker setDate={() => {}} />)
-    const btn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+    const btn = screen.getByRole('button', { name: /common\.all_dates_short|All|הכל/i })
     expect(btn).toBeInTheDocument()
     expect(btn).toHaveAttribute('data-date-selected', 'false')
   })
@@ -153,7 +157,7 @@ describe('LiquidDatePicker Component', () => {
     render(<LiquidDatePicker date={testDate} setDate={() => {}} />)
     const btn = screen.getByRole('button', { name: /Wednesday.*October 28|יום רביעי.*28 באוקטובר/i })
     expect(btn).toHaveAttribute('data-date-selected', 'true')
-    expect(screen.getByText('28/10/2026')).toHaveClass('md:hidden')
+    expect(screen.getByText('28/10')).toHaveClass('md:hidden')
   })
 
   it('handles clearing selected date', () => {
@@ -1515,7 +1519,7 @@ describe('Empty Page Views', () => {
       expect(screen.getByRole('tab', { name: /homework\.all_short|All|הכל/i })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: 'נועם' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: 'מאיה' })).toBeInTheDocument()
-      const dateBtn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+      const dateBtn = screen.getByRole('button', { name: /common\.all_dates_short|All|הכל/i })
       expect(dateBtn).toHaveAttribute('data-date-selected', 'false')
     } finally {
       global.fetch = originalFetch
@@ -1552,7 +1556,7 @@ describe('Empty Page Views', () => {
       expect(screen.getByRole('tab', { name: /incidents\.all_short|All|הכל/i })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: 'נועם' })).toBeInTheDocument()
       expect(screen.getByRole('tab', { name: 'מאיה' })).toBeInTheDocument()
-      const dateBtn = screen.getByRole('button', { name: /common\.all_dates|All Dates|כל התאריכים/i })
+      const dateBtn = screen.getByRole('button', { name: /common\.all_dates_short|All|הכל/i })
       expect(dateBtn).toHaveAttribute('data-date-selected', 'false')
     } finally {
       global.fetch = originalFetch
@@ -1810,10 +1814,73 @@ describe('LiquidButton & ScheduleTable Print Support', () => {
     expect(btn.className).toContain('apple-liquid-dock')
     expect(btn.className).toContain('rounded-full')
     expect(btn.className).toContain('h-10')
+    expect(btn.className).not.toContain('border-transparent')
+    expect(btn.className).not.toContain('shadow-xs')
     expect(btn.querySelector('svg')).toBeInTheDocument()
 
     fireEvent.click(btn)
     expect(onClick).toHaveBeenCalledTimes(1)
+  })
+
+  it('allows LiquidTabs to shrink and scroll horizontally inside constrained filter rows', () => {
+    render(
+      <LiquidTabs
+        ariaLabel="Child Filter"
+        items={[
+          { id: 'all', label: 'All' },
+          { id: 'c1', label: 'Child One' },
+          { id: 'c2', label: 'Child Two' },
+        ]}
+        selectedId="all"
+        onSelect={vi.fn()}
+      />
+    )
+
+    const tablist = screen.getByRole('tablist', { name: 'Child Filter' })
+    expect(tablist.className).toContain('min-w-0')
+    expect(tablist.className).toContain('p-1')
+    expect(tablist.className).toContain('overflow-hidden')
+    expect(tablist.className).not.toContain('shrink-0')
+
+    const scrollContainer = tablist.firstElementChild as HTMLElement
+    expect(scrollContainer.className).toContain('overflow-x-auto')
+    expect(scrollContainer.className).toContain('rounded-full')
+  })
+
+  it('scrolls the selected LiquidTabs item into view when selectedId changes', () => {
+    const scrollIntoViewMock = vi.fn()
+    const items = [
+      { id: 'all', label: 'All' },
+      { id: 'c1', label: 'Child One' },
+      { id: 'c2', label: 'Child Two' },
+    ]
+
+    const { rerender } = render(
+      <LiquidTabs
+        ariaLabel="Child Filter"
+        items={items}
+        selectedId="all"
+        onSelect={vi.fn()}
+      />
+    )
+
+    const targetTab = screen.getByRole('tab', { name: 'Child Two' })
+    targetTab.scrollIntoView = scrollIntoViewMock
+
+    rerender(
+      <LiquidTabs
+        ariaLabel="Child Filter"
+        items={items}
+        selectedId="c2"
+        onSelect={vi.fn()}
+      />
+    )
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: 'smooth',
+      block: 'nearest',
+      inline: 'nearest',
+    })
   })
 
   it('applies full-table print overrides to ScheduleTable so all 6 days print even from mobile', () => {

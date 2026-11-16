@@ -71,7 +71,7 @@ export function LiquidDatePicker({
         full = d.toLocaleDateString()
       }
 
-      const short = format(d, "dd/MM/yyyy")
+      const short = format(d, "dd/MM")
       if (isChild) {
         return { short: full, full }
       }
@@ -85,7 +85,7 @@ export function LiquidDatePicker({
       variant="liquid"
       date={date}
       setDate={setDate}
-      placeholder={placeholder || t("common.all_dates")}
+      placeholder={placeholder || t("common.all_dates_short")}
       disabled={disabledFilter}
       clearable={clearable}
       formatDisplay={defaultFormatDisplay}
