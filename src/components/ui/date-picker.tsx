@@ -113,10 +113,10 @@ export function DatePicker({
                         variant="ghost"
                         size="icon"
                         className={cn(
-                            "h-10 w-10 rounded-full shadow-xs transition-all shrink-0 apple-liquid-dock focus:outline-none focus-visible:outline-none",
+                            "h-10 w-10 rounded-full transition-all shrink-0 apple-liquid-dock focus:outline-none focus-visible:outline-none",
                             date
                                 ? "border border-white/20 dark:border-white/10 !bg-primary text-primary-foreground hover:!bg-primary/90"
-                                : "border border-transparent text-muted-foreground hover:text-foreground",
+                                : "text-muted-foreground dark:text-foreground/85 hover:text-foreground",
                             className
                         )}
                         title={formattedDate}

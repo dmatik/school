@@ -165,66 +165,53 @@
     padding-bottom: 16px;
   }
   .apple-glass {
-    background-color: hsl(var(--background) / 0.38);
-    -webkit-backdrop-filter: blur(8px) saturate(150%);
-    backdrop-filter: blur(8px) saturate(150%);
+    background-color: rgba(255, 255, 255, 0.86);
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    backdrop-filter: blur(6px) saturate(140%);
   }
   .dark .apple-glass {
-    background-color: hsl(var(--background) / 0.45);
+    background-color: rgba(60, 70, 86, 0.86);
   }
   @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
     .apple-glass {
-      background-color: hsl(var(--background) / 0.95);
+      background-color: rgba(255, 255, 255, 0.96);
+    }
+    .dark .apple-glass {
+      background-color: rgba(60, 70, 86, 0.96);
     }
   }
   .apple-liquid-dock {
-    background-color: hsl(var(--background) / 0.08);
-    background-image: linear-gradient(
-      165deg,
-      rgba(255, 255, 255, 0.12) 0%,
-      rgba(255, 255, 255, 0.01) 50%,
-      rgba(255, 255, 255, 0.06) 100%
-    );
-    -webkit-backdrop-filter: blur(14px) saturate(180%);
-    backdrop-filter: blur(14px) saturate(180%);
-    /* Thin, delicate glass hairline border */
-    border: 1px solid rgba(15, 23, 42, 0.08);
-    box-shadow:
-      /* Floating ambient drop shadow */
-      0 10px 25px -4px rgba(15, 23, 42, 0.10),
-      0 2px 8px -1px rgba(15, 23, 42, 0.04),
-      /* Delicate 1px top specular hairline */
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.6);
+    background-color: rgba(255, 255, 255, 0.86);
+    background-image: none;
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    backdrop-filter: blur(6px) saturate(140%);
+    border: 1px solid rgba(15, 23, 42, 0.18);
+    box-shadow: none;
   }
   .dark .apple-liquid-dock {
-    background-color: hsl(var(--background) / 0.15);
-    background-image: linear-gradient(
-      145deg,
-      rgba(255, 255, 255, 0.04) 0%,
-      rgba(255, 255, 255, 0.01) 45%,
-      rgba(255, 255, 255, 0.02) 100%
-    );
-    -webkit-backdrop-filter: blur(16px) saturate(180%);
-    backdrop-filter: blur(16px) saturate(180%);
-    border: 1px solid rgba(255, 255, 255, 0.10);
-    box-shadow:
-      0 10px 30px -4px rgba(0, 0, 0, 0.45),
-      0 2px 8px 0 rgba(0, 0, 0, 0.25),
-      inset 0 1px 0 0 rgba(255, 255, 255, 0.18);
+    background-color: rgba(60, 70, 86, 0.86);
+    background-image: none;
+    -webkit-backdrop-filter: blur(6px) saturate(140%);
+    backdrop-filter: blur(6px) saturate(140%);
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    box-shadow: none;
   }
   @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
     .apple-liquid-dock {
-      background-color: hsl(var(--background) / 0.96);
+      background-color: rgba(255, 255, 255, 0.96);
+    }
+    .dark .apple-liquid-dock {
+      background-color: rgba(60, 70, 86, 0.96);
     }
   }
   .apple-liquid-pill {
-    background-color: rgba(15, 23, 42, 0.075);
+    background-color: rgba(15, 23, 42, 0.08);
     background-image: none;
     border: none;
     box-shadow: none;
   }
   .dark .apple-liquid-pill {
-    background-color: rgba(255, 255, 255, 0.13);
+    background-color: rgba(6, 10, 18, 0.55);
     background-image: none;
     border: none;
     box-shadow: none;
