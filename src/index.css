@@ -193,7 +193,7 @@
     background-image: none;
     -webkit-backdrop-filter: blur(6px) saturate(140%);
     backdrop-filter: blur(6px) saturate(140%);
-    border: 1px solid rgba(255, 255, 255, 0.34);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     box-shadow: none;
   }
   @supports not ((-webkit-backdrop-filter: none) or (backdrop-filter: none)) {
