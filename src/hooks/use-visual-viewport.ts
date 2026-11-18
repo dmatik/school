@@ -1,5 +1,12 @@
 import * as React from "react"
 
+const LIFTED_MOBILE_FIELD_IDS = new Set([
+  "exam-edit-name",
+  "exam-add-name",
+  "create-fn",
+  "create-ln",
+])
+
 /**
  * Hook to adapt mobile modals to window.visualViewport when the virtual touch keyboard opens.
  * When viewport shrinks (e.g. keyboard opens on mobile Safari or Android Chrome),
@@ -11,6 +18,7 @@ export function useMobileModalViewport(
 ) {
   const [viewportStyle, setViewportStyle] = React.useState<React.CSSProperties>({})
   const [isKeyboardOpen, setIsKeyboardOpen] = React.useState(false)
+  const isLiftedFieldFocusedRef = React.useRef(false)
 
   // Scroll active/target element into view inside the modal container
   const scrollElementIntoView = React.useCallback(
@@ -82,11 +90,16 @@ export function useMobileModalViewport(
 
       setIsKeyboardOpen(keyboardOpen)
 
-      if (keyboardOpen || vv.offsetTop > 0) {
+      if (isLiftedFieldFocusedRef.current) {
         setViewportStyle({
-          height: `${vv.height}px`,
-          top: `${vv.offsetTop}px`,
-          maxHeight: `${vv.height}px`
+          paddingBottom: "calc(64px + max(1.25rem, env(safe-area-inset-bottom)))",
+          transition: "padding-bottom 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+        })
+      } else if (keyboardOpen || vv.offsetTop > 0) {
+        const bottomOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
+        setViewportStyle({
+          bottom: `${bottomOffset}px`,
+          maxHeight: `${Math.max(240, vv.height - 24)}px`,
         })
       } else {
         setViewportStyle({})
@@ -124,6 +137,11 @@ export function useMobileModalViewport(
 
       if (!isTextEntry) return
 
+      isLiftedFieldFocusedRef.current = LIFTED_MOBILE_FIELD_IDS.has(target.id)
+      if (isLiftedFieldFocusedRef.current) {
+        updateViewport()
+      }
+
       setIsKeyboardOpen(true)
 
       // Multiple staggered scroll triggers to handle virtual keyboard slide-up
@@ -140,6 +158,12 @@ export function useMobileModalViewport(
         const isStillInside = active && container.contains(active)
         const currentVv = window.visualViewport
         const keyboardStillOpen = currentVv ? (window.innerHeight - currentVv.height > 80) : false
+        isLiftedFieldFocusedRef.current = Boolean(
+          active && LIFTED_MOBILE_FIELD_IDS.has(active.id)
+        )
+        if (!isLiftedFieldFocusedRef.current) {
+          updateViewport()
+        }
         if (!isStillInside && !keyboardStillOpen) {
           setIsKeyboardOpen(false)
         }
@@ -161,4 +185,155 @@ export function useMobileModalViewport(
   }, [container, scrollElementIntoView])
 
   return { viewportStyle, isKeyboardOpen }
+}
+
+interface SheetTouchState {
+  active: boolean
+  locked: boolean
+  fromHandle: boolean
+  startX: number
+  startY: number
+  startTime: number
+}
+
+const INITIAL_SHEET_TOUCH: SheetTouchState = {
+  active: false,
+  locked: false,
+  fromHandle: false,
+  startX: 0,
+  startY: 0,
+  startTime: 0,
+}
+
+function canStartSheetSwipe(target: EventTarget | null, container: HTMLElement | null): boolean {
+  let el = target instanceof HTMLElement ? target : null
+  while (el && el !== container) {
+    const tag = el.tagName
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || el.isContentEditable) {
+      return false
+    }
+    const style = window.getComputedStyle(el)
+    if ((style.overflowY === "auto" || style.overflowY === "scroll") && el.scrollTop > 0) {
+      return false
+    }
+    el = el.parentElement
+  }
+  if (container && container.scrollTop > 0) {
+    return false
+  }
+  return true
+}
+
+/**
+ * Hook for mobile (< 640px) bottom-sheet modals to support swipe-down-to-close.
+ */
+export function useMobileSheetSwipeToClose(
+  container: HTMLElement | null,
+  onClose: () => void
+) {
+  const touchRef = React.useRef<SheetTouchState>(INITIAL_SHEET_TOUCH)
+  const [dragOffset, setDragOffset] = React.useState(0)
+  const [isDragging, setIsDragging] = React.useState(false)
+
+  const reset = React.useCallback(() => {
+    touchRef.current = INITIAL_SHEET_TOUCH
+    setIsDragging(false)
+    setDragOffset(0)
+  }, [])
+
+  const onTouchStart = React.useCallback(
+    (e: React.TouchEvent<HTMLElement>) => {
+      if (typeof window === "undefined" || window.innerWidth >= 640) return
+      if (e.touches.length !== 1) return
+
+      const targetEl = e.target instanceof HTMLElement ? e.target : null
+      const fromHandle = Boolean(targetEl?.closest("[data-sheet-handle]"))
+
+      if (!fromHandle && !canStartSheetSwipe(e.target, container)) {
+        return
+      }
+
+      const touch = e.touches[0]
+      touchRef.current = {
+        active: true,
+        locked: fromHandle,
+        fromHandle,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        startTime: Date.now(),
+      }
+      if (fromHandle) {
+        setIsDragging(true)
+      }
+    },
+    [container]
+  )
+
+  const onTouchMove = React.useCallback(
+    (e: React.TouchEvent<HTMLElement>) => {
+      const state = touchRef.current
+      if (!state.active || e.touches.length !== 1) return
+      if (typeof window !== "undefined" && window.innerWidth >= 640) return
+
+      const touch = e.touches[0]
+      const deltaX = touch.clientX - state.startX
+      const deltaY = touch.clientY - state.startY
+
+      if (!state.locked) {
+        if (Math.abs(deltaX) > Math.abs(deltaY) && Math.abs(deltaX) > 6) {
+          reset()
+          return
+        }
+        if (deltaY < -4) {
+          reset()
+          return
+        }
+        if (deltaY <= 8) {
+          return
+        }
+        if (!canStartSheetSwipe(e.target, container)) {
+          reset()
+          return
+        }
+        state.locked = true
+        setIsDragging(true)
+      }
+
+      const nextOffset = Math.max(0, deltaY)
+      setDragOffset(nextOffset)
+    },
+    [container, reset]
+  )
+
+  const onTouchEnd = React.useCallback(() => {
+    const state = touchRef.current
+    if (!state.active) return
+
+    const elapsed = Math.max(1, Date.now() - state.startTime)
+    const velocity = dragOffset / elapsed
+    const shouldClose = state.locked && (dragOffset >= 80 || (velocity >= 0.5 && dragOffset > 20))
+
+    reset()
+
+    if (shouldClose) {
+      onClose()
+    }
+  }, [dragOffset, onClose, reset])
+
+  const swipeStyle: React.CSSProperties =
+    dragOffset > 0 || isDragging
+      ? {
+          transform: `translate3d(0, ${dragOffset}px, 0)`,
+          transition: isDragging ? "none" : "transform 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+        }
+      : {}
+
+  const swipeHandlers = {
+    onTouchStart,
+    onTouchMove,
+    onTouchEnd,
+    onTouchCancel: reset,
+  }
+
+  return { swipeStyle, swipeHandlers }
 }

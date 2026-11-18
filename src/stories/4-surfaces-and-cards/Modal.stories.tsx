@@ -25,7 +25,7 @@ const meta: Meta<typeof Modal> = {
     docs: {
       description: {
         component:
-          "Standard unified application modal system built with `Modal` and `ConfirmModal`. Responsive: full-screen on mobile devices, centered card on desktop screens.",
+          "Standard unified application modal system built with `Modal` and `ConfirmModal`. Responsive: bottom-sliding sheet with blurred backdrop and swipe-down-to-close on mobile devices, centered card on desktop screens.",
       },
     },
   },
