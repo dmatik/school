@@ -429,6 +429,7 @@ describe('AppSidebar Component', () => {
 
     const btn = screen.getByRole('button', { name: 'Test Item' })
     expect(btn.className).toContain('text-muted-foreground')
+    expect(btn.className).toContain('apple-liquid-pill-hover')
 
     rerender(
       <SidebarNavButton
@@ -439,7 +440,8 @@ describe('AppSidebar Component', () => {
       />
     )
 
-    expect(btn.className).toContain('bg-primary/10')
+    expect(btn.className).toContain('apple-liquid-pill')
+    expect(btn.className).toContain('text-primary')
   })
 })
 

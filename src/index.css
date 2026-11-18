@@ -204,13 +204,15 @@
       background-color: rgba(60, 70, 86, 0.96);
     }
   }
-  .apple-liquid-pill {
+  .apple-liquid-pill,
+  .apple-liquid-pill-hover:hover {
     background-color: rgba(15, 23, 42, 0.08);
     background-image: none;
     border: none;
     box-shadow: none;
   }
-  .dark .apple-liquid-pill {
+  .dark .apple-liquid-pill,
+  .dark .apple-liquid-pill-hover:hover {
     background-color: rgba(6, 10, 18, 0.55);
     background-image: none;
     border: none;
