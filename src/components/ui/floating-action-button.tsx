@@ -35,7 +35,7 @@ export function FloatingActionButton({
       disabled={disabled}
       className={cn(
         "pointer-events-auto h-[50px] w-[50px] rounded-full apple-liquid-dock text-foreground flex items-center justify-center select-none transition-transform focus:outline-none focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none",
-        asFixedOverlay && "absolute z-30 ltr:end-0 rtl:start-0 md:rtl:start-auto md:end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8",
+        asFixedOverlay && "absolute z-30 end-0 bottom-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+5.35rem)] md:bottom-8",
         className
       )}
       title={title || ariaLabel}

@@ -2007,5 +2007,18 @@ describe('FloatingActionButton', () => {
     expect(btn.className).toContain('apple-liquid-dock')
     expect(btn.className).toContain('text-foreground')
   })
+
+  it('positions overlay at end-0 on both mobile and desktop', () => {
+    render(
+      <FloatingActionButton
+        onClick={vi.fn()}
+        ariaLabel="Overlay FAB"
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Overlay FAB' })
+    expect(btn.className).toContain('end-0')
+    expect(btn.className).not.toContain('rtl:start-0')
+  })
 })
 
