@@ -1,5 +1,12 @@
 import * as React from "react"
 
+const LIFTED_MOBILE_FIELD_IDS = new Set([
+  "exam-edit-name",
+  "exam-add-name",
+  "create-fn",
+  "create-ln",
+])
+
 /**
  * Hook to adapt mobile modals to window.visualViewport when the virtual touch keyboard opens.
  * When viewport shrinks (e.g. keyboard opens on mobile Safari or Android Chrome),
@@ -11,6 +18,7 @@ export function useMobileModalViewport(
 ) {
   const [viewportStyle, setViewportStyle] = React.useState<React.CSSProperties>({})
   const [isKeyboardOpen, setIsKeyboardOpen] = React.useState(false)
+  const isLiftedFieldFocusedRef = React.useRef(false)
 
   // Scroll active/target element into view inside the modal container
   const scrollElementIntoView = React.useCallback(
@@ -82,7 +90,12 @@ export function useMobileModalViewport(
 
       setIsKeyboardOpen(keyboardOpen)
 
-      if (keyboardOpen || vv.offsetTop > 0) {
+      if (isLiftedFieldFocusedRef.current) {
+        setViewportStyle({
+          paddingBottom: "calc(64px + max(1.25rem, env(safe-area-inset-bottom)))",
+          transition: "padding-bottom 220ms cubic-bezier(0.32, 0.72, 0, 1)",
+        })
+      } else if (keyboardOpen || vv.offsetTop > 0) {
         const bottomOffset = Math.max(0, window.innerHeight - vv.height - vv.offsetTop)
         setViewportStyle({
           bottom: `${bottomOffset}px`,
@@ -124,6 +137,11 @@ export function useMobileModalViewport(
 
       if (!isTextEntry) return
 
+      isLiftedFieldFocusedRef.current = LIFTED_MOBILE_FIELD_IDS.has(target.id)
+      if (isLiftedFieldFocusedRef.current) {
+        updateViewport()
+      }
+
       setIsKeyboardOpen(true)
 
       // Multiple staggered scroll triggers to handle virtual keyboard slide-up
@@ -140,6 +158,12 @@ export function useMobileModalViewport(
         const isStillInside = active && container.contains(active)
         const currentVv = window.visualViewport
         const keyboardStillOpen = currentVv ? (window.innerHeight - currentVv.height > 80) : false
+        isLiftedFieldFocusedRef.current = Boolean(
+          active && LIFTED_MOBILE_FIELD_IDS.has(active.id)
+        )
+        if (!isLiftedFieldFocusedRef.current) {
+          updateViewport()
+        }
         if (!isStillInside && !keyboardStillOpen) {
           setIsKeyboardOpen(false)
         }
