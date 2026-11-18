@@ -441,6 +441,7 @@ describe('AppSidebar Component', () => {
     )
 
     expect(btn.className).toContain('apple-liquid-pill')
+    expect(btn.className).toContain('dark:!bg-primary/20')
     expect(btn.className).toContain('text-primary')
   })
 })
