@@ -429,6 +429,7 @@ describe('AppSidebar Component', () => {
 
     const btn = screen.getByRole('button', { name: 'Test Item' })
     expect(btn.className).toContain('text-muted-foreground')
+    expect(btn.className).toContain('apple-liquid-pill-hover')
 
     rerender(
       <SidebarNavButton
@@ -439,7 +440,9 @@ describe('AppSidebar Component', () => {
       />
     )
 
-    expect(btn.className).toContain('bg-primary/10')
+    expect(btn.className).toContain('apple-liquid-pill')
+    expect(btn.className).toContain('dark:!bg-primary/20')
+    expect(btn.className).toContain('text-primary')
   })
 })
 
@@ -2004,6 +2007,19 @@ describe('FloatingActionButton', () => {
     expect(btn.querySelector('svg.lucide-pencil')).not.toBeInTheDocument()
     expect(btn.className).toContain('apple-liquid-dock')
     expect(btn.className).toContain('text-foreground')
+  })
+
+  it('positions overlay at end-0 on both mobile and desktop', () => {
+    render(
+      <FloatingActionButton
+        onClick={vi.fn()}
+        ariaLabel="Overlay FAB"
+      />
+    )
+
+    const btn = screen.getByRole('button', { name: 'Overlay FAB' })
+    expect(btn.className).toContain('end-0')
+    expect(btn.className).not.toContain('rtl:start-0')
   })
 })
 
