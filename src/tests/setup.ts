@@ -47,11 +47,14 @@ vi.mock('react-i18next', () => ({
     Trans: ({ children }: { children: unknown }) => children,
 }))
 
-// 4. Mock next-themes
-vi.mock('next-themes', () => ({
+// 4. Mock theme provider
+vi.mock('@/components/theme-provider', () => ({
     useTheme: () => ({
         theme: 'light',
         setTheme: vi.fn(),
+        resolvedTheme: 'light',
+        systemTheme: 'light',
+        themes: ['light', 'dark', 'system'],
     }),
     ThemeProvider: ({ children }: { children: unknown }) => children,
 }))

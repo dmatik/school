@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { useTranslation } from "react-i18next"
-import { useTheme } from "next-themes"
+import { useTheme } from "@/components/theme-provider"
 import { PageHeader } from "@/components/ui/page-header"
 import {
   GraduationCap,
