@@ -171,6 +171,11 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
+// Health check endpoint for mobile server URL verification
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'ok', app: 'school' });
+});
+
 // Serve static files from the React app
 app.use(express.static(path.join(__dirname, '../dist')));
 

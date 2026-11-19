@@ -217,6 +217,11 @@
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",
+    "server_url": "Server URL",
+    "server_url_placeholder": "https://school.example.com",
+    "server_url_required": "Please enter the self-hosted server URL",
+    "server_url_invalid": "Invalid server URL. Must start with http:// or https://",
+    "server_unreachable": "Cannot connect to server. Please check the URL and try again.",
     "username": "Username",
     "username_placeholder": "Enter username",
     "password": "Password",

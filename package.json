@@ -20,7 +20,12 @@
     "test:e2e:ui": "playwright test --ui",
     "screenshots": "node scripts/generate-screenshots.mjs",
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006 --disable-telemetry",
-    "build-storybook": "storybook build --disable-telemetry"
+    "build-storybook": "storybook build --disable-telemetry",
+    "mobile:start": "npm --prefix mobile run start",
+    "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:android": "npm --prefix mobile run android",
+    "mobile:typecheck": "npm --prefix mobile run typecheck",
+    "test:maestro": "node mobile/scripts/run-maestro-e2e.mjs"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

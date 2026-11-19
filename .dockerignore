@@ -33,3 +33,13 @@ Dockerfile
 # Local Data
 data
 
+# Mobile App & Maestro E2E (excluded from Docker build context & image)
+mobile
+.maestro
+
+# Local E2E & Storybook artifacts
+e2e
+playwright-report
+test-results
+storybook-static
+
