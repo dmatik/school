@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
+import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import {
   BookOpen,
@@ -14,13 +15,18 @@ import { useTranslation } from 'react-i18next';
 import './src/i18n';
 import { hydrateLanguage } from './src/i18n';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
+import { HEEBO_FONTS } from './src/theme/typography';
 import {
   apiFetch,
   clearAuthOnly,
   hydrateSession,
   setActiveSession,
 } from './src/lib/api';
-import { MobileHeader } from './src/components/ui/MobileHeader';
+import {
+  MobileHeader,
+  ScrollHeaderProvider,
+  useScrollHeader,
+} from './src/components/ui/MobileHeader';
 import { LiquidDock, type DockTabItem } from './src/components/ui/LiquidDock';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeworkScreen } from './src/screens/HomeworkScreen';
@@ -44,6 +50,7 @@ type AppTab =
 function AppShell() {
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
+  const { resetScroll } = useScrollHeader();
 
   const [booting, setBooting] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -51,6 +58,20 @@ function AppShell() {
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!currentUser) {
+      setLastSyncedAt(null);
+      return;
+    }
+    apiFetch('/api/webtop/config')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((cfg) => {
+        if (cfg?.lastSyncedAt) setLastSyncedAt(cfg.lastSyncedAt);
+      })
+      .catch(() => {});
+  }, [currentUser, syncTrigger]);
 
   useEffect(() => {
     let cancelled = false;
@@ -165,7 +186,12 @@ function AppShell() {
       <MobileHeader
         title={headerTitle}
         user={currentUser}
-        onPressAccount={() => setActiveTab('account')}
+        lastSyncedAt={lastSyncedAt}
+        isAccountActive={activeTab === 'account'}
+        onPressAccount={() => {
+          resetScroll();
+          setActiveTab('account');
+        }}
         onPressSync={handleGlobalSync}
         syncing={syncing}
         syncSuccess={syncSuccess}
@@ -206,17 +232,36 @@ function AppShell() {
       <LiquidDock
         items={dockItems}
         activeId={activeTab}
-        onSelect={(id) => setActiveTab(id as AppTab)}
+        onSelect={(id) => {
+          resetScroll();
+          setActiveTab(id as AppTab);
+        }}
       />
     </View>
   );
 }
 
+const STORYBOOK_ENABLED = process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true';
+
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts(HEEBO_FONTS);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
+  if (STORYBOOK_ENABLED) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const StorybookUIRoot = require('./.rnstorybook').default;
+    return <StorybookUIRoot />;
+  }
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
-        <AppShell />
+        <ScrollHeaderProvider>
+          <AppShell />
+        </ScrollHeaderProvider>
       </ThemeProvider>
     </SafeAreaProvider>
   );

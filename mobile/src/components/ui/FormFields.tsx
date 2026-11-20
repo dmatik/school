@@ -13,9 +13,11 @@ import {
 } from 'react-native';
 import { Search, X, ChevronDown, Check, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
-import { LiquidGlassContainer, LiquidGlassSurface } from './LiquidGlassSurface';
+import { useScrollHeader } from './MobileHeader';
+import { GlassBackdrop } from './GlassBackdrop';
 
 export function FieldLabel({
   label,
@@ -113,8 +115,9 @@ export function SearchInput({
   placeholder: string;
   testID?: string;
 }) {
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
+  const searchBg = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
 
   return (
     <View
@@ -122,12 +125,11 @@ export function SearchInput({
         styles.searchWrap,
         {
           flexDirection: flexRow,
-          backgroundColor: palette.card,
-          borderColor: palette.border,
+          backgroundColor: searchBg,
         },
       ]}
     >
-      <Search size={16} color={palette.mutedForeground} />
+      <Search size={20} color={palette.mutedForeground} />
       <TextInput
         testID={testID}
         value={value}
@@ -137,8 +139,12 @@ export function SearchInput({
         style={[styles.searchField, { color: palette.foreground, textAlign }]}
       />
       {value.length > 0 && (
-        <Pressable onPress={() => onChangeText('')} hitSlop={8}>
-          <X size={16} color={palette.mutedForeground} />
+        <Pressable
+          onPress={() => onChangeText('')}
+          hitSlop={8}
+          style={styles.searchClearBtn}
+        >
+          <X size={16} strokeWidth={2.5} color={palette.mutedForeground} />
         </Pressable>
       )}
     </View>
@@ -323,6 +329,41 @@ export function ColorSwatchPicker({
   );
 }
 
+export function StickyFilterBar({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const { headerHeight, scrollY } = useScrollHeader();
+  const [naturalY, setNaturalY] = useState<number | null>(null);
+
+  const stickyTop = headerHeight + 8;
+  const threshold = naturalY !== null ? Math.max(0, naturalY - stickyTop) : 52;
+
+  const translateY = scrollY.interpolate({
+    inputRange: [0, threshold, threshold + 10000],
+    outputRange: [0, 0, 10000],
+    extrapolate: 'clamp',
+  });
+
+  return (
+    <Animated.View
+      onLayout={(e) => {
+        const y = e.nativeEvent.layout.y;
+        if (naturalY === null && y > 0) {
+          setNaturalY(y);
+        }
+      }}
+      style={[
+        styles.stickyFilterBar,
+        { transform: [{ translateY }] },
+      ]}
+    >
+      {children}
+    </Animated.View>
+  );
+}
+
 export function LiquidTabs({
   tabs,
   value,
@@ -334,11 +375,14 @@ export function LiquidTabs({
   onChange: (val: string) => void;
   testID?: string;
 }) {
-  const { palette, themeMode, isDark } = useTheme();
-  const { flexRow } = useDirection();
+  const { palette, isDark } = useTheme();
+  const { isRTL, flexRow } = useDirection();
   const flatPillBg = isDark ? 'rgba(6, 10, 18, 0.55)' : 'rgba(15, 23, 42, 0.08)';
 
   const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
+  const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
+  const viewportWidth = useRef(0);
+  const scrollOffset = useRef(0);
   const [hasMeasured, setHasMeasured] = useState(false);
   const pillX = useRef(new Animated.Value(0)).current;
   const pillW = useRef(new Animated.Value(0)).current;
@@ -350,38 +394,67 @@ export function LiquidTabs({
     Animated.parallel([
       Animated.spring(pillX, {
         toValue: layout.x,
-        stiffness: 420,
-        damping: 32,
-        mass: 0.9,
+        stiffness: 450,
+        damping: 35,
+        mass: 1,
         useNativeDriver: false,
       }),
       Animated.spring(pillW, {
         toValue: layout.width,
-        stiffness: 420,
-        damping: 32,
-        mass: 0.9,
+        stiffness: 450,
+        damping: 35,
+        mass: 1,
         useNativeDriver: false,
       }),
     ]).start();
+
+    // Ensure selected pill is always fully visible inside the scrollable filter bar
+    if (scrollRef.current && viewportWidth.current > 0) {
+      const leftEdge = layout.x;
+      const rightEdge = layout.x + layout.width;
+      const currentLeft = scrollOffset.current;
+      const currentRight = currentLeft + viewportWidth.current;
+
+      if (leftEdge < currentLeft) {
+        const nextX = Math.max(0, leftEdge - 4);
+        scrollRef.current.scrollTo({ x: nextX, animated: true });
+        scrollOffset.current = nextX;
+      } else if (rightEdge > currentRight) {
+        const nextX = rightEdge - viewportWidth.current + 4;
+        scrollRef.current.scrollTo({ x: nextX, animated: true });
+        scrollOffset.current = nextX;
+      }
+    }
   }, [value, hasMeasured, pillX, pillW]);
 
+  const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);
+
   return (
-    <LiquidGlassContainer spacing={6} style={styles.tabsOuter}>
-      <LiquidGlassSurface
-        effect="regular"
-        colorScheme={themeMode}
-        style={styles.tabsShell}
-        fallbackStyle={{
-          backgroundColor: palette.muted,
-          borderColor: palette.border,
-          borderWidth: 1,
-        }}
+    <View style={[styles.tabsOuter, { alignSelf: alignStart }]}>
+      <View
+        style={[
+          styles.tabsShell,
+          {
+            alignSelf: alignStart,
+            borderColor: palette.glassBorder,
+            borderWidth: 1,
+          },
+        ]}
       >
+        <GlassBackdrop />
         <ScrollView
+          ref={scrollRef}
           horizontal
           showsHorizontalScrollIndicator={false}
           testID={testID}
           style={styles.tabsScroll}
+          onLayout={(e) => {
+            viewportWidth.current = e.nativeEvent.layout.width;
+          }}
+          onScroll={(e) => {
+            scrollOffset.current = e.nativeEvent.contentOffset.x;
+          }}
+          scrollEventThrottle={16}
           contentContainerStyle={[styles.tabsContainer, { flexDirection: flexRow }]}
         >
           {hasMeasured && (
@@ -418,11 +491,13 @@ export function LiquidTabs({
               >
                 <Text
                   numberOfLines={1}
-                  style={{
-                    fontSize: 12,
-                    fontWeight: active ? '700' : '500',
-                    color: active ? palette.foreground : palette.mutedForeground,
-                  }}
+                  style={[
+                    {
+                      fontSize: 16,
+                      color: active ? palette.foreground : palette.mutedForeground,
+                    },
+                    heeboFont('500'),
+                  ]}
                 >
                   {tab.label}
                 </Text>
@@ -430,8 +505,8 @@ export function LiquidTabs({
             );
           })}
         </ScrollView>
-      </LiquidGlassSurface>
-    </LiquidGlassContainer>
+      </View>
+    </View>
   );
 }
 
@@ -464,17 +539,23 @@ const styles = StyleSheet.create({
     height: '100%',
   },
   searchWrap: {
-    height: 40,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    height: 44,
+    borderRadius: 999,
+    paddingHorizontal: 14,
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   searchField: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 17,
+    ...heeboFont('400'),
     height: '100%',
+  },
+  searchClearBtn: {
+    padding: 4,
+    borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   selectTrigger: {
     height: 42,
@@ -522,12 +603,15 @@ const styles = StyleSheet.create({
   tabsOuter: {
     flexGrow: 0,
     flexShrink: 0,
-    alignSelf: 'flex-start',
     maxWidth: '100%',
   },
+  stickyFilterBar: {
+    zIndex: 15,
+    gap: 8,
+  },
   tabsShell: {
+    height: 40,
     borderRadius: 999,
-    alignSelf: 'flex-start',
     overflow: 'hidden',
     flexGrow: 0,
     flexShrink: 0,
@@ -537,23 +621,25 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   tabsContainer: {
-    padding: 2,
-    gap: 4,
+    padding: 4,
+    gap: 0,
     alignItems: 'center',
     position: 'relative',
   },
   tabSlidingPillWrap: {
     position: 'absolute',
-    top: 2,
-    bottom: 2,
+    top: 4,
+    bottom: 4,
   },
   tabSlidingPill: {
     flex: 1,
     borderRadius: 999,
   },
   tabItem: {
+    height: 32,
     paddingHorizontal: 16,
-    paddingVertical: 7,
     borderRadius: 999,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

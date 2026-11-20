@@ -46,8 +46,8 @@ export const LIGHT_PALETTE: ThemePalette = {
   warningSoft: 'rgba(217, 119, 6, 0.14)',
   border: '#d6dde6',
   inputBg: '#f1f5f9',
-  glassBg: 'rgba(255, 255, 255, 0.92)',
-  glassBorder: 'rgba(214, 221, 230, 0.7)',
+  glassBg: 'rgba(255, 255, 255, 0.90)',
+  glassBorder: 'rgba(15, 23, 42, 0.18)',
 };
 
 export const DARK_PALETTE: ThemePalette = {
@@ -72,8 +72,8 @@ export const DARK_PALETTE: ThemePalette = {
   warningSoft: 'rgba(245, 158, 11, 0.18)',
   border: '#2e384a',
   inputBg: '#222b3a',
-  glassBg: 'rgba(25, 32, 46, 0.92)',
-  glassBorder: 'rgba(255, 255, 255, 0.1)',
+  glassBg: 'rgba(60, 70, 86, 0.90)',
+  glassBorder: 'rgba(255, 255, 255, 0.24)',
 };
 
 export interface ChildColorToken {

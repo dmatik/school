@@ -1,0 +1,368 @@
+import React, { useMemo, useState } from 'react';
+import {
+  Modal,
+  Pressable,
+  Text,
+  View,
+  StyleSheet,
+} from 'react-native';
+import {
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  format,
+  getDay,
+  isSameDay,
+  isToday,
+  isYesterday,
+  startOfMonth,
+  subMonths,
+} from 'date-fns';
+import { he, enUS } from 'date-fns/locale';
+import { Calendar, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
+import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
+import { useDirection } from '../../i18n';
+import { Button } from './Buttons';
+import { GlassBackdrop } from './GlassBackdrop';
+
+export function LiquidDatePicker({
+  date,
+  setDate,
+  isChild = false,
+  disableFuture = true,
+  testID,
+}: {
+  date?: Date;
+  setDate: (date: Date | undefined) => void;
+  isChild?: boolean;
+  disableFuture?: boolean;
+  testID?: string;
+}) {
+  const { t, i18n } = useTranslation();
+  const { palette, isDark } = useTheme();
+  const { isRTL, flexRow } = useDirection();
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
+
+  const dateLocale = (i18n.language || 'he').startsWith('en') ? enUS : he;
+
+  const displayLabel = useMemo(() => {
+    if (!date) return t('common.all_dates_short');
+    if (isChild) {
+      if (isToday(date)) return t('common.today');
+      if (isYesterday(date)) return t('common.yesterday');
+      return format(date, 'dd/MM/yyyy', { locale: dateLocale });
+    }
+    return format(date, 'dd/MM');
+  }, [date, isChild, t, dateLocale]);
+
+  const calendarWeeks = useMemo(() => {
+    const start = startOfMonth(viewMonth);
+    const end = endOfMonth(viewMonth);
+    const days = eachDayOfInterval({ start, end });
+    const leadingBlanks = getDay(start); // 0 = Sunday
+    const cells: Array<Date | null> = [
+      ...Array.from({ length: leadingBlanks }, () => null),
+      ...days,
+    ];
+    while (cells.length % 7 !== 0) {
+      cells.push(null);
+    }
+    const weeks: Array<Array<Date | null>> = [];
+    for (let i = 0; i < cells.length; i += 7) {
+      weeks.push(cells.slice(i, i + 7));
+    }
+    return weeks;
+  }, [viewMonth]);
+
+  const weekdayLabels = useMemo(() => {
+    // 0 (Sun) -> 6 (Sat)
+    const base = new Date(2024, 0, 7); // Sunday
+    return Array.from({ length: 7 }, (_, i) => {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      return format(d, 'EEEEE', { locale: dateLocale });
+    });
+  }, [dateLocale]);
+
+  const endOfToday = useMemo(() => {
+    const d = new Date();
+    d.setHours(23, 59, 59, 999);
+    return d;
+  }, []);
+
+  return (
+    <>
+      <View style={styles.pillOuter}>
+        <View
+          style={[
+            styles.pillShell,
+            {
+              borderColor: palette.glassBorder,
+              borderWidth: 1,
+            },
+          ]}
+        >
+          <GlassBackdrop />
+          <View style={[styles.pillRow, { flexDirection: flexRow }]}>
+            <Pressable
+              testID={testID}
+              onPress={() => {
+                setViewMonth(date || new Date());
+                setOpen(true);
+              }}
+              style={[styles.pillTrigger, { flexDirection: flexRow }]}
+            >
+              <Calendar
+                size={16}
+                color={date ? palette.primary : palette.mutedForeground}
+              />
+              <Text
+                numberOfLines={1}
+                style={[
+                  {
+                    fontSize: 16,
+                    color: date ? palette.foreground : palette.mutedForeground,
+                  },
+                  heeboFont('500'),
+                ]}
+              >
+                {displayLabel}
+              </Text>
+            </Pressable>
+
+            {date ? (
+              <Pressable
+                accessibilityLabel={t('common.all_dates')}
+                onPress={() => setDate(undefined)}
+                hitSlop={8}
+                style={styles.clearBtn}
+              >
+                <X size={13} color={palette.mutedForeground} />
+              </Pressable>
+            ) : null}
+          </View>
+        </View>
+      </View>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
+        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+          <Pressable
+            onPress={(e) => e.stopPropagation()}
+            style={[
+              styles.calendarCard,
+              { backgroundColor: palette.card, borderColor: palette.border },
+            ]}
+          >
+            {/* Month Navigation */}
+            <View style={[styles.monthHeader, { flexDirection: flexRow }]}>
+              <Pressable
+                onPress={() => setViewMonth((m) => subMonths(m, 1))}
+                hitSlop={8}
+                style={[styles.navBtn, { backgroundColor: palette.muted }]}
+              >
+                {isRTL ? (
+                  <ChevronRight size={18} color={palette.foreground} />
+                ) : (
+                  <ChevronLeft size={18} color={palette.foreground} />
+                )}
+              </Pressable>
+
+              <Text style={[styles.monthTitle, { color: palette.foreground }]}>
+                {format(viewMonth, 'MMMM yyyy', { locale: dateLocale })}
+              </Text>
+
+              <Pressable
+                onPress={() => setViewMonth((m) => addMonths(m, 1))}
+                hitSlop={8}
+                style={[styles.navBtn, { backgroundColor: palette.muted }]}
+              >
+                {isRTL ? (
+                  <ChevronLeft size={18} color={palette.foreground} />
+                ) : (
+                  <ChevronRight size={18} color={palette.foreground} />
+                )}
+              </Pressable>
+            </View>
+
+            {/* Weekday Header */}
+            <View style={[styles.weekRow, { flexDirection: flexRow }]}>
+              {weekdayLabels.map((lbl, idx) => (
+                <View key={idx} style={styles.daySlot}>
+                  <Text
+                    style={[styles.weekdayText, { color: palette.mutedForeground }]}
+                  >
+                    {lbl}
+                  </Text>
+                </View>
+              ))}
+            </View>
+
+            {/* Weeks Grid */}
+            <View style={styles.weeksWrap}>
+              {calendarWeeks.map((week, wIdx) => (
+                <View key={wIdx} style={[styles.weekRow, { flexDirection: flexRow }]}>
+                  {week.map((d, dIdx) => {
+                    if (!d) {
+                      return <View key={`blank-${wIdx}-${dIdx}`} style={styles.daySlot} />;
+                    }
+                    const disabled = disableFuture && d > endOfToday;
+                    const selected = Boolean(date && isSameDay(d, date));
+                    const today = isToday(d);
+
+                    return (
+                      <View key={d.toISOString()} style={styles.daySlot}>
+                        <Pressable
+                          disabled={disabled}
+                          onPress={() => {
+                            setDate(d);
+                            setOpen(false);
+                          }}
+                          style={[
+                            styles.dayCircle,
+                            selected && { backgroundColor: palette.primary },
+                            !selected &&
+                              today && {
+                                borderWidth: 1.5,
+                                borderColor: palette.primary,
+                              },
+                            disabled && { opacity: 0.3 },
+                          ]}
+                        >
+                          <Text
+                            style={{
+                              fontSize: 13,
+                              fontWeight: selected || today ? '700' : '500',
+                              color: selected ? '#ffffff' : palette.foreground,
+                            }}
+                          >
+                            {format(d, 'd')}
+                          </Text>
+                        </Pressable>
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+            </View>
+
+            {/* Quick Actions */}
+            <View style={[styles.footerActions, { flexDirection: flexRow }]}>
+              <Button
+                label={t('common.today')}
+                variant="outline"
+                size="sm"
+                onPress={() => {
+                  setDate(new Date());
+                  setOpen(false);
+                }}
+                style={{ flex: 1 }}
+              />
+              <Button
+                label={t('common.all_dates')}
+                variant="ghost"
+                size="sm"
+                onPress={() => {
+                  setDate(undefined);
+                  setOpen(false);
+                }}
+                style={{ flex: 1 }}
+              />
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </>
+  );
+}
+
+const styles = StyleSheet.create({
+  pillOuter: {
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  pillShell: {
+    height: 40,
+    borderRadius: 999,
+    overflow: 'hidden',
+    justifyContent: 'center',
+  },
+  pillRow: {
+    height: '100%',
+    alignItems: 'center',
+  },
+  pillTrigger: {
+    height: '100%',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+  },
+  clearBtn: {
+    paddingEnd: 12,
+    paddingStart: 2,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  backdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  calendarCard: {
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 16,
+    gap: 12,
+  },
+  monthHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  navBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  monthTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  weekRow: {
+    width: '100%',
+    alignItems: 'center',
+  },
+  weeksWrap: {
+    gap: 4,
+  },
+  daySlot: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  weekdayText: {
+    textAlign: 'center',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  dayCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  footerActions: {
+    gap: 10,
+    marginTop: 4,
+  },
+});

@@ -1,20 +1,25 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Animated,
   View,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
+import { format } from 'date-fns';
 import { BookOpen } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { getHomeworkText, consolidateHomework } from '../lib/homeworkUtils';
-import { LiquidTabs, SearchInput } from '../components/ui/FormFields';
+import { LiquidTabs, SearchInput, StickyFilterBar } from '../components/ui/FormFields';
+import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
+import { Button } from '../components/ui/Buttons';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { HomeworkCard } from '../components/ui/Cards';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type {
   HomeworkItem,
   ConsolidatedHomeworkItem,
@@ -31,11 +36,14 @@ export function HomeworkScreen({
 }) {
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
+  const { flexRow } = useDirection();
+  const { headerHeight, onScroll } = useScrollHeader();
   const isChild = currentUser.familyRole === 'child';
 
   const [items, setItems] = useState<HomeworkItem[]>([]);
   const [config, setConfig] = useState<WebtopConfig | null>(null);
   const [selectedChildId, setSelectedChildId] = useState('all');
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -70,9 +78,11 @@ export function HomeworkScreen({
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
+    const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
     const list = items.filter((item) => {
       const hwText = getHomeworkText(item);
       if (!hwText) return false;
+      if (formattedDate && item.dueDate !== formattedDate) return false;
       if (q) {
         const hay = `${item.subject} ${hwText} ${item.teacher || ''} ${item.studentName || ''}`.toLowerCase();
         if (!hay.includes(q)) return false;
@@ -80,7 +90,7 @@ export function HomeworkScreen({
       return true;
     });
     return consolidateHomework(list);
-  }, [items, search]);
+  }, [items, selectedDate, search]);
 
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, ConsolidatedHomeworkItem[]>();
@@ -106,10 +116,14 @@ export function HomeworkScreen({
   const getChildColor = (childId?: string) =>
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
+  const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
+
   return (
-    <ScrollView
+    <Animated.ScrollView
       style={styles.container}
-      contentContainerStyle={styles.content}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
       }
@@ -125,13 +139,33 @@ export function HomeworkScreen({
         placeholder={t('homework.search_placeholder')}
       />
 
-      {!isChild && (config?.linkedChildren?.length || 0) > 1 && (
-        <LiquidTabs
-          tabs={childOptions}
-          value={selectedChildId}
-          onChange={setSelectedChildId}
-        />
-      )}
+      <StickyFilterBar>
+        <View
+          style={[
+            styles.filterRow,
+            {
+              flexDirection: flexRow,
+              justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+            },
+          ]}
+        >
+          {hasChildFilter && (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <LiquidTabs
+                tabs={childOptions}
+                value={selectedChildId}
+                onChange={setSelectedChildId}
+              />
+            </View>
+          )}
+          <LiquidDatePicker
+            testID="homework-date-picker"
+            date={selectedDate}
+            setDate={setSelectedDate}
+            isChild={isChild}
+          />
+        </View>
+      </StickyFilterBar>
 
       {loading ? (
         <View style={styles.center}>
@@ -140,9 +174,33 @@ export function HomeworkScreen({
       ) : groupedByDate.length === 0 ? (
         <EmptyStateCard
           icon={BookOpen}
-          title={t('homework.empty_title')}
+          title={
+            selectedDate && !search
+              ? t('homework.no_homework_for_date')
+              : search || selectedDate
+              ? t('homework.no_homework_match')
+              : t('homework.empty_title')
+          }
           description={
-            items.length > 0 ? t('homework.no_homework_match') : t('homework.empty_desc')
+            search || selectedDate ? undefined : t('homework.empty_desc')
+          }
+          action={
+            selectedDate ? (
+              <View style={[styles.emptyActions, { flexDirection: flexRow }]}>
+                <Button
+                  label={t('homework.back_to_today')}
+                  variant="outline"
+                  size="sm"
+                  onPress={() => setSelectedDate(new Date())}
+                />
+                <Button
+                  label={t('common.all_dates')}
+                  variant="ghost"
+                  size="sm"
+                  onPress={() => setSelectedDate(undefined)}
+                />
+              </View>
+            ) : undefined
           }
         />
       ) : (
@@ -161,7 +219,7 @@ export function HomeworkScreen({
           </View>
         ))
       )}
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 
@@ -176,6 +234,14 @@ const styles = StyleSheet.create({
   },
   center: {
     paddingVertical: 48,
+    alignItems: 'center',
+  },
+  filterRow: {
+    alignItems: 'center',
+    gap: 8,
+  },
+  emptyActions: {
+    gap: 8,
     alignItems: 'center',
   },
 });

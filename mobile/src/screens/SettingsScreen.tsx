@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Animated,
   View,
   Text,
-  ScrollView,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -28,6 +28,7 @@ import {
 import { ChildBadge, StatusBadge } from '../components/ui/Badges';
 import { Button, SyncButton } from '../components/ui/Buttons';
 import { ConfirmModal } from '../components/ui/Modal';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { WebtopConfig, User } from '../../../src/types';
 
 export function SettingsScreen({
@@ -41,6 +42,7 @@ export function SettingsScreen({
 }) {
   const { t, i18n } = useTranslation();
   const { themeMode, setThemeMode, palette } = useTheme();
+  const { headerHeight, onScroll } = useScrollHeader();
   const { flexRow, textAlign } = useDirection();
   const isChild = currentUser.familyRole === 'child';
 
@@ -200,7 +202,12 @@ export function SettingsScreen({
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <Animated.ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
       <SectionCard
         icon={Palette}
         title={t('settings.appearance_title')}
@@ -424,7 +431,7 @@ export function SettingsScreen({
         cancelText={t('common.cancel')}
         loading={disconnecting}
       />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

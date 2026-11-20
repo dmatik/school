@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  Animated,
   View,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   Pressable,
@@ -19,11 +19,13 @@ import {
   FieldLabel,
   FilledInput,
   LiquidTabs,
+  StickyFilterBar,
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
 import { Button, FloatingActionButton } from '../components/ui/Buttons';
 import { FullScreenModal } from '../components/ui/Modal';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type {
   ScheduleLesson,
   ScheduleFinishTime,
@@ -42,6 +44,7 @@ export function ScheduleScreen({
 }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
+  const { headerHeight, onScroll } = useScrollHeader();
   const { flexRow, isRTL } = useDirection();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
@@ -225,9 +228,11 @@ export function ScheduleScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -240,30 +245,32 @@ export function ScheduleScreen({
         ) : null}
 
         {isParent && (config?.linkedChildren?.length || 0) > 0 && (
-          <View style={[styles.filterRow, { flexDirection: flexRow }]}>
-            <View style={{ flex: 1 }}>
-              <LiquidTabs
-                testID="schedule-child-selector"
-                tabs={(config?.linkedChildren || []).map((c) => ({
-                  label: c.firstName,
-                  value: c.id,
-                }))}
-                value={selectedChildId}
-                onChange={setSelectedChildId}
-              />
+          <StickyFilterBar>
+            <View style={[styles.filterRow, { flexDirection: flexRow }]}>
+              <View style={{ flex: 1 }}>
+                <LiquidTabs
+                  testID="schedule-child-selector"
+                  tabs={(config?.linkedChildren || []).map((c) => ({
+                    label: c.firstName,
+                    value: c.id,
+                  }))}
+                  value={selectedChildId}
+                  onChange={setSelectedChildId}
+                />
+              </View>
+              <Pressable
+                testID="schedule-share-btn"
+                accessibilityLabel={t('schedule.share')}
+                onPress={handleSharePdf}
+                style={[
+                  styles.shareBtn,
+                  { backgroundColor: palette.card, borderColor: palette.border },
+                ]}
+              >
+                <Share2 size={16} color={palette.foreground} />
+              </Pressable>
             </View>
-            <Pressable
-              testID="schedule-share-btn"
-              accessibilityLabel={t('schedule.share')}
-              onPress={handleSharePdf}
-              style={[
-                styles.shareBtn,
-                { backgroundColor: palette.card, borderColor: palette.border },
-              ]}
-            >
-              <Share2 size={16} color={palette.foreground} />
-            </Pressable>
-          </View>
+          </StickyFilterBar>
         )}
 
         {isChild && selectedChildId ? (
@@ -307,7 +314,7 @@ export function ScheduleScreen({
             }}
           />
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {isParent && selectedChildId ? (
         <FloatingActionButton

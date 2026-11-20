@@ -12,12 +12,9 @@ import Svg, { Circle, Defs, Mask, Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
-import {
-  LiquidGlassContainer,
-  LiquidGlassSurface,
-  isNativeLiquidGlassSupported,
-} from './LiquidGlassSurface';
+import { GlassBackdrop } from './GlassBackdrop';
 
 export interface DockTabItem {
   id: string;
@@ -76,58 +73,47 @@ export function LiquidDock({
   onSelect: (id: string) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { palette, themeMode, isDark } = useTheme();
+  const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
   const { width: screenWidth } = useWindowDimensions();
   const flatPillBg = isDark ? 'rgba(6, 10, 18, 0.55)' : 'rgba(15, 23, 42, 0.08)';
+  const inactiveColor = palette.foreground;
   const activeIconFill = isDark
     ? 'rgba(87, 158, 224, 0.26)'
     : 'rgba(59, 130, 196, 0.20)';
 
   const isScrollable = items.length > 5;
-  const dockInnerWidth = Math.max(screenWidth - 48 - 8, 240);
+  const isFiveOrMore = items.length >= 5;
+  const maxDockWidth = Math.min(352, screenWidth - 24);
+  const dockInnerWidth = Math.max(maxDockWidth - 12, 240);
   const itemWidth = isScrollable
     ? Math.floor(dockInnerWidth / 5)
-    : Math.floor(dockInnerWidth / Math.max(items.length, 1));
+    : isFiveOrMore
+    ? Math.floor(dockInnerWidth / items.length)
+    : Math.min(85, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
   const [hasMeasured, setHasMeasured] = useState(false);
   const pillX = useRef(new Animated.Value(0)).current;
-  const pillScale = useRef(new Animated.Value(1)).current;
 
   useEffect(() => {
     const layout = tabLayouts.current[activeId];
     if (!layout) return;
 
-    Animated.parallel([
-      Animated.spring(pillX, {
-        toValue: layout.x,
-        stiffness: 420,
-        damping: 32,
-        mass: 0.9,
-        useNativeDriver: true,
-      }),
-      Animated.sequence([
-        Animated.timing(pillScale, {
-          toValue: 1.06,
-          duration: 110,
-          useNativeDriver: true,
-        }),
-        Animated.spring(pillScale, {
-          toValue: 1,
-          stiffness: 380,
-          damping: 24,
-          useNativeDriver: true,
-        }),
-      ]),
-    ]).start();
+    Animated.spring(pillX, {
+      toValue: layout.x,
+      stiffness: 450,
+      damping: 35,
+      mass: 1,
+      useNativeDriver: true,
+    }).start();
 
     if (isScrollable && scrollRef.current) {
       const targetScroll = Math.max(0, layout.x - dockInnerWidth / 2 + layout.width / 2);
       scrollRef.current.scrollTo({ x: targetScroll, animated: true });
     }
-  }, [activeId, hasMeasured, isScrollable, dockInnerWidth, pillX, pillScale]);
+  }, [activeId, hasMeasured, isScrollable, dockInnerWidth, pillX]);
 
   return (
     <View
@@ -137,24 +123,20 @@ export function LiquidDock({
       ]}
       pointerEvents="box-none"
     >
-      <LiquidGlassContainer spacing={8} style={styles.containerWidth}>
-        <LiquidGlassSurface
-          testID="mobile-dock"
-          accessibilityLabel="Mobile Navigation"
-          effect="regular"
-          interactive
-          colorScheme={themeMode}
-          style={[
-            styles.dock,
-            !isNativeLiquidGlassSupported && styles.dockFallbackShadow,
-          ]}
-          fallbackStyle={{
-            backgroundColor: palette.glassBg,
+      <View
+        testID="mobile-dock"
+        accessibilityLabel="Mobile Navigation"
+        style={[
+          styles.dock,
+          {
+            maxWidth: maxDockWidth,
             borderColor: palette.glassBorder,
             borderWidth: 1,
-          }}
-        >
-          <ScrollView
+          },
+        ]}
+      >
+        <GlassBackdrop />
+        <ScrollView
             ref={scrollRef}
             horizontal
             scrollEnabled={isScrollable}
@@ -170,7 +152,7 @@ export function LiquidDock({
                   styles.slidingPillWrap,
                   {
                     width: itemWidth,
-                    transform: [{ translateX: pillX }, { scale: pillScale }],
+                    transform: [{ translateX: pillX }],
                   },
                 ]}
               >
@@ -202,14 +184,14 @@ export function LiquidDock({
                   <View style={styles.tab}>
                     {active && item.id === 'settings' ? (
                       <SettingsActiveIcon
-                        size={20}
+                        size={24}
                         color={palette.primary}
                         fill={activeIconFill}
                       />
                     ) : (
                       <Icon
-                        size={20}
-                        color={active ? palette.primary : palette.mutedForeground}
+                        size={24}
+                        color={active ? palette.primary : inactiveColor}
                         fill={active ? activeIconFill : 'none'}
                       />
                     )}
@@ -218,9 +200,9 @@ export function LiquidDock({
                       style={[
                         styles.tabLabel,
                         {
-                          color: active ? palette.primary : palette.mutedForeground,
-                          fontWeight: active ? '700' : '500',
+                          color: active ? palette.primary : inactiveColor,
                         },
+                        heeboFont(active ? '600' : '500'),
                       ]}
                     >
                       {item.label}
@@ -230,8 +212,7 @@ export function LiquidDock({
               );
             })}
           </ScrollView>
-        </LiquidGlassSurface>
-      </LiquidGlassContainer>
+      </View>
     </View>
   );
 }
@@ -239,8 +220,8 @@ export function LiquidDock({
 const styles = StyleSheet.create({
   wrapper: {
     position: 'absolute',
-    left: 24,
-    right: 24,
+    left: 12,
+    right: 12,
     bottom: 0,
     alignItems: 'center',
     zIndex: 30,
@@ -249,10 +230,9 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   dock: {
-    width: '100%',
-    borderRadius: 28,
-    paddingHorizontal: 4,
-    paddingVertical: 4,
+    borderRadius: 999,
+    paddingHorizontal: 5,
+    paddingVertical: 5,
     overflow: 'hidden',
   },
   dockFallbackShadow: {
@@ -278,17 +258,19 @@ const styles = StyleSheet.create({
   },
   slidingPill: {
     flex: 1,
-    borderRadius: 24,
+    borderRadius: 999,
   },
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    borderRadius: 24,
+    paddingVertical: 5,
+    paddingHorizontal: 4,
+    borderRadius: 999,
     gap: 2,
   },
   tabLabel: {
     fontSize: 10,
+    lineHeight: 12,
+    includeFontPadding: false,
   },
 });

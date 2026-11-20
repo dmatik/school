@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, ScrollView, StyleSheet } from 'react-native';
+import { Animated, View, StyleSheet } from 'react-native';
 import { User as UserIcon, Lock, LogOut } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useTranslation } from 'react-i18next';
@@ -9,6 +9,7 @@ import { NoticeBanner, SectionCard } from '../components/ui/Surfaces';
 import { FieldLabel, FilledInput } from '../components/ui/FormFields';
 import { StatusBadge, UserAvatar } from '../components/ui/Badges';
 import { Button } from '../components/ui/Buttons';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User } from '../../../src/types';
 
 export function AccountScreen({
@@ -22,6 +23,7 @@ export function AccountScreen({
 }) {
   const { t } = useTranslation();
   const { flexRow } = useDirection();
+  const { headerHeight, onScroll } = useScrollHeader();
 
   const [firstName, setFirstName] = useState(currentUser.firstName || '');
   const [lastName, setLastName] = useState(currentUser.lastName || '');
@@ -127,7 +129,12 @@ export function AccountScreen({
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <Animated.ScrollView
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+    >
       {feedback ? (
         <NoticeBanner variant={feedback.variant} description={feedback.message} />
       ) : null}
@@ -259,7 +266,7 @@ export function AccountScreen({
         icon={LogOut}
         onPress={onLogout}
       />
-    </ScrollView>
+    </Animated.ScrollView>
   );
 }
 

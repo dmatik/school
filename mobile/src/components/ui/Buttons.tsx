@@ -157,6 +157,7 @@ export function SyncButton({
 }) {
   const { palette } = useTheme();
   const { flexRow } = useDirection();
+  const isIconOnly = !label;
 
   return (
     <Pressable
@@ -165,22 +166,31 @@ export function SyncButton({
       accessibilityRole="button"
       onPress={onPress}
       disabled={syncing}
-      style={[
-        styles.iconPill,
-        {
+      style={({ pressed }) => [
+        isIconOnly ? styles.iconOnlySync : styles.iconPill,
+        !isIconOnly && {
           flexDirection: flexRow,
           backgroundColor: palette.muted,
           borderColor: palette.border,
-          paddingHorizontal: label ? 12 : 9,
+          paddingHorizontal: 12,
         },
+        pressed && { opacity: 0.7 },
       ]}
     >
       {syncing ? (
         <ActivityIndicator size="small" color={palette.primary} />
       ) : success ? (
-        <Check size={16} color={palette.success} />
+        <Check
+          size={isIconOnly ? 22 : 16}
+          strokeWidth={2.4}
+          color={palette.success}
+        />
       ) : (
-        <RefreshCw size={16} color={palette.foreground} />
+        <RefreshCw
+          size={isIconOnly ? 22 : 16}
+          strokeWidth={2}
+          color={palette.foreground}
+        />
       )}
       {label ? (
         <Text style={{ fontSize: 12, fontWeight: '600', color: palette.foreground }}>
@@ -263,6 +273,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+  },
+  iconOnlySync: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   squareBtn: {
     width: 36,

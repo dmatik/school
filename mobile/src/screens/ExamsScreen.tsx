@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Animated,
   View,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
@@ -16,11 +16,13 @@ import {
   LiquidTabs,
   SearchInput,
   SelectField,
+  StickyFilterBar,
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ExamCard } from '../components/ui/Cards';
 import { Button, FloatingActionButton } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { ExamItem, WebtopConfig, User } from '../../../src/types';
 
 export function ExamsScreen({
@@ -32,6 +34,7 @@ export function ExamsScreen({
 }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
+  const { headerHeight, onScroll } = useScrollHeader();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -174,9 +177,11 @@ export function ExamsScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
         }
@@ -192,28 +197,30 @@ export function ExamsScreen({
           placeholder={t('exams.search_placeholder')}
         />
 
-        <LiquidTabs
-          tabs={[
-            { label: t('exams.period_future'), value: 'future' },
-            { label: t('exams.period_past'), value: 'past' },
-          ]}
-          value={period}
-          onChange={(v) => setPeriod(v as 'future' | 'past')}
-        />
-
-        {!isChild && (config?.linkedChildren?.length || 0) > 1 && (
+        <StickyFilterBar>
           <LiquidTabs
             tabs={[
-              { label: t('exams.all_short'), value: 'all' },
-              ...(config?.linkedChildren || []).map((c) => ({
-                label: c.firstName,
-                value: c.id,
-              })),
+              { label: t('exams.period_future'), value: 'future' },
+              { label: t('exams.period_past'), value: 'past' },
             ]}
-            value={selectedChildId}
-            onChange={setSelectedChildId}
+            value={period}
+            onChange={(v) => setPeriod(v as 'future' | 'past')}
           />
-        )}
+
+          {!isChild && (config?.linkedChildren?.length || 0) > 1 && (
+            <LiquidTabs
+              tabs={[
+                { label: t('exams.all_short'), value: 'all' },
+                ...(config?.linkedChildren || []).map((c) => ({
+                  label: c.firstName,
+                  value: c.id,
+                })),
+              ]}
+              value={selectedChildId}
+              onChange={setSelectedChildId}
+            />
+          )}
+        </StickyFilterBar>
 
         {loading ? (
           <View style={styles.center}>
@@ -247,7 +254,7 @@ export function ExamsScreen({
             />
           ))
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       {isParent && (
         <FloatingActionButton

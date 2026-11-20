@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  Animated,
   View,
-  ScrollView,
   RefreshControl,
   ActivityIndicator,
   StyleSheet,
@@ -20,11 +20,13 @@ import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { AdminUserRow } from '../components/ui/Cards';
 import { Button, FloatingActionButton } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
+import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User, WebtopChild } from '../../../src/types';
 
 export function AdminScreen({ currentUser }: { currentUser: User }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
+  const { headerHeight, onScroll } = useScrollHeader();
 
   const [users, setUsers] = useState<User[]>([]);
   const [children, setChildren] = useState<WebtopChild[]>([]);
@@ -206,9 +208,11 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
 
   return (
     <View style={{ flex: 1 }}>
-      <ScrollView
+      <Animated.ScrollView
         style={styles.container}
-        contentContainerStyle={styles.content}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
         }
@@ -254,7 +258,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
             );
           })
         )}
-      </ScrollView>
+      </Animated.ScrollView>
 
       <FloatingActionButton
         testID="add-user-fab"

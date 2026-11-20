@@ -121,9 +121,11 @@ export function SubjectIconBadge({
 export function UserAvatar({
   user,
   size = 36,
+  activeRing = false,
 }: {
   user?: Pick<User, 'firstName' | 'lastName' | 'username' | 'avatar'> | null;
   size?: number;
+  activeRing?: boolean;
 }) {
   const { palette } = useTheme();
   const initials =
@@ -142,8 +144,8 @@ export function UserAvatar({
           width: size,
           height: size,
           borderRadius: size / 2,
-          borderWidth: 1,
-          borderColor: palette.border,
+          borderWidth: activeRing ? 2 : 1,
+          borderColor: activeRing ? palette.primary : palette.border,
         }}
       />
     );
@@ -156,8 +158,8 @@ export function UserAvatar({
         height: size,
         borderRadius: size / 2,
         backgroundColor: 'rgba(59, 130, 196, 0.14)',
-        borderWidth: 1,
-        borderColor: 'rgba(59, 130, 196, 0.28)',
+        borderWidth: activeRing ? 2 : 1,
+        borderColor: activeRing ? palette.primary : 'rgba(59, 130, 196, 0.28)',
         alignItems: 'center',
         justifyContent: 'center',
       }}
