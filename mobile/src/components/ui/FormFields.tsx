@@ -847,7 +847,7 @@ export function LiquidTabs({
       startTransition(() => {
         onChange(val);
       });
-    }, 220);
+    }, 280);
   };
 
   const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);

@@ -41,7 +41,7 @@ export function ExamsScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('exams');
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -215,6 +215,7 @@ export function ExamsScreen({
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         showsVerticalScrollIndicator={false}

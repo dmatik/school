@@ -49,6 +49,13 @@ interface ScrollHeaderContextValue {
   isPulling: SharedValue<boolean>;
   pullReady: boolean;
   registerSync: (onRefresh: () => void, syncing: boolean) => void;
+  registerScrollView: (tab: string, node: any) => void;
+}
+
+function scrollNodeToTop(node: any) {
+  if (!node) return;
+  const target = typeof node.scrollTo === 'function' ? node : node.getNode?.();
+  target?.scrollTo?.({ y: 0, animated: false });
 }
 
 const ScrollHeaderContext = createContext<ScrollHeaderContextValue | null>(null);
@@ -62,7 +69,7 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   const isDraggingRef = useRef(false);
   const readyRef = useRef(false);
   const currentTabRef = useRef<string>('homework');
-  const tabOffsetsRef = useRef<Record<string, number>>({});
+  const scrollViewsRef = useRef<Record<string, any>>({});
   const [pullReady, setPullReady] = useState(false);
 
   const pullDistance = useSharedValue(0);
@@ -70,6 +77,14 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
 
   const registerSync = useCallback((onRefresh: () => void, syncing: boolean) => {
     syncConfigRef.current = { onRefresh, syncing };
+  }, []);
+
+  const registerScrollView = useCallback((tab: string, node: any) => {
+    if (node) {
+      scrollViewsRef.current[tab] = node;
+    } else {
+      delete scrollViewsRef.current[tab];
+    }
   }, []);
 
   const clearPullState = useCallback(() => {
@@ -100,7 +115,6 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
       useNativeDriver: true,
       listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
-        tabOffsetsRef.current[currentTabRef.current] = Math.max(0, y);
         if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
         const pull = y < 0 ? -y : 0;
         pullDistance.value = pull;
@@ -116,15 +130,20 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
 
   const switchTabScroll = useCallback(
     (tab: string) => {
+      const prevTab = currentTabRef.current;
+      if (prevTab !== tab) {
+        scrollNodeToTop(scrollViewsRef.current[prevTab]);
+      }
+      scrollNodeToTop(scrollViewsRef.current[tab]);
       currentTabRef.current = tab;
-      scrollY.setValue(tabOffsetsRef.current[tab] ?? 0);
+      scrollY.setValue(0);
       clearPullState();
     },
     [scrollY, clearPullState]
   );
 
   const resetScroll = useCallback(() => {
-    tabOffsetsRef.current = {};
+    Object.values(scrollViewsRef.current).forEach(scrollNodeToTop);
     currentTabRef.current = 'homework';
     scrollY.setValue(0);
     clearPullState();
@@ -150,6 +169,7 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
         isPulling,
         pullReady,
         registerSync,
+        registerScrollView,
       }}
     >
       {children}
@@ -157,12 +177,21 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   );
 }
 
-export function useScrollHeader() {
+export function useScrollHeader(tabId?: string) {
   const ctx = useContext(ScrollHeaderContext);
   if (!ctx) {
     throw new Error('useScrollHeader must be used inside ScrollHeaderProvider');
   }
-  return ctx;
+  const { registerScrollView } = ctx;
+  const scrollRef = useCallback(
+    (node: any) => {
+      if (tabId) {
+        registerScrollView(tabId, node);
+      }
+    },
+    [tabId, registerScrollView]
+  );
+  return { ...ctx, scrollRef };
 }
 
 export function MobileHeader({

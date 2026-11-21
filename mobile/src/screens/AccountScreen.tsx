@@ -63,7 +63,7 @@ export function AccountScreen({
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { headerHeight, onScroll, scrollRef } = useScrollHeader('account');
 
   const [firstName, setFirstName] = useState(currentUser.firstName || '');
   const [lastName, setLastName] = useState(currentUser.lastName || '');
@@ -294,6 +294,7 @@ export function AccountScreen({
   return (
     <>
       <Animated.ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 18 }]}
         showsVerticalScrollIndicator={false}

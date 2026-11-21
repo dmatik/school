@@ -37,6 +37,7 @@ import {
 } from '../components/ui/Buttons';
 import { ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import appConfig from '../../app.json';
 import type { WebtopConfig, User } from '../../../src/types';
 
 export function SettingsScreen({
@@ -50,7 +51,7 @@ export function SettingsScreen({
 }) {
   const { t, i18n } = useTranslation();
   const { themeMode, setThemeMode, palette, isDark } = useTheme();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('settings');
   const { flexRow, textAlign, isRTL } = useDirection();
   const { width } = useWindowDimensions();
   const isWide = width >= 640;
@@ -289,6 +290,7 @@ export function SettingsScreen({
 
   return (
     <Animated.ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: headerHeight + 18 }]}
       showsVerticalScrollIndicator={false}
@@ -583,6 +585,13 @@ export function SettingsScreen({
             )}
           </SectionCard>
         )}
+
+        <Text
+          testID="app-version-text"
+          style={[styles.versionText, { color: palette.mutedForeground }]}
+        >
+          {t('settings.app_version', { version: appConfig.expo.version })}
+        </Text>
       </View>
 
       {!isChild && (
@@ -647,5 +656,11 @@ const styles = StyleSheet.create({
   actionsStartGroup: {
     alignItems: 'center',
     gap: 8,
+  },
+  versionText: {
+    fontSize: 12,
+    textAlign: 'center',
+    paddingTop: 4,
+    ...heeboFont('400'),
   },
 });
