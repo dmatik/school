@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import { View, Image, StyleSheet, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -182,7 +182,11 @@ function AppShell() {
   if (booting) {
     return (
       <View style={[styles.bootScreen, { backgroundColor: palette.background }]}>
-        <ActivityIndicator size="large" color={palette.primary} />
+        <Image
+          source={require('./assets/splash-icon.png')}
+          style={styles.bootSplashImage}
+          resizeMode="contain"
+        />
       </View>
     );
   }
@@ -260,10 +264,24 @@ function AppShell() {
 const STORYBOOK_ENABLED = process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true';
 
 export default function App() {
+  const systemScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(HEEBO_FONTS);
 
   if (!fontsLoaded && !fontError) {
-    return null;
+    return (
+      <View
+        style={[
+          styles.bootScreen,
+          { backgroundColor: systemScheme === 'dark' ? '#090d16' : '#f6f7fc' },
+        ]}
+      >
+        <Image
+          source={require('./assets/splash-icon.png')}
+          style={styles.bootSplashImage}
+          resizeMode="contain"
+        />
+      </View>
+    );
   }
 
   if (STORYBOOK_ENABLED) {
@@ -288,6 +306,10 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  bootSplashImage: {
+    width: 220,
+    height: 220,
   },
   shell: {
     flex: 1,
