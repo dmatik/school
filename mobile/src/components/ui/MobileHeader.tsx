@@ -245,12 +245,12 @@ export function MobileHeader({
         <Svg width="100%" height="100%">
           <Defs>
             <LinearGradient id="headerFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={bgHex} stopOpacity="1" />
-              <Stop offset="0.45" stopColor={bgHex} stopOpacity="1" />
-              <Stop offset="0.58" stopColor={bgHex} stopOpacity="0.92" />
-              <Stop offset="0.72" stopColor={bgHex} stopOpacity="0.7" />
-              <Stop offset="0.85" stopColor={bgHex} stopOpacity="0.38" />
-              <Stop offset="0.94" stopColor={bgHex} stopOpacity="0.12" />
+              <Stop offset="0" stopColor={bgHex} stopOpacity="0.84" />
+              <Stop offset="0.42" stopColor={bgHex} stopOpacity="0.82" />
+              <Stop offset="0.56" stopColor={bgHex} stopOpacity="0.7" />
+              <Stop offset="0.7" stopColor={bgHex} stopOpacity="0.48" />
+              <Stop offset="0.84" stopColor={bgHex} stopOpacity="0.24" />
+              <Stop offset="0.93" stopColor={bgHex} stopOpacity="0.08" />
               <Stop offset="1" stopColor={bgHex} stopOpacity="0" />
             </LinearGradient>
           </Defs>
