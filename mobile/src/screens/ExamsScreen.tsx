@@ -213,6 +213,7 @@ export function ExamsScreen({
       <Animated.ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
         {...pullToRefreshProps}

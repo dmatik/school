@@ -13,6 +13,8 @@ import {
 } from 'lucide-react-native';
 import {
   Button,
+  DestructiveButton,
+  EditButton,
   FloatingActionButton,
   LiquidButton,
   SyncButton,
@@ -36,8 +38,20 @@ export const Buttons: StoryObj = {
       <Button label="Primary Button" onPress={() => {}} />
       <Button label="Outline Button" variant="outline" onPress={() => {}} />
       <Button label="Destructive Button" variant="destructive" onPress={() => {}} />
+      <Button label="Ghost Button" variant="ghost" onPress={() => {}} />
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        <SyncButton variant="outline" syncing={false} onPress={() => {}} />
+        <SyncButton variant="outline" syncing={true} onPress={() => {}} />
+        <SyncButton variant="outline" syncing={false} success={true} onPress={() => {}} />
+      </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, alignItems: 'center', justifyContent: 'space-between' }}>
+        <EditButton onPress={() => {}} />
+        <DestructiveButton label="נתק חיבור" onPress={() => {}} />
+      </View>
+
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-        <SyncButton syncing={false} onPress={() => {}} label="Sync" />
         <ModeToggleButton />
         <LanguageToggleButton />
       </View>

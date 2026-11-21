@@ -131,7 +131,8 @@ export function AccountScreen({
   return (
     <Animated.ScrollView
       style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 18 }]}
+      showsVerticalScrollIndicator={false}
       onScroll={onScroll}
       scrollEventThrottle={16}
     >

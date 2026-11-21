@@ -1,6 +1,14 @@
 import React from 'react';
-import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
-import type { LucideIcon } from 'lucide-react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  useWindowDimensions,
+  type StyleProp,
+  type TextStyle,
+  type ViewStyle,
+} from 'react-native';
+import { AlertCircle, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
@@ -35,67 +43,150 @@ export function SectionCard({
   description,
   action,
   children,
+  divided = false,
   style,
+  headerStyle,
+  contentStyle,
 }: {
   icon?: LucideIcon;
-  title: string;
+  title?: string;
   description?: string;
   action?: React.ReactNode;
   children: React.ReactNode;
-  style?: ViewStyle;
+  divided?: boolean;
+  style?: StyleProp<ViewStyle>;
+  headerStyle?: StyleProp<ViewStyle>;
+  contentStyle?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
-  const { flexRow, textAlign } = useDirection();
+  const { flexRow, textAlign, isRTL } = useDirection();
+  const { width } = useWindowDimensions();
+  const isWide = width >= 640;
+  const hasHeader = Boolean(title || Icon || action || description);
+
+  const childArray = React.Children.toArray(children);
 
   return (
-    <CardSurface style={[styles.card, style]}>
-      <View style={[styles.cardHeader, { flexDirection: flexRow }]}>
-        <View style={[styles.cardTitleGroup, { flexDirection: flexRow }]}>
-          {Icon && (
-            <View
-              style={[
-                styles.cardIconWrap,
-                { backgroundColor: 'rgba(59, 130, 196, 0.12)' },
-              ]}
-            >
-              <Icon size={18} color={palette.primary} />
-            </View>
-          )}
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.cardTitle, { color: palette.cardForeground, textAlign }]}>
-              {title}
-            </Text>
+    <CardSurface style={[styles.sectionCard, style]}>
+      {hasHeader && (
+        <View
+          style={[
+            styles.cardHeader,
+            {
+              borderBottomColor: palette.borderSubtle,
+              flexDirection: isWide ? flexRow : 'column',
+              alignItems: isWide
+                ? 'center'
+                : isRTL
+                ? 'flex-end'
+                : 'flex-start',
+              justifyContent: isWide ? 'space-between' : 'flex-start',
+            },
+            headerStyle,
+          ]}
+        >
+          <View
+            style={[
+              styles.cardHeaderMain,
+              {
+                flex: isWide ? 1 : undefined,
+                width: isWide ? undefined : '100%',
+              },
+            ]}
+          >
+            {(Icon || title) && (
+              <View style={[styles.cardTitleRow, { flexDirection: flexRow }]}>
+                {Icon ? <Icon size={20} color={palette.primary} /> : null}
+                {title ? (
+                  <Text
+                    style={[
+                      styles.cardTitle,
+                      { color: palette.cardForeground, textAlign },
+                    ]}
+                  >
+                    {title}
+                  </Text>
+                ) : null}
+              </View>
+            )}
             {description ? (
-              <Text style={[styles.cardDesc, { color: palette.mutedForeground, textAlign }]}>
+              <Text
+                style={[
+                  styles.cardDesc,
+                  { color: palette.mutedForeground, textAlign },
+                ]}
+              >
                 {description}
               </Text>
             ) : null}
           </View>
+          {action ? <View style={styles.cardAction}>{action}</View> : null}
         </View>
-        {action ? <View>{action}</View> : null}
-      </View>
-      <View style={styles.cardContent}>{children}</View>
+      )}
+
+      {childArray.length > 0 && (
+        <View
+          style={[
+            styles.cardContent,
+            divided && styles.cardContentDivided,
+            contentStyle,
+          ]}
+        >
+          {divided
+            ? childArray.map((child, idx) => (
+                <React.Fragment key={idx}>
+                  {idx > 0 && (
+                    <View
+                      style={[
+                        styles.rowDivider,
+                        { backgroundColor: palette.borderSubtle },
+                      ]}
+                    />
+                  )}
+                  {child}
+                </React.Fragment>
+              ))
+            : children}
+        </View>
+      )}
     </CardSurface>
   );
 }
 
 export function InfoBox({
   children,
+  columns = 1,
   style,
 }: {
   children: React.ReactNode;
-  style?: ViewStyle;
+  columns?: 1 | 2;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
+  const { flexRow } = useDirection();
+  const { width } = useWindowDimensions();
+  const useTwoCols = columns === 2 && width >= 640;
+
+  const childArray = React.Children.toArray(children);
+
   return (
     <View
       style={[
         styles.infoBox,
-        { backgroundColor: palette.muted, borderColor: palette.border },
+        {
+          backgroundColor: palette.infoBoxBg,
+          flexDirection: useTwoCols ? flexRow : 'column',
+        },
         style,
       ]}
     >
-      {children}
+      {useTwoCols
+        ? childArray.map((child, index) => (
+            <View key={index} style={{ flex: 1, minWidth: 0 }}>
+              {child}
+            </View>
+          ))
+        : children}
     </View>
   );
 }
@@ -104,26 +195,36 @@ export function InfoItem({
   label,
   value,
   isLtr,
+  valueStyle,
+  style,
 }: {
   label: string;
   value: string | null | undefined;
   isLtr?: boolean;
+  valueStyle?: StyleProp<TextStyle>;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
   const { textAlign } = useDirection();
   return (
-    <View style={styles.infoItem}>
-      <Text style={[styles.infoLabel, { color: palette.mutedForeground, textAlign }]}>
+    <View style={[styles.infoItem, style]}>
+      <Text
+        numberOfLines={1}
+        style={[styles.infoLabel, { color: palette.mutedForeground, textAlign }]}
+      >
         {label}
       </Text>
       <Text
+        numberOfLines={1}
         style={[
           styles.infoValue,
           {
             color: palette.foreground,
-            textAlign: isLtr ? 'left' : textAlign,
+            textAlign,
             writingDirection: isLtr ? 'ltr' : undefined,
+            fontVariant: isLtr ? ['tabular-nums'] : undefined,
           },
+          valueStyle,
         ]}
       >
         {value || '-'}
@@ -169,43 +270,113 @@ export function EmptyStateCard({
 }
 
 export function NoticeBanner({
-  variant = 'warning',
+  variant = 'info',
   title,
+  badge,
   description,
+  icon = AlertCircle,
   children,
   testID,
+  style,
 }: {
   variant?: 'warning' | 'destructive' | 'info';
   title?: string;
+  badge?: string;
   description: string;
+  icon?: LucideIcon | null;
   children?: React.ReactNode;
   testID?: string;
+  style?: StyleProp<ViewStyle>;
 }) {
-  const { palette } = useTheme();
-  const { textAlign } = useDirection();
-  const colorMap = {
-    warning: { bg: palette.warningSoft, text: palette.warning, border: palette.warning },
-    destructive: { bg: palette.destructiveSoft, text: palette.destructive, border: palette.destructive },
-    info: { bg: 'rgba(59, 130, 196, 0.12)', text: palette.primary, border: palette.primary },
+  const { palette, isDark } = useTheme();
+  const { flexRow, textAlign } = useDirection();
+
+  const variantMap = {
+    info: {
+      bg: isDark ? 'rgba(34, 43, 58, 0.60)' : 'rgba(238, 242, 247, 0.65)',
+      border: palette.border,
+      iconBg: isDark ? 'rgba(87, 158, 224, 0.16)' : 'rgba(59, 130, 196, 0.10)',
+      iconColor: palette.primary,
+      titleColor: palette.foreground,
+      descColor: palette.mutedForeground,
+    },
+    warning: {
+      bg: palette.amberSoft,
+      border: 'rgba(212, 151, 59, 0.30)',
+      iconBg: 'rgba(212, 151, 59, 0.16)',
+      iconColor: palette.amber,
+      titleColor: palette.foreground,
+      descColor: palette.mutedForeground,
+    },
+    destructive: {
+      bg: palette.destructiveSoft,
+      border: 'rgba(239, 68, 68, 0.25)',
+      iconBg: 'rgba(239, 68, 68, 0.15)',
+      iconColor: palette.destructive,
+      titleColor: palette.destructive,
+      descColor: palette.destructive,
+    },
   }[variant];
+
+  const Icon = icon;
 
   return (
     <View
       testID={testID}
       style={[
         styles.notice,
-        { backgroundColor: colorMap.bg, borderColor: colorMap.border },
+        {
+          flexDirection: flexRow,
+          backgroundColor: variantMap.bg,
+          borderColor: variantMap.border,
+        },
+        style,
       ]}
     >
-      {title ? (
-        <Text style={[styles.noticeTitle, { color: colorMap.text, textAlign }]}>
-          {title}
-        </Text>
+      {Icon ? (
+        <View style={[styles.noticeIconBox, { backgroundColor: variantMap.iconBg }]}>
+          <Icon size={16} color={variantMap.iconColor} />
+        </View>
       ) : null}
-      <Text style={[styles.noticeDesc, { color: colorMap.text, textAlign }]}>
-        {description}
-      </Text>
-      {children ? <View style={{ marginTop: 6 }}>{children}</View> : null}
+
+      <View style={styles.noticeBody}>
+        {(title || badge) && (
+          <View style={[styles.noticeTitleRow, { flexDirection: flexRow }]}>
+            {title ? (
+              <Text style={[styles.noticeTitle, { color: variantMap.titleColor, textAlign }]}>
+                {title}
+              </Text>
+            ) : null}
+            {badge ? (
+              <View
+                style={[
+                  styles.noticeBadge,
+                  {
+                    backgroundColor: isDark
+                      ? 'rgba(59, 130, 196, 0.25)'
+                      : 'rgba(59, 130, 196, 0.15)',
+                  },
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.noticeBadgeText,
+                    { color: isDark ? '#AED4F8' : '#3B82C4' },
+                  ]}
+                >
+                  {badge}
+                </Text>
+              </View>
+            ) : null}
+          </View>
+        )}
+
+        <Text style={[styles.noticeDesc, { color: variantMap.descColor, textAlign }]}>
+          {description}
+        </Text>
+
+        {children ? <View style={{ marginTop: 4 }}>{children}</View> : null}
+      </View>
     </View>
   );
 }
@@ -227,54 +398,62 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
   },
-  card: {
-    padding: 16,
-    gap: 12,
+  sectionCard: {
+    overflow: 'hidden',
   },
   cardHeader: {
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 10,
+    padding: 16,
+    borderBottomWidth: 1,
+    gap: 12,
   },
-  cardTitleGroup: {
-    flex: 1,
+  cardHeaderMain: {
+    gap: 4,
+    minWidth: 0,
+  },
+  cardTitleRow: {
     alignItems: 'center',
     gap: 10,
-  },
-  cardIconWrap: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   cardTitle: {
-    fontSize: 15,
+    fontSize: 16,
+    letterSpacing: -0.3,
     ...heeboFont('700'),
+    flexShrink: 1,
   },
   cardDesc: {
     fontSize: 12,
-    marginTop: 2,
     ...heeboFont('400'),
   },
+  cardAction: {
+    flexShrink: 0,
+  },
   cardContent: {
-    gap: 12,
+    padding: 16,
+    gap: 14,
+  },
+  cardContentDivided: {
+    gap: 0,
+  },
+  rowDivider: {
+    height: 1,
+    width: '100%',
   },
   infoBox: {
     borderRadius: 12,
-    borderWidth: 1,
-    padding: 12,
-    gap: 10,
+    borderWidth: 0,
+    padding: 14,
+    gap: 16,
   },
   infoItem: {
-    gap: 2,
+    gap: 4,
+    minWidth: 0,
   },
   infoLabel: {
-    fontSize: 11,
-    ...heeboFont('600'),
+    fontSize: 12,
+    ...heeboFont('400'),
   },
   infoValue: {
-    fontSize: 13,
+    fontSize: 14,
     ...heeboFont('600'),
   },
   emptyCenteredWrap: {
@@ -310,16 +489,42 @@ const styles = StyleSheet.create({
   notice: {
     borderRadius: 12,
     borderWidth: 1,
-    padding: 12,
+    padding: 16,
+    alignItems: 'flex-start',
+    gap: 12,
+  },
+  noticeIconBox: {
+    padding: 6,
+    borderRadius: 8,
+    marginTop: 2,
+    flexShrink: 0,
+  },
+  noticeBody: {
+    flex: 1,
+    minWidth: 0,
     gap: 4,
   },
+  noticeTitleRow: {
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
   noticeTitle: {
-    fontSize: 13,
-    ...heeboFont('700'),
+    fontSize: 12,
+    ...heeboFont('600'),
+  },
+  noticeBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+  },
+  noticeBadgeText: {
+    fontSize: 10,
+    ...heeboFont('500'),
   },
   noticeDesc: {
     fontSize: 12,
-    ...heeboFont('500'),
+    ...heeboFont('400'),
   },
   dateHeader: {
     paddingVertical: 4,

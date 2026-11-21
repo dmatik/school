@@ -123,6 +123,7 @@ export function LoginScreen({
       >
         <ScrollView
           contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
         >
           <View

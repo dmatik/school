@@ -9,6 +9,8 @@ import {
   Modal,
   ScrollView,
   StyleSheet,
+  useWindowDimensions,
+  type StyleProp,
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
@@ -18,6 +20,7 @@ import Reanimated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
@@ -28,17 +31,21 @@ import { GlassBackdrop } from './GlassBackdrop';
 export function FieldLabel({
   label,
   description,
+  style,
 }: {
-  label: string;
+  label?: string;
   description?: string;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
   const { textAlign } = useDirection();
   return (
-    <View style={{ gap: 2 }}>
-      <Text style={[styles.label, { color: palette.foreground, textAlign }]}>
-        {label}
-      </Text>
+    <View style={[{ gap: 2 }, style]}>
+      {label ? (
+        <Text style={[styles.label, { color: palette.foreground, textAlign }]}>
+          {label}
+        </Text>
+      ) : null}
       {description ? (
         <Text style={[styles.labelDesc, { color: palette.mutedForeground, textAlign }]}>
           {description}
@@ -51,21 +58,33 @@ export function FieldLabel({
 export function FilledInput({
   style,
   forceLtr,
+  variant = 'filled',
+  multiline,
+  editable = true,
   ...props
-}: TextInputProps & { forceLtr?: boolean }) {
+}: TextInputProps & {
+  forceLtr?: boolean;
+  variant?: 'filled' | 'card';
+}) {
   const { palette } = useTheme();
   const { textAlign } = useDirection();
+  const bg = variant === 'card' ? palette.card : palette.inputBg;
+  const isMultiline = Boolean(multiline);
+
   return (
     <TextInput
       placeholderTextColor={palette.mutedForeground}
+      multiline={isMultiline}
+      editable={editable}
       {...props}
       style={[
-        styles.filledInput,
+        isMultiline ? styles.filledTextarea : styles.filledInput,
         {
-          backgroundColor: palette.inputBg,
-          borderColor: palette.border,
+          backgroundColor: bg,
           color: palette.foreground,
           textAlign: forceLtr ? 'left' : textAlign,
+          writingDirection: forceLtr ? 'ltr' : undefined,
+          opacity: editable === false ? 0.5 : 1,
         },
         style,
       ]}
@@ -73,14 +92,46 @@ export function FilledInput({
   );
 }
 
+export function FilledTextarea({
+  style,
+  forceLtr,
+  variant = 'filled',
+  editable = true,
+  ...props
+}: TextInputProps & {
+  forceLtr?: boolean;
+  variant?: 'filled' | 'card';
+}) {
+  return (
+    <FilledInput
+      multiline
+      textAlignVertical="top"
+      variant={variant}
+      forceLtr={forceLtr}
+      editable={editable}
+      style={style}
+      {...props}
+    />
+  );
+}
+
 export function IconInput({
   icon: Icon,
   forceLtr,
+  variant = 'filled',
+  editable = true,
+  wrapperStyle,
   style,
   ...props
-}: TextInputProps & { icon: LucideIcon; forceLtr?: boolean }) {
+}: TextInputProps & {
+  icon: LucideIcon;
+  forceLtr?: boolean;
+  variant?: 'filled' | 'card';
+  wrapperStyle?: StyleProp<ViewStyle>;
+}) {
   const { palette } = useTheme();
   const { flexRow, textAlign } = useDirection();
+  const bg = variant === 'card' ? palette.card : palette.inputBg;
 
   return (
     <View
@@ -88,24 +139,221 @@ export function IconInput({
         styles.iconInputWrap,
         {
           flexDirection: forceLtr ? 'row' : flexRow,
-          backgroundColor: palette.inputBg,
-          borderColor: palette.border,
+          backgroundColor: bg,
+          opacity: editable === false ? 0.5 : 1,
         },
+        wrapperStyle,
       ]}
     >
       <Icon size={16} color={palette.mutedForeground} />
       <TextInput
         placeholderTextColor={palette.mutedForeground}
+        editable={editable}
         {...props}
         style={[
           styles.iconInputField,
           {
             color: palette.foreground,
             textAlign: forceLtr ? 'left' : textAlign,
+            writingDirection: forceLtr ? 'ltr' : undefined,
           },
           style,
         ]}
       />
+    </View>
+  );
+}
+
+export function CounterField({
+  label,
+  currentLength,
+  maxLength,
+  children,
+  style,
+}: {
+  label: string;
+  currentLength: number;
+  maxLength: number;
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { palette } = useTheme();
+  const { flexRow } = useDirection();
+
+  return (
+    <View style={[{ gap: 8 }, style]}>
+      <View
+        style={[
+          styles.counterHeader,
+          { flexDirection: flexRow },
+        ]}
+      >
+        <FieldLabel label={label} />
+        <Text
+          style={[
+            styles.counterValue,
+            { color: palette.mutedForeground },
+          ]}
+        >
+          {`${currentLength}/${maxLength}`}
+        </Text>
+      </View>
+      {children}
+    </View>
+  );
+}
+
+export function ReadOnlyPillField({
+  label,
+  value,
+  icon: Icon,
+  style,
+}: {
+  label: string;
+  value: string;
+  icon?: LucideIcon;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { palette } = useTheme();
+  const { flexRow, textAlign } = useDirection();
+
+  return (
+    <View style={[{ gap: 6 }, style]}>
+      <Text style={[styles.readOnlyLabel, { color: palette.mutedForeground, textAlign }]}>
+        {label}
+      </Text>
+      <View
+        style={[
+          styles.readOnlyPill,
+          {
+            flexDirection: flexRow,
+            backgroundColor: palette.infoBoxBg,
+          },
+        ]}
+      >
+        {Icon ? <Icon size={16} color={palette.primary} /> : null}
+        <Text
+          numberOfLines={1}
+          style={[styles.readOnlyValue, { color: palette.foreground, textAlign }]}
+        >
+          {value}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+const DEFAULT_TIME_PRESETS = ['11:45', '12:45', '13:30', '14:15', '15:00', '16:00'];
+
+export function TimePresetInput({
+  label,
+  value,
+  onChange,
+  presets = DEFAULT_TIME_PRESETS,
+  presetsLabel,
+  disabled = false,
+  style,
+}: {
+  label?: string;
+  value: string;
+  onChange: (value: string) => void;
+  presets?: string[];
+  presetsLabel?: string;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { palette } = useTheme();
+  const { flexRow, textAlign } = useDirection();
+
+  const handleInputChange = (raw: string) => {
+    if (raw.length < value.length && value.startsWith(raw)) {
+      onChange(raw.endsWith(':') ? raw.slice(0, -1) : raw);
+      return;
+    }
+    if (/^\d:$/.test(raw)) {
+      onChange(`0${raw}`);
+      return;
+    }
+    const digits = raw.replace(/\D/g, '').slice(0, 4);
+    if (digits.length <= 2) {
+      onChange(digits);
+    } else {
+      onChange(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+    }
+  };
+
+  const rows: string[][] = [];
+  for (let i = 0; i < presets.length; i += 3) {
+    rows.push(presets.slice(i, i + 3));
+  }
+
+  return (
+    <View style={[{ gap: 12 }, style]}>
+      <View style={{ gap: 8 }}>
+        {label ? <FieldLabel label={label} /> : null}
+        <FilledInput
+          forceLtr
+          keyboardType="number-pad"
+          placeholder="13:30"
+          maxLength={5}
+          value={value}
+          onChangeText={handleInputChange}
+          editable={!disabled}
+          style={styles.timeInputText}
+        />
+      </View>
+
+      {presets.length > 0 && (
+        <View style={{ gap: 6 }}>
+          {presetsLabel ? (
+            <Text style={[styles.presetsLabel, { color: palette.mutedForeground, textAlign }]}>
+              {presetsLabel}
+            </Text>
+          ) : null}
+          <View style={{ gap: 6 }}>
+            {rows.map((row, rowIdx) => (
+              <View key={rowIdx} style={[styles.presetsRow, { flexDirection: flexRow }]}>
+                {row.map((preset) => {
+                  const active = value === preset;
+                  return (
+                    <Pressable
+                      key={preset}
+                      disabled={disabled}
+                      onPress={() => onChange(preset)}
+                      style={({ pressed }) => [
+                        styles.presetPill,
+                        {
+                          backgroundColor: active ? palette.primary : palette.card,
+                          borderColor: active ? palette.primary : palette.border,
+                          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          styles.presetPillText,
+                          {
+                            color: active
+                              ? palette.primaryForeground
+                              : palette.foreground,
+                          },
+                        ]}
+                      >
+                        {preset}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+                {row.length < 3
+                  ? Array.from({ length: 3 - row.length }).map((_, emptyIdx) => (
+                      <View key={`empty-${emptyIdx}`} style={{ flex: 1 }} />
+                    ))
+                  : null}
+              </View>
+            ))}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -115,11 +363,13 @@ export function SearchInput({
   onChangeText,
   placeholder,
   testID,
+  style,
 }: {
   value: string;
   onChangeText: (text: string) => void;
   placeholder: string;
   testID?: string;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
@@ -133,6 +383,7 @@ export function SearchInput({
           flexDirection: flexRow,
           backgroundColor: searchBg,
         },
+        style,
       ]}
     >
       <Search size={20} color={palette.mutedForeground} />
@@ -169,7 +420,11 @@ export function SelectField({
   options,
   onValueChange,
   placeholder,
+  variant = 'filled',
+  layout = 'stacked',
+  disabled = false,
   testID,
+  style,
 }: {
   label?: string;
   description?: string;
@@ -177,48 +432,101 @@ export function SelectField({
   options: SelectOption[];
   onValueChange: (val: string) => void;
   placeholder?: string;
+  variant?: 'filled' | 'card';
+  layout?: 'stacked' | 'responsive';
+  disabled?: boolean;
   testID?: string;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
   const { flexRow, textAlign } = useDirection();
+  const { width } = useWindowDimensions();
   const [open, setOpen] = useState(false);
 
-  const selectedLabel =
-    options.find((o) => o.value === value)?.label || placeholder || value;
+  const hasHeader = Boolean(label || description);
+  const isWide = width >= 640;
+  const isResponsiveWide = layout === 'responsive' && hasHeader && isWide;
+  const isResponsiveRow = layout === 'responsive' && hasHeader;
 
-  return (
-    <View style={{ gap: 6 }}>
-      {label ? <FieldLabel label={label} description={description} /> : null}
-      <Pressable
-        testID={testID}
-        onPress={() => setOpen(true)}
+  const selectedOption = options.find((o) => o.value === value);
+  const displayLabel = selectedOption?.label || placeholder || value;
+  const triggerBg = variant === 'card' ? palette.card : palette.inputBg;
+
+  const triggerNode = (
+    <Pressable
+      testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={label || displayLabel}
+      disabled={disabled}
+      onPress={() => setOpen(true)}
+      style={({ pressed }) => [
+        styles.selectTrigger,
+        {
+          flexDirection: flexRow,
+          backgroundColor: triggerBg,
+          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+        },
+      ]}
+    >
+      <Text
+        numberOfLines={1}
         style={[
-          styles.selectTrigger,
+          styles.selectTriggerText,
           {
-            flexDirection: flexRow,
-            backgroundColor: palette.inputBg,
-            borderColor: palette.border,
+            color: selectedOption ? palette.foreground : palette.mutedForeground,
+            textAlign,
           },
         ]}
       >
-        <Text
-          numberOfLines={1}
-          style={{ flex: 1, fontSize: 14, color: palette.foreground, textAlign }}
-        >
-          {selectedLabel}
-        </Text>
-        <ChevronDown size={16} color={palette.mutedForeground} />
-      </Pressable>
+        {displayLabel}
+      </Text>
+      <ChevronDown
+        size={16}
+        color={palette.mutedForeground}
+        style={{ opacity: 0.5 }}
+      />
+    </Pressable>
+  );
 
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+  return (
+    <View
+      style={[
+        isResponsiveRow
+          ? isResponsiveWide
+            ? [styles.selectResponsiveWideRow, { flexDirection: flexRow }]
+            : styles.selectResponsiveStackedRow
+          : styles.selectStackedContainer,
+        style,
+      ]}
+    >
+      {hasHeader ? (
+        <View style={isResponsiveWide ? { flex: 1, minWidth: 0 } : undefined}>
+          <FieldLabel label={label} description={description} />
+        </View>
+      ) : null}
+
+      <View style={isResponsiveWide ? { width: 160, flexShrink: 0 } : styles.fullWidth}>
+        {triggerNode}
+      </View>
+
+      <Modal
+        visible={open}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setOpen(false)}
+      >
         <Pressable style={styles.selectBackdrop} onPress={() => setOpen(false)}>
-          <View
+          <Pressable
+            onPress={() => {}}
             style={[
               styles.selectSheet,
-              { backgroundColor: palette.card, borderColor: palette.border },
+              {
+                backgroundColor: palette.popover,
+                borderColor: palette.border,
+              },
             ]}
           >
-            <ScrollView style={{ maxHeight: 300 }}>
+            <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
               {options.map((opt) => {
                 const isSelected = opt.value === value;
                 return (
@@ -228,20 +536,26 @@ export function SelectField({
                       onValueChange(opt.value);
                       setOpen(false);
                     }}
-                    style={[
+                    style={({ pressed }) => [
                       styles.selectOption,
                       {
                         flexDirection: flexRow,
-                        backgroundColor: isSelected ? palette.muted : 'transparent',
+                        backgroundColor:
+                          isSelected || pressed ? palette.accent : 'transparent',
                       },
                     ]}
                   >
+                    <View style={styles.selectCheckSlot}>
+                      {isSelected ? (
+                        <Check size={16} color={palette.foreground} />
+                      ) : null}
+                    </View>
                     <Text
+                      numberOfLines={1}
                       style={[
-                        heeboFont(isSelected ? '700' : '500'),
+                        heeboFont(isSelected ? '600' : '400'),
+                        styles.selectOptionText,
                         {
-                          flex: 1,
-                          fontSize: 14,
                           color: palette.foreground,
                           textAlign,
                         },
@@ -249,12 +563,11 @@ export function SelectField({
                     >
                       {opt.label}
                     </Text>
-                    {isSelected && <Check size={16} color={palette.primary} />}
                   </Pressable>
                 );
               })}
             </ScrollView>
-          </View>
+          </Pressable>
         </Pressable>
       </Modal>
     </View>
@@ -266,24 +579,30 @@ export function SwitchField({
   description,
   value,
   onValueChange,
+  disabled = false,
+  style,
 }: {
   label: string;
   description?: string;
   value: boolean;
   onValueChange: (val: boolean) => void;
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
   const { palette } = useTheme();
   const { flexRow } = useDirection();
 
   return (
-    <View style={[styles.switchRow, { flexDirection: flexRow }]}>
-      <View style={{ flex: 1 }}>
+    <View style={[styles.switchRow, { flexDirection: flexRow }, style]}>
+      <View style={{ flex: 1, minWidth: 0 }}>
         <FieldLabel label={label} description={description} />
       </View>
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: palette.border, true: palette.primary }}
+        disabled={disabled}
+        accessibilityLabel={label}
+        trackColor={{ false: palette.switchTrackOff, true: palette.primary }}
       />
     </View>
   );
@@ -292,47 +611,112 @@ export function SwitchField({
 export function ColorSwatchPicker({
   selectedColorId,
   onSelectColor,
+  allowClear = true,
+  clearPosition = 'end',
+  swatchSize = 'default',
+  disabled = false,
+  style,
 }: {
   selectedColorId?: string | null;
   onSelectColor: (colorId: string | null) => void;
+  allowClear?: boolean;
+  clearPosition?: 'start' | 'end';
+  swatchSize?: 'sm' | 'default' | 'lg';
+  disabled?: boolean;
+  style?: StyleProp<ViewStyle>;
 }) {
-  const { palette } = useTheme();
+  const { t } = useTranslation();
+  const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
 
+  const diameter = swatchSize === 'sm' ? 20 : swatchSize === 'lg' ? 32 : 24;
+  const iconSize = swatchSize === 'sm' ? 10 : swatchSize === 'lg' ? 16 : 12;
+
+  const isDefaultActive = !selectedColorId;
+  const clearButton = allowClear ? (
+    <Pressable
+      disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={t('account.color_default')}
+      onPress={() => onSelectColor(null)}
+      style={({ pressed }) => [
+        styles.swatch,
+        {
+          width: diameter,
+          height: diameter,
+          borderRadius: diameter / 2,
+          borderWidth: 1,
+          borderColor: isDefaultActive ? palette.primary : palette.border,
+          backgroundColor: isDefaultActive
+            ? isDark
+              ? 'rgba(87, 158, 224, 0.16)'
+              : 'rgba(59, 130, 196, 0.10)'
+            : palette.infoBoxBg,
+          opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
+          transform: [{ scale: pressed ? 1.08 : 1 }],
+        },
+      ]}
+    >
+      {isDefaultActive ? (
+        <View
+          pointerEvents="none"
+          style={[
+            styles.swatchOuterRing,
+            {
+              borderColor: isDark
+                ? 'rgba(87, 158, 224, 0.35)'
+                : 'rgba(59, 130, 196, 0.30)',
+            },
+          ]}
+        />
+      ) : null}
+      <X
+        size={iconSize}
+        strokeWidth={2.5}
+        color={isDefaultActive ? palette.primary : palette.mutedForeground}
+      />
+    </Pressable>
+  ) : null;
+
   return (
-    <View style={[styles.swatchRow, { flexDirection: flexRow }]}>
+    <View style={[styles.swatchRow, { flexDirection: flexRow }, style]}>
+      {clearPosition === 'start' ? clearButton : null}
+
       {CHILD_COLOR_TOKENS.map((c) => {
         const selected = selectedColorId === c.id;
         return (
           <Pressable
             key={c.id}
+            disabled={disabled}
+            accessibilityRole="button"
+            accessibilityLabel={t(c.labelKey)}
             onPress={() => onSelectColor(c.id)}
-            style={[
+            style={({ pressed }) => [
               styles.swatch,
               {
+                width: diameter,
+                height: diameter,
+                borderRadius: diameter / 2,
                 backgroundColor: c.solidBg,
-                borderColor: selected ? palette.foreground : 'transparent',
-                borderWidth: selected ? 2 : 0,
+                opacity: disabled ? 0.5 : selected ? 1 : 0.75,
+                transform: [{ scale: selected || pressed ? 1.08 : 1 }],
               },
             ]}
           >
-            {selected && <Check size={12} color="#ffffff" />}
+            {selected ? (
+              <View
+                pointerEvents="none"
+                style={[
+                  styles.swatchSelectedRing,
+                  { borderColor: palette.foreground },
+                ]}
+              />
+            ) : null}
           </Pressable>
         );
       })}
-      <Pressable
-        onPress={() => onSelectColor(null)}
-        style={[
-          styles.swatch,
-          {
-            backgroundColor: palette.muted,
-            borderColor: !selectedColorId ? palette.foreground : palette.border,
-            borderWidth: 1,
-          },
-        ]}
-      >
-        <X size={12} color={palette.mutedForeground} />
-      </Pressable>
+
+      {clearPosition === 'end' ? clearButton : null}
     </View>
   );
 }
@@ -521,34 +905,101 @@ export function LiquidTabs({
 }
 
 const styles = StyleSheet.create({
+  fullWidth: {
+    width: '100%',
+  },
   label: {
-    fontSize: 12,
+    fontSize: 14,
     ...heeboFont('600'),
   },
   labelDesc: {
-    fontSize: 11,
+    fontSize: 12,
     ...heeboFont('400'),
   },
   filledInput: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 0,
     paddingHorizontal: 14,
+    paddingVertical: 0,
+    fontSize: 14,
+    ...heeboFont('400'),
+  },
+  filledTextarea: {
+    minHeight: 72,
+    borderRadius: 12,
+    borderWidth: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     fontSize: 14,
     ...heeboFont('400'),
   },
   iconInputWrap: {
-    height: 44,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 0,
+    paddingHorizontal: 14,
     alignItems: 'center',
     gap: 10,
   },
   iconInputField: {
     flex: 1,
     fontSize: 14,
+    ...heeboFont('400'),
     height: '100%',
+    paddingVertical: 0,
+  },
+  counterHeader: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  counterValue: {
+    fontSize: 12,
+    ...heeboFont('400'),
+    fontVariant: ['tabular-nums'],
+  },
+  readOnlyLabel: {
+    fontSize: 12,
+    ...heeboFont('500'),
+  },
+  readOnlyPill: {
+    height: 40,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    gap: 6,
+  },
+  readOnlyValue: {
+    flexShrink: 1,
+    fontSize: 14,
+    ...heeboFont('600'),
+  },
+  timeInputText: {
+    ...heeboFont('700'),
+    fontVariant: ['tabular-nums'],
+  },
+  presetsLabel: {
+    fontSize: 12,
+    ...heeboFont('500'),
+  },
+  presetsRow: {
+    gap: 6,
+  },
+  presetPill: {
+    flex: 1,
+    height: 32,
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetPillText: {
+    fontSize: 12,
+    ...heeboFont('600'),
+    fontVariant: ['tabular-nums'],
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   searchWrap: {
     height: 44,
@@ -569,17 +1020,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  selectTrigger: {
-    height: 42,
-    borderRadius: 12,
-    borderWidth: 1,
-    paddingHorizontal: 12,
-    alignItems: 'center',
+  selectStackedContainer: {
     gap: 8,
+    width: '100%',
+  },
+  selectResponsiveStackedRow: {
+    flexDirection: 'column',
+    gap: 12,
+    paddingVertical: 14,
+    width: '100%',
+  },
+  selectResponsiveWideRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
+    paddingVertical: 14,
+    width: '100%',
+  },
+  selectTrigger: {
+    height: 40,
+    borderRadius: 999,
+    borderWidth: 0,
+    paddingHorizontal: 14,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 8,
+  },
+  selectTriggerText: {
+    flex: 1,
+    fontSize: 14,
+    ...heeboFont('400'),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   selectBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(15, 23, 42, 0.45)',
     justifyContent: 'center',
     padding: 24,
   },
@@ -587,30 +1063,65 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     overflow: 'hidden',
-    paddingVertical: 6,
+    padding: 6,
+    shadowColor: '#0f172a',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.16,
+    shadowRadius: 20,
+    elevation: 8,
   },
   selectOption: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 11,
+    borderRadius: 10,
     alignItems: 'center',
     gap: 8,
+  },
+  selectCheckSlot: {
+    width: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  selectOptionText: {
+    flex: 1,
+    fontSize: 14,
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   switchRow: {
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: 12,
+    gap: 16,
   },
   swatchRow: {
     flexWrap: 'wrap',
     gap: 8,
     alignItems: 'center',
+    paddingVertical: 5,
   },
   swatch: {
-    width: 26,
-    height: 26,
-    borderRadius: 13,
+    position: 'relative',
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  swatchSelectedRing: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    bottom: -4,
+    left: -4,
+    borderRadius: 999,
+    borderWidth: 2,
+  },
+  swatchOuterRing: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    bottom: -3,
+    left: -3,
+    borderRadius: 999,
+    borderWidth: 2,
   },
   tabsOuter: {
     flexGrow: 0,

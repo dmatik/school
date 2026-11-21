@@ -19,7 +19,14 @@ export interface ThemePalette {
   warning: string;
   warningSoft: string;
   border: string;
+  borderSubtle: string;
+  infoBoxBg: string;
   inputBg: string;
+  switchTrackOff: string;
+  teal: string;
+  tealSoft: string;
+  amber: string;
+  amberSoft: string;
   glassBg: string;
   glassBorder: string;
 }
@@ -45,7 +52,14 @@ export const LIGHT_PALETTE: ThemePalette = {
   warning: '#d97706',
   warningSoft: 'rgba(217, 119, 6, 0.14)',
   border: '#d6dde6',
-  inputBg: '#f1f5f9',
+  borderSubtle: 'rgba(214, 221, 230, 0.45)',
+  infoBoxBg: 'rgba(238, 242, 247, 0.48)',
+  inputBg: '#eef2f7',
+  switchTrackOff: '#d6dde6',
+  teal: '#2CA58D',
+  tealSoft: 'rgba(44, 165, 141, 0.15)',
+  amber: '#D4973B',
+  amberSoft: 'rgba(212, 151, 59, 0.12)',
   glassBg: 'rgba(255, 255, 255, 0.90)',
   glassBorder: 'rgba(15, 23, 42, 0.18)',
 };
@@ -71,7 +85,14 @@ export const DARK_PALETTE: ThemePalette = {
   warning: '#f59e0b',
   warningSoft: 'rgba(245, 158, 11, 0.18)',
   border: '#2e384a',
-  inputBg: '#222b3a',
+  borderSubtle: 'rgba(46, 56, 74, 0.65)',
+  infoBoxBg: 'rgba(35, 44, 61, 0.80)',
+  inputBg: '#232c3d',
+  switchTrackOff: '#2e384a',
+  teal: '#9EE8D8',
+  tealSoft: 'rgba(44, 165, 141, 0.25)',
+  amber: '#F5D59E',
+  amberSoft: 'rgba(212, 151, 59, 0.18)',
   glassBg: 'rgba(52, 62, 78, 0.86)',
   glassBorder: 'rgba(255, 255, 255, 0.22)',
 };

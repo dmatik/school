@@ -72,7 +72,11 @@ export function FullScreenModal({
           style={{ flex: 1 }}
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
+          <ScrollView
+            contentContainerStyle={styles.modalBody}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps="handled"
+          >
             {children}
           </ScrollView>
           {footer ? (

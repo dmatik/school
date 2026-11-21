@@ -21,9 +21,12 @@ import {
   Sun,
   Moon,
   Languages,
+  Pencil,
+  Trash2,
   type LucideIcon,
 } from 'lucide-react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
@@ -38,6 +41,7 @@ export function Button({
   loading = false,
   disabled = false,
   icon: Icon,
+  iconPosition = 'start',
   style,
   testID,
   accessibilityLabel,
@@ -49,6 +53,7 @@ export function Button({
   loading?: boolean;
   disabled?: boolean;
   icon?: LucideIcon;
+  iconPosition?: 'start' | 'end';
   style?: ViewStyle;
   testID?: string;
   accessibilityLabel?: string;
@@ -63,7 +68,7 @@ export function Button({
       text: palette.primaryForeground,
     },
     outline: {
-      bg: 'transparent',
+      bg: palette.card,
       border: palette.border,
       text: palette.foreground,
     },
@@ -79,6 +84,24 @@ export function Button({
     },
   }[variant];
 
+  const iconEl = loading ? (
+    <ActivityIndicator size="small" color={colors.text} />
+  ) : Icon ? (
+    <Icon size={size === 'sm' ? 14 : 16} color={colors.text} />
+  ) : null;
+
+  const textEl = (
+    <Text
+      numberOfLines={1}
+      style={[
+        styles.buttonText,
+        { color: colors.text, fontSize: size === 'sm' ? 12 : 14 },
+      ]}
+    >
+      {label}
+    </Text>
+  );
+
   return (
     <Pressable
       testID={testID}
@@ -92,29 +115,164 @@ export function Button({
           flexDirection: flexRow,
           backgroundColor: colors.bg,
           borderColor: colors.border,
-          height: size === 'sm' ? 36 : 44,
-          paddingHorizontal: size === 'sm' ? 14 : 18,
-          opacity: disabled || loading ? 0.55 : pressed ? 0.85 : 1,
+          height: size === 'sm' ? 34 : 40,
+          paddingHorizontal: size === 'sm' ? 14 : 20,
+          gap: size === 'sm' ? 6 : 8,
+          opacity: disabled || loading ? 0.5 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator size="small" color={colors.text} />
-      ) : Icon ? (
-        <Icon size={size === 'sm' ? 14 : 16} color={colors.text} />
-      ) : null}
-      <Text
-        numberOfLines={1}
-        style={[
-          styles.buttonText,
-          { color: colors.text, fontSize: size === 'sm' ? 12 : 14 },
-        ]}
-      >
-        {label}
-      </Text>
+      {iconPosition === 'start' ? (
+        <>
+          {iconEl}
+          {textEl}
+        </>
+      ) : (
+        <>
+          {textEl}
+          {iconEl}
+        </>
+      )}
     </Pressable>
   );
+}
+
+export type ActionButtonVariant = 'ghost' | 'muted' | 'destructive' | 'outline' | 'default';
+
+export function ActionButton({
+  label,
+  children,
+  icon: Icon,
+  iconPosition = 'end',
+  variant = 'muted',
+  size = 'sm',
+  disabled = false,
+  onPress,
+  style,
+  testID,
+  accessibilityLabel,
+}: {
+  label?: string;
+  children?: string;
+  icon?: LucideIcon;
+  iconPosition?: 'start' | 'end';
+  variant?: ActionButtonVariant;
+  size?: 'sm' | 'md';
+  disabled?: boolean;
+  onPress: () => void;
+  style?: ViewStyle;
+  testID?: string;
+  accessibilityLabel?: string;
+}) {
+  const { palette } = useTheme();
+  const { flexRow } = useDirection();
+  const displayLabel = label ?? children ?? '';
+
+  const paletteByVariant = {
+    muted: {
+      bg: 'transparent',
+      border: 'transparent',
+      text: palette.mutedForeground,
+    },
+    destructive: {
+      bg: 'transparent',
+      border: 'transparent',
+      text: palette.destructive,
+    },
+    outline: {
+      bg: palette.card,
+      border: palette.border,
+      text: palette.foreground,
+    },
+    default: {
+      bg: palette.primary,
+      border: palette.primary,
+      text: palette.primaryForeground,
+    },
+    ghost: {
+      bg: 'transparent',
+      border: 'transparent',
+      text: palette.foreground,
+    },
+  }[variant];
+
+  const iconEl = Icon ? <Icon size={14} color={paletteByVariant.text} /> : null;
+  const textEl = displayLabel ? (
+    <Text
+      numberOfLines={1}
+      style={[
+        styles.actionButtonText,
+        { color: paletteByVariant.text },
+      ]}
+    >
+      {displayLabel}
+    </Text>
+  ) : null;
+
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityLabel={accessibilityLabel || displayLabel}
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      style={({ pressed }) => [
+        styles.actionButton,
+        {
+          flexDirection: flexRow,
+          height: size === 'sm' ? 34 : 40,
+          paddingHorizontal: size === 'sm' ? 12 : 16,
+          backgroundColor: pressed && variant !== 'default' ? palette.accent : paletteByVariant.bg,
+          borderColor: paletteByVariant.border,
+          opacity: disabled ? 0.5 : pressed ? 0.85 : 1,
+          transform: [{ scale: pressed ? 0.98 : 1 }],
+        },
+        style,
+      ]}
+    >
+      {iconPosition === 'start' ? (
+        <>
+          {iconEl}
+          {textEl}
+        </>
+      ) : (
+        <>
+          {textEl}
+          {iconEl}
+        </>
+      )}
+    </Pressable>
+  );
+}
+
+export function EditButton({
+  label,
+  children,
+  icon = Pencil,
+  ...props
+}: Omit<React.ComponentProps<typeof ActionButton>, 'variant' | 'icon'> & {
+  icon?: LucideIcon;
+}) {
+  const { t } = useTranslation();
+  return (
+    <ActionButton
+      variant="muted"
+      icon={icon}
+      label={label ?? children ?? t('common.edit')}
+      {...props}
+    />
+  );
+}
+
+export function DestructiveButton({
+  icon = Trash2,
+  ...props
+}: Omit<React.ComponentProps<typeof ActionButton>, 'variant' | 'icon'> & {
+  icon?: LucideIcon;
+}) {
+  return <ActionButton variant="destructive" icon={icon} {...props} />;
 }
 
 export function LiquidButton({
@@ -219,20 +377,34 @@ export function FloatingActionButton({
 
 export function SyncButton({
   syncing,
-  success,
+  success = false,
   onPress,
+  variant,
   label,
+  syncingLabel,
+  successLabel,
+  iconPosition = 'end',
+  disabled = false,
   testID,
+  style,
 }: {
   syncing: boolean;
   success?: boolean;
   onPress: () => void;
+  variant?: 'icon' | 'outline' | 'pill';
   label?: string;
+  syncingLabel?: string;
+  successLabel?: string;
+  iconPosition?: 'start' | 'end';
+  disabled?: boolean;
   testID?: string;
+  style?: ViewStyle;
 }) {
+  const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
-  const isIconOnly = !label;
+  const resolvedVariant = variant ?? (label ? 'outline' : 'icon');
+  const isPillMode = resolvedVariant === 'outline' || resolvedVariant === 'pill';
   const rotation = useSharedValue(0);
 
   useEffect(() => {
@@ -254,61 +426,99 @@ export function SyncButton({
   }));
 
   const successIconColor = isDark ? '#34d399' : '#059669';
-  const pillSuccessColor = isDark ? '#9EE8D8' : '#2CA58D';
+
+  if (isPillMode) {
+    const displayLabel = success
+      ? successLabel ?? t('account.webtop_synced')
+      : syncing
+      ? syncingLabel ?? t('account.webtop_syncing')
+      : label ?? t('account.webtop_sync_button');
+
+    const iconEl = success ? (
+      <Reanimated.View key="check" entering={ZoomIn.duration(150)}>
+        <Check size={14} strokeWidth={2.5} color={palette.teal} />
+      </Reanimated.View>
+    ) : (
+      <Reanimated.View key="refresh" style={spinStyle}>
+        <RefreshCw size={14} strokeWidth={2} color={palette.foreground} />
+      </Reanimated.View>
+    );
+
+    const textEl = (
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.pillSyncText,
+          { color: success ? palette.teal : palette.foreground },
+        ]}
+      >
+        {displayLabel}
+      </Text>
+    );
+
+    return (
+      <Pressable
+        testID={testID}
+        accessibilityLabel={displayLabel}
+        accessibilityRole="button"
+        onPress={onPress}
+        disabled={disabled || syncing}
+        style={({ pressed }) => [
+          styles.iconPill,
+          {
+            flexDirection: flexRow,
+            backgroundColor: success ? palette.tealSoft : palette.card,
+            borderColor: success ? 'rgba(44, 165, 141, 0.5)' : palette.border,
+            opacity: disabled ? 0.5 : pressed ? 0.8 : 1,
+            transform: [{ scale: pressed ? 0.98 : 1 }],
+          },
+          style,
+        ]}
+      >
+        {iconPosition === 'start' ? (
+          <>
+            {iconEl}
+            {textEl}
+          </>
+        ) : (
+          <>
+            {textEl}
+            {iconEl}
+          </>
+        )}
+      </Pressable>
+    );
+  }
 
   return (
     <Pressable
       testID={testID}
-      accessibilityLabel={label || 'Sync'}
+      accessibilityLabel={
+        success
+          ? t('common.sync_success')
+          : syncing
+          ? t('common.syncing')
+          : t('common.sync_now')
+      }
       accessibilityRole="button"
       onPress={onPress}
-      disabled={syncing}
+      disabled={disabled || syncing}
       style={({ pressed }) => [
-        isIconOnly ? styles.iconOnlySync : styles.iconPill,
-        isIconOnly && success && { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
-        !isIconOnly && {
-          flexDirection: flexRow,
-          backgroundColor: success
-            ? isDark
-              ? 'rgba(44, 165, 141, 0.25)'
-              : 'rgba(44, 165, 141, 0.15)'
-            : palette.muted,
-          borderColor: success ? 'rgba(44, 165, 141, 0.5)' : palette.border,
-          paddingHorizontal: 12,
-        },
+        styles.iconOnlySync,
+        success && { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
         pressed && { opacity: 0.7 },
+        style,
       ]}
     >
       {success ? (
         <Reanimated.View key="check" entering={ZoomIn.duration(150)}>
-          <Check
-            size={isIconOnly ? 22 : 16}
-            strokeWidth={2.5}
-            color={isIconOnly ? successIconColor : pillSuccessColor}
-          />
+          <Check size={22} strokeWidth={2.5} color={successIconColor} />
         </Reanimated.View>
       ) : (
         <Reanimated.View key="refresh" style={spinStyle}>
-          <RefreshCw
-            size={isIconOnly ? 22 : 16}
-            strokeWidth={2}
-            color={palette.foreground}
-          />
+          <RefreshCw size={22} strokeWidth={2} color={palette.foreground} />
         </Reanimated.View>
       )}
-      {label ? (
-        <Text
-          style={[
-            heeboFont('600'),
-            {
-              fontSize: 12,
-              color: success ? pillSuccessColor : palette.foreground,
-            },
-          ]}
-        >
-          {label}
-        </Text>
-      ) : null}
     </Pressable>
   );
 }
@@ -359,10 +569,24 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 8,
   },
   buttonText: {
     ...heeboFont('600'),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
+  },
+  actionButton: {
+    borderRadius: 999,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+  },
+  actionButtonText: {
+    fontSize: 12,
+    ...heeboFont('500'),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   liquidShell: {
     height: 40,
@@ -390,12 +614,19 @@ const styles = StyleSheet.create({
     zIndex: 30,
   },
   iconPill: {
-    height: 36,
-    borderRadius: 18,
+    height: 34,
+    borderRadius: 999,
     borderWidth: 1,
+    paddingHorizontal: 12,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
+  },
+  pillSyncText: {
+    fontSize: 12,
+    ...heeboFont('500'),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
   iconOnlySync: {
     width: 36,

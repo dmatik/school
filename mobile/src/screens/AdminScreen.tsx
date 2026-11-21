@@ -211,6 +211,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
       <Animated.ScrollView
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
         {...pullToRefreshProps}
@@ -220,6 +221,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
           value={search}
           onChangeText={setSearch}
           placeholder={t('admin.search_placeholder')}
+          style={styles.searchBar}
         />
 
         {loading ? (
@@ -452,6 +454,9 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 110,
     gap: 12,
+  },
+  searchBar: {
+    marginBottom: 6,
   },
   center: {
     flex: 1,

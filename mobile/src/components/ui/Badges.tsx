@@ -1,5 +1,14 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
+import {
+  CheckCircle2,
+  Globe,
+  Award,
+  Shield,
+  Users,
+  Baby,
+  type LucideIcon,
+} from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { useDirection } from '../../i18n';
 import { heeboFont } from '../../theme/typography';
@@ -10,20 +19,18 @@ import type { User } from '../../../../src/types';
 export function ChildBadge({
   name,
   colorId,
-  variant = 'tinted',
+  variant = 'dot',
   size = 'sm',
 }: {
   name: string;
   colorId?: string | null;
-  variant?: 'tinted' | 'solid';
+  variant?: 'dot' | 'tinted' | 'solid';
   size?: 'xs' | 'sm';
 }) {
   const { isDark } = useTheme();
   const { flexRow } = useDirection();
   const colors = getChildBadgeStyle(colorId, isDark);
-  const bg = variant === 'solid' && colorId ? colors.solid : colors.bg;
-  const textColor = variant === 'solid' && colorId ? '#ffffff' : colors.text;
-  const dotColor = variant === 'solid' && colorId ? '#ffffff' : colors.solid;
+  const showDot = variant === 'dot' || variant === 'tinted';
 
   return (
     <View
@@ -31,27 +38,29 @@ export function ChildBadge({
         styles.badge,
         {
           flexDirection: flexRow,
-          gap: size === 'xs' ? 4 : 6,
-          backgroundColor: bg,
+          gap: showDot ? (size === 'xs' ? 4 : 6) : 4,
+          backgroundColor: colors.bg,
           paddingHorizontal: size === 'xs' ? 8 : 10,
           paddingVertical: size === 'xs' ? 2 : 3.5,
         },
       ]}
     >
-      <View
-        style={{
-          width: 6,
-          height: 6,
-          borderRadius: 3,
-          backgroundColor: dotColor,
-        }}
-      />
+      {showDot ? (
+        <View
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: colors.solid,
+          }}
+        />
+      ) : null}
       <Text
         numberOfLines={1}
         style={[
           styles.badgeText,
           heeboFont('600'),
-          { color: textColor, fontSize: size === 'xs' ? 11 : 12 },
+          { color: colors.text, fontSize: size === 'xs' ? 11 : 12 },
         ]}
       >
         {name}
@@ -60,25 +69,117 @@ export function ChildBadge({
   );
 }
 
+export type StatusBadgeVariant =
+  | 'success'
+  | 'neutral'
+  | 'grade'
+  | 'admin'
+  | 'user'
+  | 'parent'
+  | 'child'
+  | 'custom'
+  | 'primary'
+  | 'warning'
+  | 'destructive';
+
 export function StatusBadge({
   label,
   variant = 'neutral',
+  icon: CustomIcon,
 }: {
   label: string;
-  variant?: 'success' | 'destructive' | 'warning' | 'neutral' | 'primary';
+  variant?: StatusBadgeVariant;
+  icon?: LucideIcon | null;
 }) {
-  const { palette } = useTheme();
-  const colorMap = {
-    success: { bg: palette.successSoft, text: palette.success },
-    destructive: { bg: palette.destructiveSoft, text: palette.destructive },
-    warning: { bg: palette.warningSoft, text: palette.warning },
-    primary: { bg: 'rgba(59, 130, 196, 0.15)', text: palette.primary },
-    neutral: { bg: palette.muted, text: palette.mutedForeground },
-  }[variant];
+  const { palette, isDark } = useTheme();
+  const { flexRow } = useDirection();
+
+  let defaultIcon: LucideIcon | null = null;
+  let colors: { bg: string; text: string };
+  let isBold = false;
+
+  switch (variant) {
+    case 'success':
+      defaultIcon = CheckCircle2;
+      colors = { bg: palette.tealSoft, text: palette.teal };
+      break;
+    case 'neutral':
+      defaultIcon = Globe;
+      colors = { bg: palette.muted, text: palette.mutedForeground };
+      break;
+    case 'grade':
+      defaultIcon = Award;
+      colors = {
+        bg: isDark ? 'rgba(85, 93, 176, 0.25)' : 'rgba(85, 93, 176, 0.15)',
+        text: isDark ? '#C5C8F5' : '#555DB0',
+      };
+      isBold = true;
+      break;
+    case 'admin':
+      defaultIcon = Shield;
+      colors = {
+        bg: isDark ? 'rgba(212, 151, 59, 0.25)' : 'rgba(212, 151, 59, 0.15)',
+        text: isDark ? '#F5D59E' : '#D4973B',
+      };
+      break;
+    case 'user':
+    case 'primary':
+      defaultIcon = variant === 'user' ? Shield : null;
+      colors = {
+        bg: isDark ? 'rgba(59, 130, 196, 0.25)' : 'rgba(59, 130, 196, 0.15)',
+        text: isDark ? '#AED4F8' : '#3B82C4',
+      };
+      break;
+    case 'parent':
+      defaultIcon = Users;
+      colors = {
+        bg: isDark ? 'rgba(138, 99, 184, 0.25)' : 'rgba(138, 99, 184, 0.15)',
+        text: isDark ? '#D8C2F2' : '#8A63B8',
+      };
+      break;
+    case 'child':
+      defaultIcon = Baby;
+      colors = { bg: palette.tealSoft, text: palette.teal };
+      break;
+    case 'warning':
+      defaultIcon = null;
+      colors = { bg: palette.warningSoft, text: palette.warning };
+      break;
+    case 'destructive':
+      defaultIcon = null;
+      colors = { bg: palette.destructiveSoft, text: palette.destructive };
+      break;
+    case 'custom':
+    default:
+      defaultIcon = null;
+      colors = { bg: palette.muted, text: palette.foreground };
+      break;
+  }
+
+  const IconComponent = CustomIcon !== undefined ? CustomIcon : defaultIcon;
 
   return (
-    <View style={[styles.badge, { backgroundColor: colorMap.bg, paddingHorizontal: 10, paddingVertical: 4 }]}>
-      <Text numberOfLines={1} style={[styles.badgeText, { color: colorMap.text, fontSize: 11 }]}>
+    <View
+      style={[
+        styles.badge,
+        {
+          flexDirection: flexRow,
+          gap: 6,
+          backgroundColor: colors.bg,
+          paddingHorizontal: 10,
+          paddingVertical: 4,
+        },
+      ]}
+    >
+      {IconComponent ? <IconComponent size={14} color={colors.text} /> : null}
+      <Text
+        numberOfLines={1}
+        style={[
+          styles.badgeText,
+          heeboFont(isBold ? '700' : '500'),
+          { color: colors.text, fontSize: 12 },
+        ]}
+      >
         {label}
       </Text>
     </View>
@@ -203,6 +304,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: {
-    ...heeboFont('600'),
+    includeFontPadding: false,
+    textAlignVertical: 'center',
   },
 });

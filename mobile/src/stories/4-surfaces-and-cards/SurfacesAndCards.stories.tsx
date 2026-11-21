@@ -1,9 +1,8 @@
 import React from 'react';
-import { ScrollView } from 'react-native';
+import { Pressable, ScrollView, Text } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
-import { BookOpen, GraduationCap } from 'lucide-react-native';
+import { BookOpen, GraduationCap, Palette } from 'lucide-react-native';
 import {
-  CardSurface,
   SectionCard,
   InfoBox,
   InfoItem,
@@ -11,6 +10,8 @@ import {
   NoticeBanner,
   SectionDateHeader,
 } from '../../components/ui/Surfaces';
+import { StatusBadge } from '../../components/ui/Badges';
+import { SelectField } from '../../components/ui/FormFields';
 import {
   HomeworkCard,
   IncidentCard,
@@ -18,6 +19,8 @@ import {
   AdminUserRow,
 } from '../../components/ui/Cards';
 import { ScheduleTable } from '../../components/ui/ScheduleTable';
+import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 
 const meta: Meta = {
   title: '4 - Surfaces & Cards/SurfacesAndCards',
@@ -26,120 +29,191 @@ const meta: Meta = {
 export default meta;
 
 export const CardsAndSurfaces: StoryObj = {
-  render: () => (
-    <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
-      <SectionDateHeader title="היום · יום חמישי, 20/11/2026" />
+  render: () => {
+    const { palette } = useTheme();
+    const [lang, setLang] = React.useState('he');
+    const [themeMode, setThemeMode] = React.useState('system');
 
-      <HomeworkCard
-        childColor="emerald"
-        item={{
-          id: 'hw-1',
-          ids: ['hw-1'],
-          hourNums: [2, 3],
-          subject: 'מדעים',
-          teacher: 'רונית כהן',
-          studentName: 'כפיר',
-          dueDate: '2026-11-20',
-          description: 'עמוד 45 תרגילים 1-4 בחוברת',
-          completed: false,
-        }}
-      />
+    return (
+      <ScrollView contentContainerStyle={{ gap: 14, paddingBottom: 40 }}>
+        <SectionDateHeader title="היום · יום חמישי, 20/11/2026" />
 
-      <IncidentCard
-        childColor="purple"
-        item={{
-          id: 'inc-1',
-          date: '2026-11-20',
-          type: 'מילה טובה',
-          subject: 'מתמטיקה',
-          teacher: 'דוד לוי',
-          studentName: 'יובל',
-          description: 'השתתפות פעילה ומצוינת בשיעור',
-          hourNum: 1,
-          isJustified: true,
-        }}
-      />
+        <HomeworkCard
+          childColor="emerald"
+          item={{
+            id: 'hw-1',
+            ids: ['hw-1'],
+            hourNums: [2, 3],
+            subject: 'מדעים',
+            teacher: 'רונית כהן',
+            studentName: 'כפיר',
+            dueDate: '2026-11-20',
+            description: 'עמוד 45 תרגילים 1-4 בחוברת',
+            completed: false,
+          }}
+        />
 
-      <ExamCard
-        childColor="blue"
-        canEdit
-        onEdit={() => {}}
-        onDelete={() => {}}
-        exam={{
-          id: 'ex-1',
-          childId: '1',
-          studentName: 'כפיר',
-          name: 'מתמטיקה - שברים',
-          description: 'פרקים ג-ה',
-          date: '2026-11-28',
-          grade: '96',
-        }}
-      />
+        <IncidentCard
+          childColor="purple"
+          item={{
+            id: 'inc-1',
+            date: '2026-11-20',
+            type: 'מילה טובה',
+            subject: 'מתמטיקה',
+            teacher: 'דוד לוי',
+            studentName: 'יובל',
+            description: 'השתתפות פעילה ומצוינת בשיעור',
+            hourNum: 1,
+            isJustified: true,
+          }}
+        />
 
-      <AdminUserRow
-        user={{
-          id: 'u-1',
-          username: 'admin',
-          firstName: 'Dmitry',
-          lastName: 'T',
-          role: 'admin',
-          familyRole: 'parent',
-        }}
-        isSelf
-        onEdit={() => {}}
-        onResetPassword={() => {}}
-        onDelete={() => {}}
-      />
+        <ExamCard
+          childColor="blue"
+          canEdit
+          onEdit={() => {}}
+          onDelete={() => {}}
+          exam={{
+            id: 'ex-1',
+            childId: '1',
+            studentName: 'כפיר',
+            name: 'מתמטיקה - שברים',
+            description: 'פרקים ג-ה',
+            date: '2026-11-28',
+            grade: '96',
+          }}
+        />
 
-      <SectionCard icon={GraduationCap} title="SectionCard" description="InfoBox container">
-        <InfoBox>
-          <InfoItem label="Username" value="parent@school" />
-        </InfoBox>
-      </SectionCard>
+        <AdminUserRow
+          user={{
+            id: 'u-1',
+            username: 'admin',
+            firstName: 'Dmitry',
+            lastName: 'T',
+            role: 'admin',
+            familyRole: 'parent',
+          }}
+          isSelf
+          onEdit={() => {}}
+          onResetPassword={() => {}}
+          onDelete={() => {}}
+        />
 
-      <NoticeBanner variant="warning" description="Sample warning banner" />
+        <SectionCard
+          icon={Palette}
+          title="תצוגה ושפה"
+          description="התאמה אישית של ערכת הנושא ושפת התצוגה"
+          divided
+          contentStyle={{ paddingTop: 6, paddingBottom: 8 }}
+        >
+          <SelectField
+            label="שפה"
+            description="בחירת שפת התצוגה המועדפת"
+            layout="responsive"
+            variant="filled"
+            value={lang}
+            options={[
+              { label: 'עברית', value: 'he' },
+              { label: 'English', value: 'en' },
+            ]}
+            onValueChange={setLang}
+          />
+          <SelectField
+            label="ערכת נושא"
+            description="בחירה בין מצב בהיר, כהה או מערכת"
+            layout="responsive"
+            variant="filled"
+            value={themeMode}
+            options={[
+              { label: 'בהיר', value: 'light' },
+              { label: 'כהה', value: 'dark' },
+              { label: 'מערכת', value: 'system' },
+            ]}
+            onValueChange={setThemeMode}
+          />
+        </SectionCard>
 
-      <EmptyStateCard
-        icon={BookOpen}
-        title="אין שיעורי בית להצגה"
-        description="מטלות ושיעורי בית יופיעו כאן לאחר סנכרון."
-      />
+        <SectionCard
+          icon={GraduationCap}
+          title="חיבור למערכת Webtop"
+          description="סנכרון אוטומטי של אירועים ושיעורי בית"
+          action={<StatusBadge variant="success" label="מחובר ומסונכרן" />}
+        >
+          <InfoBox columns={2}>
+            <InfoItem label="שם משתמש Webtop" value="parent@school" />
+            <InfoItem
+              label="סנכרון אחרון"
+              value="21/11/2026 08:42"
+              isLtr
+              valueStyle={{ fontSize: 12, ...heeboFont('500') }}
+            />
+          </InfoBox>
+        </SectionCard>
 
-      <ScheduleTable
-        lessons={[
-          { id: '1', childId: '1', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
-          { id: '2', childId: '1', dayOfWeek: 0, hourNum: 2, subject: 'אנגלית' },
-          { id: '3', childId: '1', dayOfWeek: 1, hourNum: 1, subject: 'עברית' },
-          { id: '4', childId: '1', dayOfWeek: 1, hourNum: 2, subject: 'מדעים' },
-          { id: '5', childId: '1', dayOfWeek: 2, hourNum: 1, subject: 'תנ״ך' },
-          { id: '6', childId: '1', dayOfWeek: 2, hourNum: 3, subject: 'חינוך גופני' },
-          { id: '7', childId: '1', dayOfWeek: 3, hourNum: 1, subject: 'היסטוריה' },
-        ]}
-        finishTimes={[
-          { id: 'f1', childId: '1', dayOfWeek: 0, finishTime: '13:30' },
-          { id: 'f2', childId: '1', dayOfWeek: 1, finishTime: '14:15' },
-          { id: 'f3', childId: '1', dayOfWeek: 2, finishTime: '12:45' },
-        ]}
-        childColorId="blue"
-        currentDayOfWeek={1}
-        isEditMode={false}
-        onPressCell={() => {}}
-        onPressFinishTime={() => {}}
-      />
+        <NoticeBanner
+          variant="info"
+          title="עדכון מערכת"
+          badge="Webtop"
+          description="הסנכרון האחרון הושלם בהצלחה."
+        />
+        <NoticeBanner
+          variant="warning"
+          title="הסנכרון האוטומטי הושהה"
+          description="Webtop דחה את פרטי ההתחברות השמורים. בדקו את הפרטים בהגדרות ואז המשיכו."
+        >
+          <Pressable onPress={() => {}}>
+            <Text style={[heeboFont('600'), { fontSize: 12, color: palette.primary }]}>
+              חידוש סנכרון אוטומטי
+            </Text>
+          </Pressable>
+        </NoticeBanner>
+        <NoticeBanner
+          variant="destructive"
+          description="שגיאת סנכרון: שם משתמש או סיסמה שגויים"
+        />
 
-      <ScheduleTable
-        lessons={[
-          { id: 'e1', childId: '2', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
-          { id: 'e2', childId: '2', dayOfWeek: 1, hourNum: 1, subject: 'מדעים' },
-        ]}
-        finishTimes={[{ id: 'ef1', childId: '2', dayOfWeek: 0, finishTime: '13:30' }]}
-        childColorId="rose"
-        currentDayOfWeek={1}
-        isEditMode
-        canEdit
-        onPressCell={() => {}}
-        onPressFinishTime={() => {}}
-      />
-    </ScrollView>
-  ),
+        <EmptyStateCard
+          icon={BookOpen}
+          title="אין שיעורי בית להצגה"
+          description="מטלות ושיעורי בית יופיעו כאן לאחר סנכרון."
+        />
+
+        <ScheduleTable
+          lessons={[
+            { id: '1', childId: '1', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
+            { id: '2', childId: '1', dayOfWeek: 0, hourNum: 2, subject: 'אנגלית' },
+            { id: '3', childId: '1', dayOfWeek: 1, hourNum: 1, subject: 'עברית' },
+            { id: '4', childId: '1', dayOfWeek: 1, hourNum: 2, subject: 'מדעים' },
+            { id: '5', childId: '1', dayOfWeek: 2, hourNum: 1, subject: 'תנ״ך' },
+            { id: '6', childId: '1', dayOfWeek: 2, hourNum: 3, subject: 'חינוך גופני' },
+            { id: '7', childId: '1', dayOfWeek: 3, hourNum: 1, subject: 'היסטוריה' },
+          ]}
+          finishTimes={[
+            { id: 'f1', childId: '1', dayOfWeek: 0, finishTime: '13:30' },
+            { id: 'f2', childId: '1', dayOfWeek: 1, finishTime: '14:15' },
+            { id: 'f3', childId: '1', dayOfWeek: 2, finishTime: '12:45' },
+          ]}
+          childColorId="blue"
+          currentDayOfWeek={1}
+          isEditMode={false}
+          onPressCell={() => {}}
+          onPressFinishTime={() => {}}
+        />
+
+        <ScheduleTable
+          lessons={[
+            { id: 'e1', childId: '2', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
+            { id: 'e2', childId: '2', dayOfWeek: 1, hourNum: 1, subject: 'מדעים' },
+          ]}
+          finishTimes={[{ id: 'ef1', childId: '2', dayOfWeek: 0, finishTime: '13:30' }]}
+          childColorId="rose"
+          currentDayOfWeek={1}
+          isEditMode
+          canEdit
+          onPressCell={() => {}}
+          onPressFinishTime={() => {}}
+        />
+      </ScrollView>
+    );
+  },
 };
