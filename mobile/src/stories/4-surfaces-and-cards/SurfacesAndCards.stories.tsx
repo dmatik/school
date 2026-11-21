@@ -1,7 +1,7 @@
 import React from 'react';
-import { Pressable, ScrollView, Text } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
-import { BookOpen, GraduationCap, Palette } from 'lucide-react-native';
+import { BookOpen, GraduationCap, Palette, Trash2 } from 'lucide-react-native';
 import {
   SectionCard,
   InfoBox,
@@ -11,7 +11,14 @@ import {
   SectionDateHeader,
 } from '../../components/ui/Surfaces';
 import { StatusBadge } from '../../components/ui/Badges';
-import { SelectField } from '../../components/ui/FormFields';
+import {
+  CounterField,
+  FilledInput,
+  FilledTextarea,
+  SelectField,
+} from '../../components/ui/FormFields';
+import { Button } from '../../components/ui/Buttons';
+import { ConfirmModal, Modal } from '../../components/ui/Modal';
 import {
   HomeworkCard,
   IncidentCard,
@@ -214,6 +221,76 @@ export const CardsAndSurfaces: StoryObj = {
           onPressFinishTime={() => {}}
         />
       </ScrollView>
+    );
+  },
+};
+
+export const ModalsShowcase: StoryObj = {
+  render: () => {
+    const [sheetOpen, setSheetOpen] = React.useState(false);
+    const [confirmOpen, setConfirmOpen] = React.useState(false);
+    const [name, setName] = React.useState('');
+    const [notes, setNotes] = React.useState('');
+
+    return (
+      <View style={{ gap: 12 }}>
+        <Button label="פתח מודאל גיליון (Bottom Sheet)" onPress={() => setSheetOpen(true)} />
+        <Button
+          label="פתח מודאל אישור (Confirm Alert)"
+          variant="destructive"
+          onPress={() => setConfirmOpen(true)}
+        />
+
+        <Modal
+          visible={sheetOpen}
+          onClose={() => setSheetOpen(false)}
+          title="הוספת מבחן"
+          description="הזן את פרטי המבחן עבור התלמיד/ה."
+          footer={
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', gap: 8 }}>
+              <Button
+                label="ביטול"
+                variant="outline"
+                size="sm"
+                onPress={() => setSheetOpen(false)}
+              />
+              <Button
+                label="שמירה"
+                size="sm"
+                onPress={() => setSheetOpen(false)}
+              />
+            </View>
+          }
+        >
+          <CounterField label="שם המבחן / מקצוע" currentLength={name.length} maxLength={50}>
+            <FilledInput
+              value={name}
+              maxLength={50}
+              onChangeText={setName}
+              placeholder="למשל: מתמטיקה - שברים"
+            />
+          </CounterField>
+          <CounterField label="תיאור (אופציונלי)" currentLength={notes.length} maxLength={200}>
+            <FilledTextarea
+              value={notes}
+              maxLength={200}
+              onChangeText={setNotes}
+              placeholder="פרקים ג׳-ה׳, חומר ללימוד..."
+            />
+          </CounterField>
+        </Modal>
+
+        <ConfirmModal
+          visible={confirmOpen}
+          onClose={() => setConfirmOpen(false)}
+          onConfirm={() => setConfirmOpen(false)}
+          icon={Trash2}
+          title="מחיקת מבחן"
+          description="האם אתה בטוח שברצונך למחוק מבחן זה?"
+          confirmText="מחיקה"
+          cancelText="ביטול"
+        />
+      </View>
     );
   },
 };

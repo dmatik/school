@@ -14,6 +14,7 @@ import {
   SwitchField,
   TimePresetInput,
 } from '../../components/ui/FormFields';
+import { DatePickerField } from '../../components/ui/LiquidDatePicker';
 import { SectionCard } from '../../components/ui/Surfaces';
 
 const meta: Meta = {
@@ -28,6 +29,7 @@ export const InputsShowcase: StoryObj = {
     const [cardText, setCardText] = useState('');
     const [notes, setNotes] = useState('פרקים א׳-ד׳ בספר שמות, כולל שאלות חזרה בעמוד 45.');
     const [examName, setExamName] = useState('מבחן אמצע במתמטיקה');
+    const [examDate, setExamDate] = useState<Date | undefined>(new Date());
     const [finishTime, setFinishTime] = useState('13:30');
     const [search, setSearch] = useState('');
     const [eventType, setEventType] = useState('behavior');
@@ -124,6 +126,14 @@ export const InputsShowcase: StoryObj = {
           value={finishTime}
           onChange={setFinishTime}
           presetsLabel="שעות נפוצות"
+        />
+
+        <DatePickerField
+          label="DatePickerField (Modal Form)"
+          date={examDate}
+          setDate={setExamDate}
+          clearable={false}
+          formatPattern="dd/MM/yyyy"
         />
 
         <SearchInput

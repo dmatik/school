@@ -3,22 +3,20 @@ import {
   Animated,
   View,
   ActivityIndicator,
-  Pressable,
-  Text,
   StyleSheet,
 } from 'react-native';
-import { CalendarDays, Pencil, Check, Share2 } from 'lucide-react-native';
+import { CalendarDays, Pencil, Check, Share2, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
-import { heeboFont } from '../theme/typography';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import { shareSchedulePdfMobile } from '../lib/schedulePdf';
 import {
-  FieldLabel,
+  CounterField,
   FilledInput,
   LiquidTabs,
   StickyFilterBar,
+  TimePresetInput,
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
@@ -31,8 +29,6 @@ import type {
   WebtopConfig,
   User,
 } from '../../../src/types';
-
-const COMMON_FINISH_PRESETS = ['11:45', '12:45', '13:30', '14:15', '15:00', '16:00'];
 
 export function ScheduleScreen({
   currentUser,
@@ -59,6 +55,7 @@ export function ScheduleScreen({
   const [editingLesson, setEditingLesson] = useState<{
     dayOfWeek: number;
     hourNum: number;
+    hasExisting: boolean;
   } | null>(null);
   const [formSubject, setFormSubject] = useState('');
   const [savingLesson, setSavingLesson] = useState(false);
@@ -297,7 +294,11 @@ export function ScheduleScreen({
             resetScrollKey={selectedChildId}
             onPressCell={(dayOfWeek, hourNum, lesson) => {
               if (!isParent || !isEditMode) return;
-              setEditingLesson({ dayOfWeek, hourNum });
+              setEditingLesson({
+                dayOfWeek,
+                hourNum,
+                hasExisting: Boolean(lesson?.subject),
+              });
               setFormSubject(lesson?.subject || '');
             }}
             onPressFinishTime={(dayOfWeek, currentFinish) => {
@@ -325,7 +326,7 @@ export function ScheduleScreen({
         visible={Boolean(editingLesson)}
         onClose={() => setEditingLesson(null)}
         title={
-          formSubject
+          editingLesson?.hasExisting
             ? t('schedule.lesson_modal_title_edit')
             : t('schedule.lesson_modal_title_add')
         }
@@ -338,36 +339,55 @@ export function ScheduleScreen({
             : undefined
         }
         footer={
-          <View style={styles.modalFooterRow}>
-            <Button
-              label={t('schedule.clear_lesson')}
-              variant="destructive"
-              onPress={() => handleSaveLesson('')}
-              loading={savingLesson}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label={t('common.save')}
-              onPress={() => handleSaveLesson()}
-              loading={savingLesson}
-              style={{ flex: 1 }}
-            />
+          <View style={[styles.modalFooterRow, { flexDirection: flexRow }]}>
+            {editingLesson?.hasExisting ? (
+              <Button
+                label={t('schedule.clear_lesson')}
+                variant="destructive"
+                size="sm"
+                icon={Trash2}
+                onPress={() => handleSaveLesson('')}
+                loading={savingLesson}
+              />
+            ) : (
+              <View />
+            )}
+            <View style={[styles.modalFooterActions, { flexDirection: flexRow }]}>
+              <Button
+                label={t('common.cancel')}
+                variant="outline"
+                size="sm"
+                onPress={() => setEditingLesson(null)}
+              />
+              <Button
+                label={t('common.save')}
+                size="sm"
+                onPress={() => handleSaveLesson()}
+                loading={savingLesson}
+                disabled={!formSubject.trim()}
+              />
+            </View>
           </View>
         }
       >
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('schedule.subject_label')} />
+        <CounterField
+          label={t('schedule.subject_label')}
+          currentLength={formSubject.length}
+          maxLength={50}
+        >
           <FilledInput
             value={formSubject}
+            maxLength={50}
             onChangeText={setFormSubject}
             placeholder={t('schedule.subject_placeholder')}
           />
-        </View>
+        </CounterField>
       </FullScreenModal>
 
       <FullScreenModal
         visible={editingFinishDay !== null}
         onClose={() => setEditingFinishDay(null)}
+        maxWidth="sm"
         title={t('schedule.finish_time_modal_title')}
         description={
           editingFinishDay !== null
@@ -377,63 +397,44 @@ export function ScheduleScreen({
             : undefined
         }
         footer={
-          <View style={styles.modalFooterRow}>
-            <Button
-              label={t('schedule.clear_finish_time')}
-              variant="destructive"
-              onPress={() => handleSaveFinishTime('')}
-              loading={savingFinish}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label={t('common.save')}
-              onPress={() => handleSaveFinishTime()}
-              loading={savingFinish}
-              style={{ flex: 1 }}
-            />
+          <View style={[styles.modalFooterRow, { flexDirection: flexRow }]}>
+            {editingFinishDay !== null &&
+            finishTimes.some((f) => f.dayOfWeek === editingFinishDay && f.finishTime) ? (
+              <Button
+                label={t('schedule.clear_finish_time')}
+                variant="destructive"
+                size="sm"
+                icon={Trash2}
+                onPress={() => handleSaveFinishTime('')}
+                loading={savingFinish}
+              />
+            ) : (
+              <View />
+            )}
+            <View style={[styles.modalFooterActions, { flexDirection: flexRow }]}>
+              <Button
+                label={t('common.cancel')}
+                variant="outline"
+                size="sm"
+                onPress={() => setEditingFinishDay(null)}
+              />
+              <Button
+                label={t('common.save')}
+                size="sm"
+                onPress={() => handleSaveFinishTime()}
+                loading={savingFinish}
+                disabled={!/^([01]\d|2[0-3]):[0-5]\d$/.test(formFinishTime.trim())}
+              />
+            </View>
           </View>
         }
       >
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('schedule.finish_time_label')} />
-          <FilledInput
-            forceLtr
-            value={formFinishTime}
-            onChangeText={setFormFinishTime}
-            placeholder="13:30"
-          />
-        </View>
-        <View style={{ gap: 8 }}>
-          <FieldLabel label={t('schedule.finish_time_presets')} />
-          <View style={styles.presetsGrid}>
-            {COMMON_FINISH_PRESETS.map((preset) => (
-              <Pressable
-                key={preset}
-                onPress={() => setFormFinishTime(preset)}
-                style={[
-                  styles.presetChip,
-                  {
-                    backgroundColor:
-                      formFinishTime === preset ? palette.primary : palette.muted,
-                    borderColor: palette.border,
-                  },
-                ]}
-              >
-                <Text
-                  style={[
-                    heeboFont('600'),
-                    {
-                      fontSize: 13,
-                      color: formFinishTime === preset ? '#ffffff' : palette.foreground,
-                    },
-                  ]}
-                >
-                  {preset}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        <TimePresetInput
+          label={t('schedule.finish_time_label')}
+          value={formFinishTime}
+          onChange={setFormFinishTime}
+          presetsLabel={t('schedule.finish_time_presets')}
+        />
       </FullScreenModal>
     </View>
   );
@@ -463,18 +464,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   modalFooterRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  presetsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    alignItems: 'center',
+    justifyContent: 'space-between',
     gap: 8,
+    width: '100%',
   },
-  presetChip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
+  modalFooterActions: {
+    alignItems: 'center',
+    gap: 8,
   },
 });

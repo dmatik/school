@@ -6,19 +6,23 @@ import {
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
-import { FileCheck, Plus } from 'lucide-react-native';
+import { FileCheck, Plus, Trash2 } from 'lucide-react-native';
+import { format, isValid, parseISO } from 'date-fns';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import {
+  CounterField,
   FieldLabel,
   FilledInput,
+  FilledTextarea,
   LiquidTabs,
   SearchInput,
   SelectField,
   StickyFilterBar,
 } from '../components/ui/FormFields';
+import { DatePickerField } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { ExamCard } from '../components/ui/Cards';
@@ -328,30 +332,36 @@ export function ExamsScreen({
         title={editingExam ? t('exams.edit_modal_title') : t('exams.add_modal_title')}
         description={editingExam ? t('exams.edit_modal_desc') : t('exams.add_modal_desc')}
         footer={
-          <View style={styles.modalFooterRow}>
+          <View style={[styles.modalFooterRow, { flexDirection: flexRow, justifyContent: 'space-between', alignItems: 'center' }]}>
             {editingExam ? (
               <Button
                 label={t('common.delete')}
                 variant="destructive"
+                size="sm"
+                icon={Trash2}
                 onPress={() => {
                   const target = editingExam;
                   setModalOpen(false);
                   setDeleteTarget(target);
                 }}
               />
-            ) : null}
-            <Button
-              label={t('common.cancel')}
-              variant="outline"
-              onPress={() => setModalOpen(false)}
-              style={{ flex: 1 }}
-            />
-            <Button
-              label={t('common.save')}
-              loading={saving}
-              onPress={handleSave}
-              style={{ flex: 1 }}
-            />
+            ) : (
+              <View />
+            )}
+            <View style={{ flexDirection: flexRow, gap: 8, alignItems: 'center' }}>
+              <Button
+                label={t('common.cancel')}
+                variant="outline"
+                size="sm"
+                onPress={() => setModalOpen(false)}
+              />
+              <Button
+                label={t('common.save')}
+                size="sm"
+                loading={saving}
+                onPress={handleSave}
+              />
+            </View>
           </View>
         }
       >
@@ -376,25 +386,31 @@ export function ExamsScreen({
           />
         </View>
 
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('exams.date_label')} />
-          <FilledInput
-            forceLtr
-            value={formDate}
-            onChangeText={setFormDate}
-            placeholder="YYYY-MM-DD"
-          />
-        </View>
+        <DatePickerField
+          label={t('exams.date_label')}
+          date={(() => {
+            if (!formDate) return undefined;
+            const d = parseISO(formDate);
+            return isValid(d) ? d : undefined;
+          })()}
+          setDate={(d) => setFormDate(d ? format(d, 'yyyy-MM-dd') : '')}
+          clearable={false}
+          disableFuture={false}
+          formatPattern="dd/MM/yyyy"
+        />
 
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('exams.description_label')} />
-          <FilledInput
+        <CounterField
+          label={t('exams.description_label')}
+          currentLength={formDesc.length}
+          maxLength={200}
+        >
+          <FilledTextarea
             value={formDesc}
+            maxLength={200}
             onChangeText={setFormDesc}
             placeholder={t('exams.description_placeholder')}
-            multiline
           />
-        </View>
+        </CounterField>
 
         <View style={{ gap: 6 }}>
           <FieldLabel label={t('exams.grade_label')} />

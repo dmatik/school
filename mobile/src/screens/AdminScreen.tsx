@@ -9,6 +9,7 @@ import {
 import { Shield, UserPlus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import {
   FieldLabel,
@@ -26,6 +27,7 @@ import type { User, WebtopChild } from '../../../src/types';
 export function AdminScreen({ currentUser }: { currentUser: User }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
+  const { flexRow } = useDirection();
   const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
 
   const [users, setUsers] = useState<User[]>([]);
@@ -330,22 +332,24 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
           </>
         )}
 
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('account.first_name')} />
-          <FilledInput
-            value={formFirstName}
-            onChangeText={setFormFirstName}
-            placeholder={t('account.first_name_placeholder')}
-          />
-        </View>
+        <View style={{ flexDirection: flexRow, gap: 12 }}>
+          <View style={{ flex: 1, gap: 6 }}>
+            <FieldLabel label={t('account.first_name')} />
+            <FilledInput
+              value={formFirstName}
+              onChangeText={setFormFirstName}
+              placeholder={t('account.first_name_placeholder')}
+            />
+          </View>
 
-        <View style={{ gap: 6 }}>
-          <FieldLabel label={t('account.last_name')} />
-          <FilledInput
-            value={formLastName}
-            onChangeText={setFormLastName}
-            placeholder={t('account.last_name_placeholder')}
-          />
+          <View style={{ flex: 1, gap: 6 }}>
+            <FieldLabel label={t('account.last_name')} />
+            <FilledInput
+              value={formLastName}
+              onChangeText={setFormLastName}
+              placeholder={t('account.last_name_placeholder')}
+            />
+          </View>
         </View>
 
         <SelectField
