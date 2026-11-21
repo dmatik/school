@@ -95,25 +95,48 @@ export function LiquidDock({
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
   const [hasMeasured, setHasMeasured] = useState(false);
+  const hasActiveItem = items.some((item) => item.id === activeId);
+  const wasActiveRef = useRef(hasActiveItem);
   const pillX = useRef(new Animated.Value(0)).current;
+  const pillOpacity = useRef(new Animated.Value(hasActiveItem ? 1 : 0)).current;
 
   useEffect(() => {
     const layout = tabLayouts.current[activeId];
-    if (!layout) return;
+    if (!hasActiveItem || !layout) {
+      Animated.timing(pillOpacity, {
+        toValue: 0,
+        duration: 140,
+        useNativeDriver: true,
+      }).start();
+      wasActiveRef.current = false;
+      return;
+    }
 
-    Animated.spring(pillX, {
-      toValue: layout.x,
-      stiffness: 450,
-      damping: 35,
-      mass: 1,
+    if (!hasMeasured || !wasActiveRef.current) {
+      pillX.setValue(layout.x);
+      if (!hasMeasured) setHasMeasured(true);
+    } else {
+      Animated.spring(pillX, {
+        toValue: layout.x,
+        stiffness: 450,
+        damping: 35,
+        mass: 1,
+        useNativeDriver: true,
+      }).start();
+    }
+
+    Animated.timing(pillOpacity, {
+      toValue: 1,
+      duration: 160,
       useNativeDriver: true,
     }).start();
+    wasActiveRef.current = true;
 
     if (isScrollable && scrollRef.current) {
       const targetScroll = Math.max(0, layout.x - dockInnerWidth / 2 + layout.width / 2);
       scrollRef.current.scrollTo({ x: targetScroll, animated: true });
     }
-  }, [activeId, hasMeasured, isScrollable, dockInnerWidth, pillX]);
+  }, [activeId, hasActiveItem, hasMeasured, isScrollable, dockInnerWidth, pillX, pillOpacity]);
 
   return (
     <View
@@ -150,6 +173,7 @@ export function LiquidDock({
                   styles.slidingPillWrap,
                   {
                     width: itemWidth,
+                    opacity: pillOpacity,
                     transform: [{ translateX: pillX }],
                   },
                 ]}

@@ -38,6 +38,7 @@
         }
       },
       "infoPlist": {
+        "NSFaceIDUsageDescription": "אפליקציית בית הספר משתמשת ב-Face ID להתחברות מהירה ומאובטחת באמצעות מפתח גישה (Passkey).",
         "NSAppTransportSecurity": {
           "NSAllowsArbitraryLoads": true
         }

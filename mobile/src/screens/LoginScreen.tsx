@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Globe, Lock, User as UserIcon } from 'lucide-react-native';
+import { Globe, Lock, User as UserIcon, Fingerprint } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { heeboFont } from '../theme/typography';
@@ -19,6 +19,7 @@ import {
   persistSession,
   getActiveServerUrl,
 } from '../lib/api';
+import { isPasskeySupported, loginWithPasskey } from '../lib/passkey';
 import { mobileStorage } from '../lib/storage';
 import {
   Button,
@@ -43,6 +44,8 @@ export function LoginScreen({
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [passkeyLoading, setPasskeyLoading] = useState(false);
+  const [hasPasskeySupport, setHasPasskeySupport] = useState(false);
 
   useEffect(() => {
     if (!serverUrl) {
@@ -51,6 +54,16 @@ export function LoginScreen({
       });
     }
   }, [serverUrl]);
+
+  useEffect(() => {
+    let active = true;
+    isPasskeySupported().then((supported) => {
+      if (active) setHasPasskeySupport(supported);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
@@ -107,6 +120,48 @@ export function LoginScreen({
       setError(msg || t('auth.login_failed'));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handlePasskeyLogin = async () => {
+    setError(null);
+
+    let normalizedUrl: string;
+    try {
+      normalizedUrl = normalizeServerUrl(serverUrl);
+    } catch (err) {
+      const code = err instanceof Error ? err.message : '';
+      if (code === 'SERVER_URL_REQUIRED') {
+        setError(t('auth.server_url_required'));
+      } else {
+        setError(t('auth.server_url_invalid'));
+      }
+      return;
+    }
+
+    setPasskeyLoading(true);
+    try {
+      const reachable = await verifyServerConnection(normalizedUrl);
+      if (!reachable) {
+        setError(t('auth.server_unreachable'));
+        return;
+      }
+
+      const result = await loginWithPasskey(
+        normalizedUrl,
+        username.trim() || undefined,
+        t('auth.login_with_passkey')
+      );
+      await persistSession(normalizedUrl, result.token);
+      onLoginSuccess(normalizedUrl, result.token, result.user);
+    } catch (err) {
+      const errorObj = err as Error & { name?: string };
+      // Silently ignore user cancellation of the OS biometric prompt
+      if (errorObj.name !== 'NotAllowedError') {
+        setError(errorObj.message || t('auth.passkey_failed'));
+      }
+    } finally {
+      setPasskeyLoading(false);
     }
   };
 
@@ -169,6 +224,7 @@ export function LoginScreen({
                 autoCapitalize="none"
                 autoCorrect={false}
                 keyboardType="url"
+                editable={!loading && !passkeyLoading}
               />
             </View>
 
@@ -182,6 +238,7 @@ export function LoginScreen({
                 placeholder={t('auth.username_placeholder')}
                 autoCapitalize="none"
                 autoCorrect={false}
+                editable={!loading && !passkeyLoading}
               />
             </View>
 
@@ -195,6 +252,7 @@ export function LoginScreen({
                 placeholder="••••••••"
                 secureTextEntry
                 autoCapitalize="none"
+                editable={!loading && !passkeyLoading}
               />
             </View>
 
@@ -202,9 +260,51 @@ export function LoginScreen({
               testID="login-submit-button"
               label={loading ? t('auth.logging_in') : t('auth.login_button')}
               loading={loading}
+              disabled={loading || passkeyLoading}
               onPress={handleSubmit}
               style={{ marginTop: 6 }}
             />
+
+            {hasPasskeySupport ? (
+              <>
+                <View style={[styles.dividerRow, { flexDirection: flexRow }]}>
+                  <View
+                    style={[
+                      styles.dividerLine,
+                      { backgroundColor: palette.border },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.dividerText,
+                      { color: palette.mutedForeground },
+                    ]}
+                  >
+                    {t('auth.or_use_password')}
+                  </Text>
+                  <View
+                    style={[
+                      styles.dividerLine,
+                      { backgroundColor: palette.border },
+                    ]}
+                  />
+                </View>
+
+                <Button
+                  testID="passkey-login-button"
+                  variant="outline"
+                  icon={Fingerprint}
+                  label={
+                    passkeyLoading
+                      ? t('auth.logging_in')
+                      : t('auth.login_with_passkey')
+                  }
+                  loading={passkeyLoading}
+                  disabled={loading || passkeyLoading}
+                  onPress={handlePasskeyLogin}
+                />
+              </>
+            ) : null}
 
             <View style={[styles.footerHint, { borderTopColor: palette.border }]}>
               <Text style={[styles.hintText, { color: palette.mutedForeground }]}>
@@ -263,6 +363,21 @@ const styles = StyleSheet.create({
   },
   fieldGroup: {
     gap: 6,
+  },
+  dividerRow: {
+    alignItems: 'center',
+    gap: 10,
+    marginVertical: 2,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+  },
+  dividerText: {
+    fontSize: 11,
+    ...heeboFont('500'),
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
   },
   footerHint: {
     borderTopWidth: 1,
