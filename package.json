@@ -23,6 +23,7 @@
     "build-storybook": "storybook build --disable-telemetry",
     "mobile:start": "npm --prefix mobile run start",
     "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:ios:release": "npm --prefix mobile run ios:release",
     "mobile:android": "npm --prefix mobile run android",
     "mobile:storybook": "npm --prefix mobile run storybook",
     "mobile:typecheck": "npm --prefix mobile run typecheck",

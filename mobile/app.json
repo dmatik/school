@@ -25,7 +25,7 @@
       "supportsRTL": true
     },
     "ios": {
-      "bundleIdentifier": "com.school.app",
+      "bundleIdentifier": "com.dmatik.school",
       "supportsTablet": true,
       "splash": {
         "image": "./assets/splash-icon.png",
@@ -45,7 +45,7 @@
       }
     },
     "android": {
-      "package": "com.school.app",
+      "package": "com.dmatik.school",
       "usesCleartextTraffic": true,
       "splash": {
         "image": "./assets/splash-icon.png",

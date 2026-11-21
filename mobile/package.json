@@ -40,6 +40,7 @@
     "start": "NODE_USE_SYSTEM_CA=1 expo start --dev-client",
     "android": "NODE_USE_SYSTEM_CA=1 node scripts/start-dev.mjs --android",
     "ios": "NODE_USE_SYSTEM_CA=1 node scripts/start-dev.mjs --ios",
+    "ios:release": "NODE_USE_SYSTEM_CA=1 expo run:ios --configuration Release --device",
     "web": "NODE_USE_SYSTEM_CA=1 expo start --web",
     "build:ios": "NODE_USE_SYSTEM_CA=1 expo run:ios",
     "build:android": "NODE_USE_SYSTEM_CA=1 expo run:android",

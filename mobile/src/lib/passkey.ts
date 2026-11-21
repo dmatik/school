@@ -30,7 +30,7 @@ interface StoredPasskeyEntry {
 }
 
 const PASSKEY_INDEX_KEY = 'school_passkey_index_v1';
-const BIO_KEYCHAIN_SERVICE = 'com.school.app.passkeys.bio';
+const BIO_KEYCHAIN_SERVICE = 'com.dmatik.school.passkeys.bio';
 
 function secureKeyForCredential(credentialId: string): string {
   // SecureStore keys allow alphanumeric, '.', '-', '_'
