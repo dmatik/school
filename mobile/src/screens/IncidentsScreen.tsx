@@ -30,7 +30,7 @@ export function IncidentsScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('incidents');
   const isChild = currentUser.familyRole === 'child';
 
   const [items, setItems] = useState<Incident[]>([]);
@@ -124,6 +124,7 @@ export function IncidentsScreen({
 
   return (
     <Animated.ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
       showsVerticalScrollIndicator={false}

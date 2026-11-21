@@ -37,7 +37,7 @@ export function HomeworkScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('homework');
   const isChild = currentUser.familyRole === 'child';
 
   const [items, setItems] = useState<HomeworkItem[]>([]);
@@ -142,6 +142,7 @@ export function HomeworkScreen({
 
   return (
     <Animated.ScrollView
+      ref={scrollRef}
       style={styles.container}
       contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
       showsVerticalScrollIndicator={false}

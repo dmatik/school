@@ -28,7 +28,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('admin');
 
   const [users, setUsers] = useState<User[]>([]);
   const [children, setChildren] = useState<WebtopChild[]>([]);
@@ -211,6 +211,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         showsVerticalScrollIndicator={false}

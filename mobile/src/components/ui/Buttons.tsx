@@ -351,7 +351,7 @@ export function FloatingActionButton({
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { isRTL } = useDirection();
-  const bottomOffset = Math.max(insets.bottom - 10, 10) + 76;
+  const bottomOffset = Math.max(insets.bottom - 10, 10) + 86;
 
   return (
     <Pressable

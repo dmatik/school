@@ -83,13 +83,13 @@ export function LiquidDock({
 
   const isScrollable = items.length > 5;
   const isFiveOrMore = items.length >= 5;
-  const maxDockWidth = Math.min(352, screenWidth - 24);
+  const maxDockWidth = Math.min(364, screenWidth - 24);
   const dockInnerWidth = Math.max(maxDockWidth - 12, 240);
   const itemWidth = isScrollable
     ? Math.floor(dockInnerWidth / 5)
     : isFiveOrMore
     ? Math.floor(dockInnerWidth / items.length)
-    : Math.min(85, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
+    : Math.min(88, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
@@ -274,8 +274,8 @@ const styles = StyleSheet.create({
   },
   dock: {
     borderRadius: 999,
-    paddingHorizontal: 5,
-    paddingVertical: 5,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
     overflow: 'hidden',
   },
   dockScroll: {
@@ -289,10 +289,10 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 5,
+    paddingVertical: 8,
     paddingHorizontal: 4,
     borderRadius: 999,
-    gap: 2,
+    gap: 4,
   },
   tabLabel: {
     fontSize: 10,

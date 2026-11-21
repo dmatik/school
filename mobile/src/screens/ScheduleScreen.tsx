@@ -39,7 +39,7 @@ export function ScheduleScreen({
 }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
-  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('schedule');
   const { flexRow, isRTL } = useDirection();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
@@ -223,6 +223,7 @@ export function ScheduleScreen({
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
+        ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         showsVerticalScrollIndicator={false}
