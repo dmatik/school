@@ -1,8 +1,33 @@
 import React from 'react';
-import { View, Text, StyleSheet, type ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+
+export function CardSurface({
+  children,
+  style,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { palette } = useTheme();
+  return (
+    <View
+      style={[
+        styles.cardSurface,
+        {
+          backgroundColor: palette.card,
+          borderColor: palette.border,
+        },
+        style,
+      ]}
+    >
+      {children}
+    </View>
+  );
+}
 
 export function SectionCard({
   icon: Icon,
@@ -23,13 +48,7 @@ export function SectionCard({
   const { flexRow, textAlign } = useDirection();
 
   return (
-    <View
-      style={[
-        styles.card,
-        { backgroundColor: palette.card, borderColor: palette.border },
-        style,
-      ]}
-    >
+    <CardSurface style={[styles.card, style]}>
       <View style={[styles.cardHeader, { flexDirection: flexRow }]}>
         <View style={[styles.cardTitleGroup, { flexDirection: flexRow }]}>
           {Icon && (
@@ -56,7 +75,7 @@ export function SectionCard({
         {action ? <View>{action}</View> : null}
       </View>
       <View style={styles.cardContent}>{children}</View>
-    </View>
+    </CardSurface>
   );
 }
 
@@ -126,12 +145,7 @@ export function EmptyStateCard({
 }) {
   const { palette } = useTheme();
   return (
-    <View
-      style={[
-        styles.emptyCard,
-        { backgroundColor: palette.card, borderColor: palette.border },
-      ]}
-    >
+    <CardSurface style={styles.emptyCard}>
       <View style={[styles.emptyIcon, { backgroundColor: palette.muted }]}>
         <Icon size={28} color={palette.mutedForeground} />
       </View>
@@ -142,7 +156,7 @@ export function EmptyStateCard({
         </Text>
       ) : null}
       {action ? <View style={{ marginTop: 12 }}>{action}</View> : null}
-    </View>
+    </CardSurface>
   );
 }
 
@@ -201,9 +215,11 @@ export function SectionDateHeader({ title }: { title: string }) {
 }
 
 const styles = StyleSheet.create({
-  card: {
+  cardSurface: {
     borderRadius: 16,
     borderWidth: 1,
+  },
+  card: {
     padding: 16,
     gap: 12,
   },
@@ -226,11 +242,12 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   cardDesc: {
     fontSize: 12,
     marginTop: 2,
+    ...heeboFont('400'),
   },
   cardContent: {
     gap: 12,
@@ -246,15 +263,13 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     fontSize: 11,
-    fontWeight: '600',
+    ...heeboFont('600'),
   },
   infoValue: {
     fontSize: 13,
-    fontWeight: '600',
+    ...heeboFont('600'),
   },
   emptyCard: {
-    borderRadius: 16,
-    borderWidth: 1,
     padding: 28,
     alignItems: 'center',
     justifyContent: 'center',
@@ -270,11 +285,12 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    ...heeboFont('700'),
     textAlign: 'center',
   },
   emptyDesc: {
     fontSize: 13,
+    ...heeboFont('400'),
     textAlign: 'center',
     lineHeight: 18,
   },
@@ -286,18 +302,20 @@ const styles = StyleSheet.create({
   },
   noticeTitle: {
     fontSize: 13,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   noticeDesc: {
     fontSize: 12,
-    fontWeight: '500',
+    ...heeboFont('500'),
   },
   dateHeader: {
-    paddingVertical: 6,
+    paddingVertical: 4,
     paddingHorizontal: 4,
   },
   dateHeaderText: {
-    fontSize: 12,
-    fontWeight: '700',
+    fontSize: 14,
+    lineHeight: 20,
+    letterSpacing: -0.35,
+    ...heeboFont('600'),
   },
 });

@@ -1,6 +1,8 @@
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { useDirection } from '../../i18n';
+import { heeboFont } from '../../theme/typography';
 import { getChildBadgeStyle } from '../../lib/colors';
 import { getSubjectConfig } from '../../lib/subjectIcons';
 import type { User } from '../../../../src/types';
@@ -17,25 +19,38 @@ export function ChildBadge({
   size?: 'xs' | 'sm';
 }) {
   const { isDark } = useTheme();
+  const { flexRow } = useDirection();
   const colors = getChildBadgeStyle(colorId, isDark);
   const bg = variant === 'solid' && colorId ? colors.solid : colors.bg;
   const textColor = variant === 'solid' && colorId ? '#ffffff' : colors.text;
+  const dotColor = variant === 'solid' && colorId ? '#ffffff' : colors.solid;
 
   return (
     <View
       style={[
         styles.badge,
         {
+          flexDirection: flexRow,
+          gap: size === 'xs' ? 4 : 6,
           backgroundColor: bg,
           paddingHorizontal: size === 'xs' ? 8 : 10,
-          paddingVertical: size === 'xs' ? 2 : 4,
+          paddingVertical: size === 'xs' ? 2 : 3.5,
         },
       ]}
     >
+      <View
+        style={{
+          width: 6,
+          height: 6,
+          borderRadius: 3,
+          backgroundColor: dotColor,
+        }}
+      />
       <Text
         numberOfLines={1}
         style={[
           styles.badgeText,
+          heeboFont('600'),
           { color: textColor, fontSize: size === 'xs' ? 11 : 12 },
         ]}
       >
@@ -77,7 +92,7 @@ export function SubjectIconBadge({
 }: {
   subject: string;
   variant?: 'tinted' | 'solid';
-  size?: 'sm' | 'md';
+  size?: 'sm' | 'md' | 'lg';
 }) {
   const { isDark } = useTheme();
   const cfg = getSubjectConfig(subject);
@@ -99,15 +114,16 @@ export function SubjectIconBadge({
       ? cfg.badgeTextDark
       : cfg.badgeTextLight;
 
-  const boxSize = size === 'md' ? 34 : 26;
-  const iconSize = size === 'md' ? 18 : 14;
+  const boxSize = size === 'lg' ? 40 : size === 'md' ? 34 : 26;
+  const iconSize = size === 'lg' ? 20 : size === 'md' ? 18 : 14;
+  const radius = size === 'lg' ? 12 : 8;
 
   return (
     <View
       style={{
         width: boxSize,
         height: boxSize,
-        borderRadius: 8,
+        borderRadius: radius,
         backgroundColor: bg,
         alignItems: 'center',
         justifyContent: 'center',
@@ -157,19 +173,21 @@ export function UserAvatar({
         width: size,
         height: size,
         borderRadius: size / 2,
-        backgroundColor: 'rgba(59, 130, 196, 0.14)',
-        borderWidth: activeRing ? 2 : 1,
-        borderColor: activeRing ? palette.primary : 'rgba(59, 130, 196, 0.28)',
+        backgroundColor: palette.primary,
+        borderWidth: activeRing ? 2 : 0,
+        borderColor: activeRing ? palette.foreground : 'transparent',
         alignItems: 'center',
         justifyContent: 'center',
       }}
     >
       <Text
-        style={{
-          color: palette.primary,
-          fontWeight: '700',
-          fontSize: Math.round(size * 0.38),
-        }}
+        style={[
+          heeboFont('700'),
+          {
+            color: palette.primaryForeground,
+            fontSize: Math.round(size * 0.39),
+          },
+        ]}
       >
         {initials}
       </Text>
@@ -185,6 +203,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   badgeText: {
-    fontWeight: '600',
+    ...heeboFont('600'),
   },
 });

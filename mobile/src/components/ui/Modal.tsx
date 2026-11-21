@@ -12,6 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { X } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { Button } from './Buttons';
 
@@ -163,11 +164,12 @@ const styles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 17,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   modalDesc: {
     fontSize: 12,
     marginTop: 2,
+    ...heeboFont('400'),
   },
   closeBtn: {
     padding: 6,
@@ -194,11 +196,12 @@ const styles = StyleSheet.create({
   },
   confirmTitle: {
     fontSize: 16,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   confirmDesc: {
     fontSize: 13,
     lineHeight: 19,
+    ...heeboFont('400'),
   },
   confirmActions: {
     gap: 10,

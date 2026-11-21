@@ -10,6 +10,7 @@ import {
 import { ChevronLeft, ChevronRight, Clock, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { getSubjectConfig } from '../../lib/subjectIcons';
 import type { ScheduleLesson, ScheduleFinishTime } from '../../../../src/types';
@@ -77,7 +78,7 @@ export function ScheduleTable({
           )}
         </Pressable>
 
-        <Text style={{ fontSize: 11, color: palette.mutedForeground, fontWeight: '600' }}>
+        <Text style={[heeboFont('600'), { fontSize: 11, color: palette.mutedForeground }]}>
           {t('schedule.days.day_0')} - {t('schedule.days.day_5')}
         </Text>
 
@@ -243,13 +244,15 @@ export function ScheduleTable({
                     ]}
                   >
                     <Text
-                      style={{
-                        fontSize: 11,
-                        fontWeight: '700',
-                        color: finish?.finishTime
-                          ? palette.foreground
-                          : palette.mutedForeground,
-                      }}
+                      style={[
+                        heeboFont('700'),
+                        {
+                          fontSize: 11,
+                          color: finish?.finishTime
+                            ? palette.foreground
+                            : palette.mutedForeground,
+                        },
+                      ]}
                     >
                       {finish?.finishTime || '—'}
                     </Text>
@@ -300,7 +303,7 @@ const styles = StyleSheet.create({
   },
   headerText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   hourCell: {
     height: 56,
@@ -310,7 +313,7 @@ const styles = StyleSheet.create({
   },
   hourText: {
     fontSize: 12,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   lessonCell: {
     height: 56,
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
   },
   lessonSubject: {
     fontSize: 11,
-    fontWeight: '700',
+    ...heeboFont('700'),
     textAlign: 'center',
   },
   finishCell: {

@@ -15,7 +15,7 @@ if (hasNativeBlur) {
   }
 }
 
-export function GlassBackdrop() {
+export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number }) {
   const { palette, isDark } = useTheme();
 
   return (
@@ -28,6 +28,16 @@ export function GlassBackdrop() {
         />
       ) : null}
       <View style={[styles.fill, { backgroundColor: palette.glassBg }]} />
+      <View
+        style={[
+          styles.fill,
+          {
+            borderRadius,
+            borderWidth: 1,
+            borderColor: palette.glassBorder,
+          },
+        ]}
+      />
     </View>
   );
 }

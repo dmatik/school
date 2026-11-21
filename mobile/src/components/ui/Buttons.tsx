@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Pressable,
   Text,
@@ -6,6 +6,15 @@ import {
   StyleSheet,
   type ViewStyle,
 } from 'react-native';
+import Reanimated, {
+  Easing,
+  ZoomIn,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+} from 'react-native-reanimated';
 import {
   RefreshCw,
   Check,
@@ -14,9 +23,12 @@ import {
   Languages,
   type LucideIcon,
 } from 'lucide-react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../theme/ThemeContext';
+import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
 import i18n from '../../i18n';
+import { GlassBackdrop } from './GlassBackdrop';
 
 export function Button({
   label,
@@ -110,7 +122,6 @@ export function FloatingActionButton({
   onPress,
   accessibilityLabel,
   testID,
-  variant = 'primary',
 }: {
   icon: LucideIcon;
   onPress: () => void;
@@ -118,8 +129,10 @@ export function FloatingActionButton({
   testID?: string;
   variant?: 'primary' | 'success';
 }) {
+  const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { isRTL } = useDirection();
+  const bottomOffset = Math.max(insets.bottom - 10, 10) + 76;
 
   return (
     <Pressable
@@ -130,14 +143,15 @@ export function FloatingActionButton({
       style={({ pressed }) => [
         styles.fab,
         {
-          backgroundColor: variant === 'success' ? palette.success : palette.primary,
-          left: isRTL ? 20 : undefined,
-          right: isRTL ? undefined : 20,
-          opacity: pressed ? 0.85 : 1,
+          bottom: bottomOffset,
+          left: isRTL ? 16 : undefined,
+          right: isRTL ? undefined : 16,
+          transform: [{ scale: pressed ? 0.92 : 1 }],
         },
       ]}
     >
-      <Icon size={22} color="#ffffff" />
+      <GlassBackdrop />
+      <Icon size={22} strokeWidth={2.2} color={palette.foreground} />
     </Pressable>
   );
 }
@@ -155,9 +169,31 @@ export function SyncButton({
   label?: string;
   testID?: string;
 }) {
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
   const isIconOnly = !label;
+  const rotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (syncing) {
+      rotation.value = 0;
+      rotation.value = withRepeat(
+        withTiming(360, { duration: 1000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    } else {
+      cancelAnimation(rotation);
+      rotation.value = 0;
+    }
+  }, [syncing, rotation]);
+
+  const spinStyle = useAnimatedStyle(() => ({
+    transform: [{ rotate: `${rotation.value}deg` }],
+  }));
+
+  const successIconColor = isDark ? '#34d399' : '#059669';
+  const pillSuccessColor = isDark ? '#9EE8D8' : '#2CA58D';
 
   return (
     <Pressable
@@ -168,32 +204,47 @@ export function SyncButton({
       disabled={syncing}
       style={({ pressed }) => [
         isIconOnly ? styles.iconOnlySync : styles.iconPill,
+        isIconOnly && success && { backgroundColor: 'rgba(16, 185, 129, 0.1)' },
         !isIconOnly && {
           flexDirection: flexRow,
-          backgroundColor: palette.muted,
-          borderColor: palette.border,
+          backgroundColor: success
+            ? isDark
+              ? 'rgba(44, 165, 141, 0.25)'
+              : 'rgba(44, 165, 141, 0.15)'
+            : palette.muted,
+          borderColor: success ? 'rgba(44, 165, 141, 0.5)' : palette.border,
           paddingHorizontal: 12,
         },
         pressed && { opacity: 0.7 },
       ]}
     >
-      {syncing ? (
-        <ActivityIndicator size="small" color={palette.primary} />
-      ) : success ? (
-        <Check
-          size={isIconOnly ? 22 : 16}
-          strokeWidth={2.4}
-          color={palette.success}
-        />
+      {success ? (
+        <Reanimated.View key="check" entering={ZoomIn.duration(150)}>
+          <Check
+            size={isIconOnly ? 22 : 16}
+            strokeWidth={2.5}
+            color={isIconOnly ? successIconColor : pillSuccessColor}
+          />
+        </Reanimated.View>
       ) : (
-        <RefreshCw
-          size={isIconOnly ? 22 : 16}
-          strokeWidth={2}
-          color={palette.foreground}
-        />
+        <Reanimated.View key="refresh" style={spinStyle}>
+          <RefreshCw
+            size={isIconOnly ? 22 : 16}
+            strokeWidth={2}
+            color={palette.foreground}
+          />
+        </Reanimated.View>
       )}
       {label ? (
-        <Text style={{ fontSize: 12, fontWeight: '600', color: palette.foreground }}>
+        <Text
+          style={[
+            heeboFont('600'),
+            {
+              fontSize: 12,
+              color: success ? pillSuccessColor : palette.foreground,
+            },
+          ]}
+        >
           {label}
         </Text>
       ) : null}
@@ -234,7 +285,7 @@ export function LanguageToggleButton() {
       ]}
     >
       <Languages size={15} color={palette.foreground} />
-      <Text style={{ fontSize: 12, fontWeight: '700', color: palette.foreground }}>
+      <Text style={[heeboFont('700'), { fontSize: 12, color: palette.foreground }]}>
         {isEn ? 'עב' : 'EN'}
       </Text>
     </Pressable>
@@ -250,21 +301,17 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   buttonText: {
-    fontWeight: '600',
+    ...heeboFont('600'),
   },
   fab: {
     position: 'absolute',
-    bottom: 92,
     width: 50,
     height: 50,
     borderRadius: 25,
+    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 6,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.22,
-    shadowRadius: 6,
+    zIndex: 30,
   },
   iconPill: {
     height: 36,

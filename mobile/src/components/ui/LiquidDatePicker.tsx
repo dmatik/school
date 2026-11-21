@@ -31,12 +31,14 @@ export function LiquidDatePicker({
   date,
   setDate,
   isChild = false,
+  fullFormat,
   disableFuture = true,
   testID,
 }: {
   date?: Date;
   setDate: (date: Date | undefined) => void;
   isChild?: boolean;
+  fullFormat?: boolean;
   disableFuture?: boolean;
   testID?: string;
 }) {
@@ -47,16 +49,17 @@ export function LiquidDatePicker({
   const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
 
   const dateLocale = (i18n.language || 'he').startsWith('en') ? enUS : he;
+  const useFullFormat = fullFormat ?? isChild;
 
   const displayLabel = useMemo(() => {
     if (!date) return t('common.all_dates_short');
-    if (isChild) {
+    if (useFullFormat) {
       if (isToday(date)) return t('common.today');
       if (isYesterday(date)) return t('common.yesterday');
-      return format(date, 'dd/MM/yyyy', { locale: dateLocale });
+      return format(date, 'EEEE, PPP', { locale: dateLocale });
     }
     return format(date, 'dd/MM');
-  }, [date, isChild, t, dateLocale]);
+  }, [date, useFullFormat, t, dateLocale]);
 
   const calendarWeeks = useMemo(() => {
     const start = startOfMonth(viewMonth);
@@ -96,15 +99,7 @@ export function LiquidDatePicker({
   return (
     <>
       <View style={styles.pillOuter}>
-        <View
-          style={[
-            styles.pillShell,
-            {
-              borderColor: palette.glassBorder,
-              borderWidth: 1,
-            },
-          ]}
-        >
+        <View style={styles.pillShell}>
           <GlassBackdrop />
           <View style={[styles.pillRow, { flexDirection: flexRow }]}>
             <Pressable
@@ -113,7 +108,15 @@ export function LiquidDatePicker({
                 setViewMonth(date || new Date());
                 setOpen(true);
               }}
-              style={[styles.pillTrigger, { flexDirection: flexRow }]}
+              style={[
+                styles.pillTrigger,
+                { flexDirection: flexRow },
+                date
+                  ? isRTL
+                    ? { paddingRight: 16, paddingLeft: 6 }
+                    : { paddingLeft: 16, paddingRight: 6 }
+                  : { paddingHorizontal: 16 },
+              ]}
             >
               <Calendar
                 size={16}
@@ -138,9 +141,14 @@ export function LiquidDatePicker({
                 accessibilityLabel={t('common.all_dates')}
                 onPress={() => setDate(undefined)}
                 hitSlop={8}
-                style={styles.clearBtn}
+                style={[
+                  styles.clearBtn,
+                  isRTL
+                    ? { paddingLeft: 12, paddingRight: 4 }
+                    : { paddingRight: 12, paddingLeft: 4 },
+                ]}
               >
-                <X size={13} color={palette.mutedForeground} />
+                <X size={14} color={palette.mutedForeground} />
               </Pressable>
             ) : null}
           </View>
@@ -237,11 +245,13 @@ export function LiquidDatePicker({
                           ]}
                         >
                           <Text
-                            style={{
-                              fontSize: 13,
-                              fontWeight: selected || today ? '700' : '500',
-                              color: selected ? '#ffffff' : palette.foreground,
-                            }}
+                            style={[
+                              heeboFont(selected || today ? '700' : '500'),
+                              {
+                                fontSize: 13,
+                                color: selected ? '#ffffff' : palette.foreground,
+                              },
+                            ]}
                           >
                             {format(d, 'd')}
                           </Text>
@@ -302,12 +312,10 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     gap: 8,
-    paddingHorizontal: 16,
   },
   clearBtn: {
-    paddingEnd: 12,
-    paddingStart: 2,
     height: '100%',
+    alignItems: 'center',
     justifyContent: 'center',
   },
   backdrop: {
@@ -335,7 +343,7 @@ const styles = StyleSheet.create({
   },
   monthTitle: {
     fontSize: 15,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   weekRow: {
     width: '100%',
@@ -352,7 +360,7 @@ const styles = StyleSheet.create({
   weekdayText: {
     textAlign: 'center',
     fontSize: 11,
-    fontWeight: '700',
+    ...heeboFont('700'),
   },
   dayCircle: {
     width: 36,

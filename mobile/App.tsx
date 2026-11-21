@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -59,6 +59,17 @@ function AppShell() {
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
+  const syncSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current);
+    };
+  }, []);
+
+  useEffect(() => {
+    resetScroll();
+  }, [currentUser?.id, resetScroll]);
 
   useEffect(() => {
     if (!currentUser) {
@@ -103,12 +114,14 @@ function AppShell() {
   }, []);
 
   const handleLoginSuccess = (serverUrl: string, token: string, user: User) => {
+    resetScroll();
     setActiveSession(serverUrl, token);
     setCurrentUser(user);
     setActiveTab('homework');
   };
 
   const handleLogout = async () => {
+    resetScroll();
     await clearAuthOnly();
     setCurrentUser(null);
     setActiveTab('homework');
@@ -118,12 +131,15 @@ function AppShell() {
     if (syncing) return;
     setSyncing(true);
     setSyncSuccess(false);
+    if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current);
     try {
       const res = await apiFetch('/api/webtop/sync', { method: 'POST' });
       if (res.ok) {
         setSyncSuccess(true);
         setSyncTrigger((prev) => prev + 1);
-        setTimeout(() => setSyncSuccess(false), 3000);
+        syncSuccessTimerRef.current = setTimeout(() => {
+          setSyncSuccess(false);
+        }, 3000);
       }
     } finally {
       setSyncing(false);

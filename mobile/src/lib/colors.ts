@@ -72,8 +72,8 @@ export const DARK_PALETTE: ThemePalette = {
   warningSoft: 'rgba(245, 158, 11, 0.18)',
   border: '#2e384a',
   inputBg: '#222b3a',
-  glassBg: 'rgba(60, 70, 86, 0.90)',
-  glassBorder: 'rgba(255, 255, 255, 0.24)',
+  glassBg: 'rgba(52, 62, 78, 0.86)',
+  glassBorder: 'rgba(255, 255, 255, 0.22)',
 };
 
 export interface ChildColorToken {

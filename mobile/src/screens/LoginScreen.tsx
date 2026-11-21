@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Globe, Lock, User as UserIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { heeboFont } from '../theme/typography';
 import { useDirection } from '../i18n';
 import {
   normalizeServerUrl,
@@ -252,11 +253,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 24,
-    fontWeight: '800',
+    ...heeboFont('800'),
   },
   subtitle: {
     fontSize: 12,
-    fontWeight: '500',
+    ...heeboFont('500'),
     textAlign: 'center',
   },
   fieldGroup: {

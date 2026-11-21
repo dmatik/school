@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -9,6 +9,7 @@ import {
 import { FileCheck, Plus } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import {
   FieldLabel,
@@ -18,7 +19,8 @@ import {
   SelectField,
   StickyFilterBar,
 } from '../components/ui/FormFields';
-import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
+import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
+import { formatDateSectionHeader } from '../lib/dateUtils';
 import { ExamCard } from '../components/ui/Cards';
 import { Button, FloatingActionButton } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
@@ -32,9 +34,10 @@ export function ExamsScreen({
   currentUser: User;
   syncTrigger: number;
 }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { palette } = useTheme();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { flexRow } = useDirection();
+  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -45,6 +48,7 @@ export function ExamsScreen({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editingExam, setEditingExam] = useState<ExamItem | null>(null);
@@ -60,11 +64,11 @@ export function ExamsScreen({
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoadedRef.current) setLoading(true);
     try {
       const [cfgRes, exRes] = await Promise.all([
         apiFetch('/api/webtop/config'),
-        apiFetch(`/api/exams?childId=${encodeURIComponent(selectedChildId)}`),
+        apiFetch('/api/exams?childId=all'),
       ]);
       if (cfgRes.ok) {
         const cfg: WebtopConfig = await cfgRes.json();
@@ -77,13 +81,14 @@ export function ExamsScreen({
         const data = await exRes.json();
         setExams(Array.isArray(data) ? data : data.exams || []);
       }
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error('Exams load error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedChildId, formChildId]);
+  }, [formChildId]);
 
   useEffect(() => {
     loadData();
@@ -92,8 +97,24 @@ export function ExamsScreen({
   const filtered = useMemo(() => {
     const today = new Date().toISOString().slice(0, 10);
     const q = search.trim().toLowerCase();
+    const selectedChild =
+      selectedChildId !== 'all'
+        ? config?.linkedChildren?.find(
+            (c) => c.id === selectedChildId || c.externalId === selectedChildId
+          )
+        : null;
+
     return exams
       .filter((ex) => {
+        if (selectedChild) {
+          const matchesId =
+            ex.childId === selectedChild.id ||
+            (selectedChild.externalId && ex.childId === selectedChild.externalId);
+          const matchesName =
+            ex.studentName.trim() ===
+            `${selectedChild.firstName} ${selectedChild.lastName}`.trim();
+          if (!matchesId && !matchesName) return false;
+        }
         if (period === 'future' && ex.date < today) return false;
         if (period === 'past' && ex.date >= today) return false;
         if (q) {
@@ -105,7 +126,17 @@ export function ExamsScreen({
       .sort((a, b) =>
         period === 'future' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
       );
-  }, [exams, period, search]);
+  }, [exams, selectedChildId, config, period, search]);
+
+  const groupedByDate = useMemo(() => {
+    const groups: Record<string, ExamItem[]> = {};
+    for (const ex of filtered) {
+      const key = ex.date || 'no-date';
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(ex);
+    }
+    return Object.entries(groups);
+  }, [filtered]);
 
   const openAddModal = () => {
     setEditingExam(null);
@@ -175,6 +206,8 @@ export function ExamsScreen({
   const getChildColor = (childId?: string) =>
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
+  const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
+
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
@@ -182,9 +215,7 @@ export function ExamsScreen({
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
-        }
+        {...pullToRefreshProps}
       >
         {isChild && !currentUser.linkedChildId ? (
           <NoticeBanner variant="warning" description={t('exams.child_unlinked_desc')} />
@@ -198,28 +229,40 @@ export function ExamsScreen({
         />
 
         <StickyFilterBar>
-          <LiquidTabs
-            tabs={[
-              { label: t('exams.period_future'), value: 'future' },
-              { label: t('exams.period_past'), value: 'past' },
+          <View
+            style={[
+              styles.filterRow,
+              {
+                flexDirection: flexRow,
+                justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+              },
             ]}
-            value={period}
-            onChange={(v) => setPeriod(v as 'future' | 'past')}
-          />
+          >
+            {hasChildFilter && (
+              <View style={{ flex: 1, minWidth: 0 }}>
+                <LiquidTabs
+                  tabs={[
+                    { label: t('exams.all_short'), value: 'all' },
+                    ...(config?.linkedChildren || []).map((c) => ({
+                      label: c.firstName,
+                      value: c.id,
+                    })),
+                  ]}
+                  value={selectedChildId}
+                  onChange={setSelectedChildId}
+                />
+              </View>
+            )}
 
-          {!isChild && (config?.linkedChildren?.length || 0) > 1 && (
             <LiquidTabs
               tabs={[
-                { label: t('exams.all_short'), value: 'all' },
-                ...(config?.linkedChildren || []).map((c) => ({
-                  label: c.firstName,
-                  value: c.id,
-                })),
+                { label: t('exams.period_future'), value: 'future' },
+                { label: t('exams.period_past'), value: 'past' },
               ]}
-              value={selectedChildId}
-              onChange={setSelectedChildId}
+              value={period}
+              onChange={(v) => setPeriod(v as 'future' | 'past')}
             />
-          )}
+          </View>
         </StickyFilterBar>
 
         {loading ? (
@@ -243,15 +286,27 @@ export function ExamsScreen({
             }
           />
         ) : (
-          filtered.map((ex) => (
-            <ExamCard
-              key={ex.id}
-              exam={ex}
-              childColor={getChildColor(ex.childId)}
-              canEdit={isParent}
-              onEdit={() => openEditModal(ex)}
-              onDelete={() => setDeleteTarget(ex)}
-            />
+          groupedByDate.map(([date, list]) => (
+            <View key={date} style={{ gap: 4 }}>
+              {date !== 'no-date' && (
+                <SectionDateHeader
+                  title={formatDateSectionHeader(date, i18n.language, t)}
+                />
+              )}
+              <View style={{ gap: 10 }}>
+                {list.map((ex) => (
+                  <ExamCard
+                    key={ex.id}
+                    exam={ex}
+                    childColor={getChildColor(ex.childId)}
+                    showChildBadge={!isChild}
+                    canEdit={isParent}
+                    onEdit={() => openEditModal(ex)}
+                    onDelete={() => setDeleteTarget(ex)}
+                  />
+                ))}
+              </View>
+            </View>
           ))
         )}
       </Animated.ScrollView>
@@ -272,6 +327,17 @@ export function ExamsScreen({
         description={editingExam ? t('exams.edit_modal_desc') : t('exams.add_modal_desc')}
         footer={
           <View style={styles.modalFooterRow}>
+            {editingExam ? (
+              <Button
+                label={t('common.delete')}
+                variant="destructive"
+                onPress={() => {
+                  const target = editingExam;
+                  setModalOpen(false);
+                  setDeleteTarget(target);
+                }}
+              />
+            ) : null}
             <Button
               label={t('common.cancel')}
               variant="outline"
@@ -361,6 +427,10 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 110,
     gap: 12,
+  },
+  filterRow: {
+    alignItems: 'center',
+    gap: 8,
   },
   center: {
     paddingVertical: 48,

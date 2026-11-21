@@ -12,6 +12,11 @@ import {
   type TextInputProps,
 } from 'react-native';
 import { Search, X, ChevronDown, Check, type LucideIcon } from 'lucide-react-native';
+import Reanimated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
@@ -231,13 +236,15 @@ export function SelectField({
                     ]}
                   >
                     <Text
-                      style={{
-                        flex: 1,
-                        fontSize: 14,
-                        fontWeight: isSelected ? '700' : '500',
-                        color: palette.foreground,
-                        textAlign,
-                      }}
+                      style={[
+                        heeboFont(isSelected ? '700' : '500'),
+                        {
+                          flex: 1,
+                          fontSize: 14,
+                          color: palette.foreground,
+                          textAlign,
+                        },
+                      ]}
                     >
                       {opt.label}
                     </Text>
@@ -350,7 +357,7 @@ export function StickyFilterBar({
     <Animated.View
       onLayout={(e) => {
         const y = e.nativeEvent.layout.y;
-        if (naturalY === null && y > 0) {
+        if (y > 0 && y !== naturalY) {
           setNaturalY(y);
         }
       }}
@@ -384,29 +391,21 @@ export function LiquidTabs({
   const viewportWidth = useRef(0);
   const scrollOffset = useRef(0);
   const [hasMeasured, setHasMeasured] = useState(false);
-  const pillX = useRef(new Animated.Value(0)).current;
-  const pillW = useRef(new Animated.Value(0)).current;
+  const pillX = useSharedValue(0);
+  const pillW = useSharedValue(0);
+  const tabsKey = tabs.map((t) => `${t.value}:${t.label}`).join('|');
 
   useEffect(() => {
     const layout = tabLayouts.current[value];
     if (!layout) return;
 
-    Animated.parallel([
-      Animated.spring(pillX, {
-        toValue: layout.x,
-        stiffness: 450,
-        damping: 35,
-        mass: 1,
-        useNativeDriver: false,
-      }),
-      Animated.spring(pillW, {
-        toValue: layout.width,
-        stiffness: 450,
-        damping: 35,
-        mass: 1,
-        useNativeDriver: false,
-      }),
-    ]).start();
+    const springConfig = {
+      stiffness: 450,
+      damping: 35,
+      mass: 1,
+    };
+    pillX.value = withSpring(layout.x, springConfig);
+    pillW.value = withSpring(layout.width, springConfig);
 
     // Ensure selected pill is always fully visible inside the scrollable filter bar
     if (scrollRef.current && viewportWidth.current > 0) {
@@ -425,7 +424,12 @@ export function LiquidTabs({
         scrollOffset.current = nextX;
       }
     }
-  }, [value, hasMeasured, pillX, pillW]);
+  }, [value, hasMeasured, tabsKey, pillX, pillW]);
+
+  const pillAnimatedStyle = useAnimatedStyle(() => ({
+    left: pillX.value,
+    width: pillW.value,
+  }));
 
   const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);
 
@@ -436,8 +440,6 @@ export function LiquidTabs({
           styles.tabsShell,
           {
             alignSelf: alignStart,
-            borderColor: palette.glassBorder,
-            borderWidth: 1,
           },
         ]}
       >
@@ -458,18 +460,12 @@ export function LiquidTabs({
           contentContainerStyle={[styles.tabsContainer, { flexDirection: flexRow }]}
         >
           {hasMeasured && (
-            <Animated.View
+            <Reanimated.View
               pointerEvents="none"
-              style={[
-                styles.tabSlidingPillWrap,
-                {
-                  left: pillX,
-                  width: pillW,
-                },
-              ]}
+              style={[styles.tabSlidingPillWrap, pillAnimatedStyle]}
             >
               <View style={[styles.tabSlidingPill, { backgroundColor: flatPillBg }]} />
-            </Animated.View>
+            </Reanimated.View>
           )}
 
           {tabs.map((tab) => {
@@ -480,11 +476,13 @@ export function LiquidTabs({
                 onPress={() => onChange(tab.value)}
                 onLayout={(e) => {
                   const { x, width } = e.nativeEvent.layout;
+                  const prev = tabLayouts.current[tab.value];
+                  const changed = !prev || prev.x !== x || prev.width !== width;
                   tabLayouts.current[tab.value] = { x, width };
-                  if (tab.value === value && !hasMeasured) {
-                    pillX.setValue(x);
-                    pillW.setValue(width);
-                    setHasMeasured(true);
+                  if (tab.value === value && (!hasMeasured || changed)) {
+                    pillX.value = x;
+                    pillW.value = width;
+                    if (!hasMeasured) setHasMeasured(true);
                   }
                 }}
                 style={styles.tabItem}
@@ -513,10 +511,11 @@ export function LiquidTabs({
 const styles = StyleSheet.create({
   label: {
     fontSize: 12,
-    fontWeight: '600',
+    ...heeboFont('600'),
   },
   labelDesc: {
     fontSize: 11,
+    ...heeboFont('400'),
   },
   filledInput: {
     height: 44,
@@ -524,6 +523,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     paddingHorizontal: 14,
     fontSize: 14,
+    ...heeboFont('400'),
   },
   iconInputWrap: {
     height: 44,

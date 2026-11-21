@@ -130,8 +130,6 @@ export function LiquidDock({
           styles.dock,
           {
             maxWidth: maxDockWidth,
-            borderColor: palette.glassBorder,
-            borderWidth: 1,
           },
         ]}
       >
@@ -234,13 +232,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 5,
     paddingVertical: 5,
     overflow: 'hidden',
-  },
-  dockFallbackShadow: {
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.14,
-    shadowRadius: 12,
   },
   dockScroll: {
     flexGrow: 0,

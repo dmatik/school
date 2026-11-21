@@ -1,5 +1,22 @@
-import React, { createContext, useContext, useRef, useCallback } from 'react';
-import { Animated, View, Text, Pressable, StyleSheet } from 'react-native';
+import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
+import {
+  Animated,
+  View,
+  Text,
+  Pressable,
+  StyleSheet,
+  type NativeSyntheticEvent,
+  type NativeScrollEvent,
+} from 'react-native';
+import Reanimated, {
+  Easing,
+  cancelAnimation,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withTiming,
+  type SharedValue,
+} from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { RefreshCw } from 'lucide-react-native';
@@ -12,11 +29,25 @@ import { UserAvatar } from './Badges';
 import { SyncButton } from './Buttons';
 import type { User } from '../../../../src/types';
 
+const PULL_THRESHOLD = 110;
+
+interface PullToRefreshScrollProps {
+  onScrollBeginDrag: () => void;
+  onScrollEndDrag: () => void;
+  alwaysBounceVertical: boolean;
+  bounces: boolean;
+}
+
 interface ScrollHeaderContextValue {
   headerHeight: number;
   scrollY: Animated.Value;
   onScroll: (...args: any[]) => void;
   resetScroll: () => void;
+  pullToRefreshProps: PullToRefreshScrollProps;
+  pullDistance: SharedValue<number>;
+  isPulling: SharedValue<boolean>;
+  pullReady: boolean;
+  registerSync: (onRefresh: () => void, syncing: boolean) => void;
 }
 
 const ScrollHeaderContext = createContext<ScrollHeaderContextValue | null>(null);
@@ -26,19 +57,84 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = Math.max(insets.top, 8) + 52;
 
+  const syncConfigRef = useRef<{ onRefresh?: () => void; syncing?: boolean }>({});
+  const isDraggingRef = useRef(false);
+  const readyRef = useRef(false);
+  const [pullReady, setPullReady] = useState(false);
+
+  const pullDistance = useSharedValue(0);
+  const isPulling = useSharedValue(false);
+
+  const registerSync = useCallback((onRefresh: () => void, syncing: boolean) => {
+    syncConfigRef.current = { onRefresh, syncing };
+  }, []);
+
+  const clearPullState = useCallback(() => {
+    isDraggingRef.current = false;
+    readyRef.current = false;
+    pullDistance.value = 0;
+    isPulling.value = false;
+    setPullReady(false);
+  }, [pullDistance, isPulling]);
+
+  const onScrollBeginDrag = useCallback(() => {
+    if (syncConfigRef.current.syncing) return;
+    isDraggingRef.current = true;
+    readyRef.current = false;
+  }, []);
+
+  const onScrollEndDrag = useCallback(() => {
+    const shouldTrigger =
+      isDraggingRef.current && readyRef.current && !syncConfigRef.current.syncing;
+    clearPullState();
+    if (shouldTrigger) {
+      syncConfigRef.current.onRefresh?.();
+    }
+  }, [clearPullState]);
+
   const onScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
       useNativeDriver: true,
+      listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+        if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
+        const y = e.nativeEvent.contentOffset.y;
+        const pull = y < 0 ? -y : 0;
+        pullDistance.value = pull;
+        isPulling.value = pull > 4;
+        const nextReady = pull >= PULL_THRESHOLD;
+        if (nextReady !== readyRef.current) {
+          readyRef.current = nextReady;
+          setPullReady(nextReady);
+        }
+      },
     })
   ).current;
 
   const resetScroll = useCallback(() => {
     scrollY.setValue(0);
-  }, [scrollY]);
+    clearPullState();
+  }, [scrollY, clearPullState]);
+
+  const pullToRefreshProps = useRef<PullToRefreshScrollProps>({
+    onScrollBeginDrag,
+    onScrollEndDrag,
+    alwaysBounceVertical: true,
+    bounces: true,
+  }).current;
 
   return (
     <ScrollHeaderContext.Provider
-      value={{ headerHeight, scrollY, onScroll, resetScroll }}
+      value={{
+        headerHeight,
+        scrollY,
+        onScroll,
+        resetScroll,
+        pullToRefreshProps,
+        pullDistance,
+        isPulling,
+        pullReady,
+        registerSync,
+      }}
     >
       {children}
     </ScrollHeaderContext.Provider>
@@ -76,7 +172,57 @@ export function MobileHeader({
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
-  const { scrollY } = useScrollHeader();
+  const { scrollY, headerHeight, pullDistance, isPulling, pullReady, registerSync } =
+    useScrollHeader();
+
+  useEffect(() => {
+    registerSync(onPressSync, syncing);
+  }, [registerSync, onPressSync, syncing]);
+
+  const spinRotation = useSharedValue(0);
+
+  useEffect(() => {
+    if (pullReady) {
+      spinRotation.value = 0;
+      spinRotation.value = withRepeat(
+        withTiming(360, { duration: 1000, easing: Easing.linear }),
+        -1,
+        false
+      );
+    } else {
+      cancelAnimation(spinRotation);
+      spinRotation.value = 0;
+    }
+  }, [pullReady, spinRotation]);
+
+  const pullIndicatorStyle = useAnimatedStyle(() => {
+    if (!isPulling.value) {
+      return {
+        opacity: 0,
+        transform: [{ translateY: -12 }, { scale: 0.85 }],
+      };
+    }
+    const progress = Math.min(1, pullDistance.value / PULL_THRESHOLD);
+    return {
+      opacity: Math.min(1, 0.35 + progress * 0.65),
+      transform: [
+        { translateY: Math.max(-8, pullDistance.value * 0.18 - 8) },
+        { scale: 0.85 + progress * 0.15 },
+      ],
+    };
+  });
+
+  const pullIconStyle = useAnimatedStyle(() => {
+    if (pullReady) {
+      return {
+        transform: [{ rotate: `${spinRotation.value}deg` }],
+      };
+    }
+    const progress = Math.min(1, pullDistance.value / PULL_THRESHOLD);
+    return {
+      transform: [{ rotate: `${Math.round(progress * 180)}deg` }],
+    };
+  });
 
   const formattedSync = lastSyncedAt ? formatSystemDateTime(lastSyncedAt) : '';
 
@@ -164,6 +310,33 @@ export function MobileHeader({
           />
         </View>
       </View>
+
+      <Reanimated.View
+        pointerEvents="none"
+        style={[
+          styles.pullIndicatorWrap,
+          { top: headerHeight + 4 },
+          pullIndicatorStyle,
+        ]}
+      >
+        <View
+          style={[
+            styles.pullIndicatorCircle,
+            {
+              backgroundColor: isDark ? '#0f172a' : '#ffffff',
+              borderColor: pullReady ? palette.primary : palette.border,
+            },
+          ]}
+        >
+          <Reanimated.View style={pullIconStyle}>
+            <RefreshCw
+              size={16}
+              strokeWidth={2}
+              color={pullReady ? palette.primary : palette.mutedForeground}
+            />
+          </Reanimated.View>
+        </View>
+      </Reanimated.View>
     </View>
   );
 }
@@ -226,5 +399,20 @@ const styles = StyleSheet.create({
     includeFontPadding: false,
     ...heeboFont('400'),
     textAlign: 'center',
+  },
+  pullIndicatorWrap: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    alignItems: 'center',
+    zIndex: 30,
+  },
+  pullIndicatorCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

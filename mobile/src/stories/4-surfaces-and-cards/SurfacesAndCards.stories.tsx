@@ -3,6 +3,7 @@ import { ScrollView } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { BookOpen, GraduationCap } from 'lucide-react-native';
 import {
+  CardSurface,
   SectionCard,
   InfoBox,
   InfoItem,

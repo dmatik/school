@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -30,7 +30,7 @@ export function IncidentsScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
   const isChild = currentUser.familyRole === 'child';
 
   const [items, setItems] = useState<Incident[]>([]);
@@ -40,27 +40,29 @@ export function IncidentsScreen({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoadedRef.current) setLoading(true);
     try {
       const [cfgRes, incRes] = await Promise.all([
         apiFetch('/api/webtop/config'),
-        apiFetch(`/api/incidents?childId=${encodeURIComponent(selectedChildId)}`),
+        apiFetch('/api/incidents?childId=all'),
       ]);
       if (cfgRes.ok) setConfig(await cfgRes.json());
       if (incRes.ok) {
         const data = await incRes.json();
         setItems(Array.isArray(data) ? data : data.incidents || []);
       }
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error('Incidents load error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedChildId]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -69,13 +71,33 @@ export function IncidentsScreen({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+    const selectedChild =
+      selectedChildId !== 'all'
+        ? config?.linkedChildren?.find(
+            (c) => c.id === selectedChildId || c.externalId === selectedChildId
+          )
+        : null;
+
     return items.filter((item) => {
+      if (selectedChild) {
+        const matchesId =
+          item.childId === selectedChild.id ||
+          item.studentId === selectedChild.id ||
+          (selectedChild.externalId &&
+            (item.childId === selectedChild.externalId ||
+              item.studentId === selectedChild.externalId));
+        const matchesName =
+          item.studentName &&
+          item.studentName.trim() ===
+            `${selectedChild.firstName} ${selectedChild.lastName}`.trim();
+        if (!matchesId && !matchesName) return false;
+      }
       if (formattedDate && item.date !== formattedDate) return false;
       if (!q) return true;
       const hay = `${item.type} ${item.subject || ''} ${item.description} ${item.teacher || ''} ${item.studentName || ''}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [items, selectedDate, search]);
+  }, [items, selectedChildId, config, selectedDate, search]);
 
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, Incident[]>();
@@ -106,9 +128,7 @@ export function IncidentsScreen({
       contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
       onScroll={onScroll}
       scrollEventThrottle={16}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
-      }
+      {...pullToRefreshProps}
     >
       {isChild && !currentUser.linkedChildId ? (
         <NoticeBanner variant="warning" description={t('incidents.child_unlinked_desc')} />
@@ -145,6 +165,7 @@ export function IncidentsScreen({
             date={selectedDate}
             setDate={setSelectedDate}
             isChild={isChild}
+            fullFormat={!hasChildFilter}
           />
         </View>
       </StickyFilterBar>
@@ -163,17 +184,20 @@ export function IncidentsScreen({
         />
       ) : (
         groupedByDate.map(([date, list]) => (
-          <View key={date} style={{ gap: 8 }}>
+          <View key={date} style={{ gap: 4 }}>
             <SectionDateHeader
               title={formatDateSectionHeader(date, i18n.language, t)}
             />
-            {list.map((inc) => (
-              <IncidentCard
-                key={inc.id}
-                item={inc}
-                childColor={getChildColor(inc.childId || inc.studentId)}
-              />
-            ))}
+            <View style={{ gap: 10 }}>
+              {list.map((inc) => (
+                <IncidentCard
+                  key={inc.id}
+                  item={inc}
+                  childColor={getChildColor(inc.childId || inc.studentId)}
+                  showChildBadge={!isChild}
+                />
+              ))}
+            </View>
           </View>
         ))
       )}

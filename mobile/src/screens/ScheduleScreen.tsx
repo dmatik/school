@@ -13,6 +13,7 @@ import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
+import { heeboFont } from '../theme/typography';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import {
@@ -44,7 +45,7 @@ export function ScheduleScreen({
 }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
   const { flexRow, isRTL } = useDirection();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
@@ -233,12 +234,7 @@ export function ScheduleScreen({
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={() => loadSchedule(selectedChildId, true)}
-          />
-        }
+        {...pullToRefreshProps}
       >
         {isChild && !currentUser.linkedChildId ? (
           <NoticeBanner variant="warning" description={t('schedule.child_unlinked_desc')} />
@@ -427,11 +423,13 @@ export function ScheduleScreen({
                 ]}
               >
                 <Text
-                  style={{
-                    fontSize: 13,
-                    fontWeight: '600',
-                    color: formFinishTime === preset ? '#ffffff' : palette.foreground,
-                  }}
+                  style={[
+                    heeboFont('600'),
+                    {
+                      fontSize: 13,
+                      color: formFinishTime === preset ? '#ffffff' : palette.foreground,
+                    },
+                  ]}
                 >
                   {preset}
                 </Text>

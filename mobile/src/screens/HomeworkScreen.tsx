@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -37,7 +37,7 @@ export function HomeworkScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
   const isChild = currentUser.familyRole === 'child';
 
   const [items, setItems] = useState<HomeworkItem[]>([]);
@@ -47,15 +47,16 @@ export function HomeworkScreen({
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoadedRef.current) setLoading(true);
 
     try {
       const [cfgRes, hwRes] = await Promise.all([
         apiFetch('/api/webtop/config'),
-        apiFetch(`/api/homework?childId=${encodeURIComponent(selectedChildId)}`),
+        apiFetch('/api/homework?childId=all'),
       ]);
       if (cfgRes.ok) {
         setConfig(await cfgRes.json());
@@ -64,13 +65,14 @@ export function HomeworkScreen({
         const data = await hwRes.json();
         setItems(Array.isArray(data) ? data : data.homework || []);
       }
+      hasLoadedRef.current = true;
     } catch (err) {
       console.error('Homework load error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [selectedChildId]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -79,7 +81,27 @@ export function HomeworkScreen({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const formattedDate = selectedDate ? format(selectedDate, 'yyyy-MM-dd') : null;
+    const selectedChild =
+      selectedChildId !== 'all'
+        ? config?.linkedChildren?.find(
+            (c) => c.id === selectedChildId || c.externalId === selectedChildId
+          )
+        : null;
+
     const list = items.filter((item) => {
+      if (selectedChild) {
+        const matchesId =
+          item.childId === selectedChild.id ||
+          item.studentId === selectedChild.id ||
+          (selectedChild.externalId &&
+            (item.childId === selectedChild.externalId ||
+              item.studentId === selectedChild.externalId));
+        const matchesName =
+          item.studentName &&
+          item.studentName.trim() ===
+            `${selectedChild.firstName} ${selectedChild.lastName}`.trim();
+        if (!matchesId && !matchesName) return false;
+      }
       const hwText = getHomeworkText(item);
       if (!hwText) return false;
       if (formattedDate && item.dueDate !== formattedDate) return false;
@@ -90,7 +112,7 @@ export function HomeworkScreen({
       return true;
     });
     return consolidateHomework(list);
-  }, [items, selectedDate, search]);
+  }, [items, selectedChildId, config, selectedDate, search]);
 
   const groupedByDate = useMemo(() => {
     const groups = new Map<string, ConsolidatedHomeworkItem[]>();
@@ -124,9 +146,7 @@ export function HomeworkScreen({
       contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
       onScroll={onScroll}
       scrollEventThrottle={16}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
-      }
+      {...pullToRefreshProps}
     >
       {isChild && !currentUser.linkedChildId ? (
         <NoticeBanner variant="warning" description={t('homework.child_unlinked_desc')} />
@@ -163,6 +183,7 @@ export function HomeworkScreen({
             date={selectedDate}
             setDate={setSelectedDate}
             isChild={isChild}
+            fullFormat={!hasChildFilter}
           />
         </View>
       </StickyFilterBar>
@@ -205,17 +226,20 @@ export function HomeworkScreen({
         />
       ) : (
         groupedByDate.map(([date, list]) => (
-          <View key={date} style={{ gap: 8 }}>
+          <View key={date} style={{ gap: 4 }}>
             <SectionDateHeader
               title={formatDateSectionHeader(date, i18n.language, t)}
             />
-            {list.map((hw) => (
-              <HomeworkCard
-                key={hw.ids.join('-')}
-                item={hw}
-                childColor={getChildColor(hw.childId || hw.studentId)}
-              />
-            ))}
+            <View style={{ gap: 10 }}>
+              {list.map((hw) => (
+                <HomeworkCard
+                  key={hw.ids.join('-')}
+                  item={hw}
+                  childColor={getChildColor(hw.childId || hw.studentId)}
+                  showChildBadge={!isChild}
+                />
+              ))}
+            </View>
           </View>
         ))
       )}

@@ -26,7 +26,7 @@ import type { User, WebtopChild } from '../../../src/types';
 export function AdminScreen({ currentUser }: { currentUser: User }) {
   const { t } = useTranslation();
   const { palette } = useTheme();
-  const { headerHeight, onScroll } = useScrollHeader();
+  const { headerHeight, onScroll, pullToRefreshProps } = useScrollHeader();
 
   const [users, setUsers] = useState<User[]>([]);
   const [children, setChildren] = useState<WebtopChild[]>([]);
@@ -213,9 +213,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
         onScroll={onScroll}
         scrollEventThrottle={16}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => loadData(true)} />
-        }
+        {...pullToRefreshProps}
       >
         <SearchInput
           testID="admin-search-input"
