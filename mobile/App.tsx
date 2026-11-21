@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View, Image, StyleSheet, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -50,11 +50,12 @@ type AppTab =
 function AppShell() {
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
-  const { resetScroll } = useScrollHeader();
+  const { resetScroll, switchTabScroll } = useScrollHeader();
 
   const [booting, setBooting] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('homework');
+  const [visitedTabs, setVisitedTabs] = useState<Set<AppTab>>(() => new Set(['homework']));
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
@@ -113,10 +114,20 @@ function AppShell() {
     };
   }, []);
 
+  const selectTab = useCallback(
+    (nextTab: AppTab) => {
+      switchTabScroll(nextTab);
+      setVisitedTabs((prev) => (prev.has(nextTab) ? prev : new Set(prev).add(nextTab)));
+      setActiveTab(nextTab);
+    },
+    [switchTabScroll]
+  );
+
   const handleLoginSuccess = (serverUrl: string, token: string, user: User) => {
     resetScroll();
     setActiveSession(serverUrl, token);
     setCurrentUser(user);
+    setVisitedTabs(new Set(['homework']));
     setActiveTab('homework');
   };
 
@@ -124,6 +135,7 @@ function AppShell() {
     resetScroll();
     await clearAuthOnly();
     setCurrentUser(null);
+    setVisitedTabs(new Set(['homework']));
     setActiveTab('homework');
   };
 
@@ -208,54 +220,83 @@ function AppShell() {
         user={currentUser}
         lastSyncedAt={lastSyncedAt}
         isAccountActive={activeTab === 'account'}
-        onPressAccount={() => {
-          resetScroll();
-          setActiveTab('account');
-        }}
+        onPressAccount={() => selectTab('account')}
         onPressSync={handleGlobalSync}
         syncing={syncing}
         syncSuccess={syncSuccess}
       />
 
       <View style={styles.content}>
-        {activeTab === 'homework' && (
-          <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+        {visitedTabs.has('homework') && (
+          <View
+            pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'homework' && styles.tabPaneHidden]}
+          >
+            <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+          </View>
         )}
-        {activeTab === 'incidents' && (
-          <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+        {visitedTabs.has('incidents') && (
+          <View
+            pointerEvents={activeTab === 'incidents' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'incidents' && styles.tabPaneHidden]}
+          >
+            <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+          </View>
         )}
-        {activeTab === 'exams' && (
-          <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+        {visitedTabs.has('exams') && (
+          <View
+            pointerEvents={activeTab === 'exams' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'exams' && styles.tabPaneHidden]}
+          >
+            <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+          </View>
         )}
-        {activeTab === 'schedule' && (
-          <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+        {visitedTabs.has('schedule') && (
+          <View
+            pointerEvents={activeTab === 'schedule' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'schedule' && styles.tabPaneHidden]}
+          >
+            <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+          </View>
         )}
-        {activeTab === 'settings' && (
-          <SettingsScreen
-            currentUser={currentUser}
-            syncTrigger={syncTrigger}
-            onSyncCompleted={() => setSyncTrigger((prev) => prev + 1)}
-          />
+        {visitedTabs.has('settings') && (
+          <View
+            pointerEvents={activeTab === 'settings' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'settings' && styles.tabPaneHidden]}
+          >
+            <SettingsScreen
+              currentUser={currentUser}
+              syncTrigger={syncTrigger}
+              onSyncCompleted={() => setSyncTrigger((prev) => prev + 1)}
+            />
+          </View>
         )}
-        {activeTab === 'admin' && currentUser.role === 'admin' && (
-          <AdminScreen currentUser={currentUser} />
+        {visitedTabs.has('admin') && currentUser.role === 'admin' && (
+          <View
+            pointerEvents={activeTab === 'admin' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'admin' && styles.tabPaneHidden]}
+          >
+            <AdminScreen currentUser={currentUser} />
+          </View>
         )}
-        {activeTab === 'account' && (
-          <AccountScreen
-            currentUser={currentUser}
-            onUserUpdated={setCurrentUser}
-            onLogout={handleLogout}
-          />
+        {visitedTabs.has('account') && (
+          <View
+            pointerEvents={activeTab === 'account' ? 'auto' : 'none'}
+            style={[styles.tabPane, activeTab !== 'account' && styles.tabPaneHidden]}
+          >
+            <AccountScreen
+              currentUser={currentUser}
+              onUserUpdated={setCurrentUser}
+              onLogout={handleLogout}
+            />
+          </View>
         )}
       </View>
 
       <LiquidDock
         items={dockItems}
         activeId={activeTab}
-        onSelect={(id) => {
-          resetScroll();
-          setActiveTab(id as AppTab);
-        }}
+        onSelect={(id) => selectTab(id as AppTab)}
       />
     </View>
   );
@@ -316,5 +357,15 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+  },
+  tabPane: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  tabPaneHidden: {
+    opacity: 0,
   },
 });

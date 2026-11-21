@@ -1,6 +1,5 @@
-import React, { useEffect, useId, useRef, useState } from 'react';
+import React, { startTransition, useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
-  Animated,
   View,
   Text,
   Pressable,
@@ -15,6 +14,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { GlassBackdrop } from './GlassBackdrop';
+import { SlidingPill } from './SlidingPill';
 
 export interface DockTabItem {
   id: string;
@@ -76,7 +76,6 @@ export function LiquidDock({
   const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
   const { width: screenWidth } = useWindowDimensions();
-  const flatPillBg = isDark ? 'rgba(6, 10, 18, 0.55)' : 'rgba(15, 23, 42, 0.08)';
   const inactiveColor = palette.foreground;
   const activeIconFill = isDark
     ? 'rgba(87, 158, 224, 0.26)'
@@ -93,50 +92,74 @@ export function LiquidDock({
     : Math.min(85, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
-  const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
+  const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
   const [hasMeasured, setHasMeasured] = useState(false);
+  const [pillHeight, setPillHeight] = useState(0);
+  const [visualActive, setVisualActive] = useState(activeId);
+  const lastPressedRef = useRef<string | null>(null);
   const hasActiveItem = items.some((item) => item.id === activeId);
   const wasActiveRef = useRef(hasActiveItem);
-  const pillX = useRef(new Animated.Value(0)).current;
-  const pillOpacity = useRef(new Animated.Value(hasActiveItem ? 1 : 0)).current;
+  const [pillState, setPillState] = useState({
+    x: 0,
+    visible: hasActiveItem,
+    animated: false,
+  });
+
+  const scrollToLayout = useCallback(
+    (layout: { x: number; width: number }) => {
+      if (isScrollable && scrollRef.current) {
+        const targetScroll = Math.max(0, layout.x - dockInnerWidth / 2 + layout.width / 2);
+        scrollRef.current.scrollTo({ x: targetScroll, animated: true });
+      }
+    },
+    [isScrollable, dockInnerWidth]
+  );
 
   useEffect(() => {
+    setVisualActive(activeId);
+
+    // If this change was already animated optimistically in handlePress, avoid re-triggering.
+    if (lastPressedRef.current === activeId) {
+      lastPressedRef.current = null;
+      return;
+    }
+    lastPressedRef.current = null;
+
     const layout = tabLayouts.current[activeId];
     if (!hasActiveItem || !layout) {
-      Animated.timing(pillOpacity, {
-        toValue: 0,
-        duration: 140,
-        useNativeDriver: true,
-      }).start();
+      setPillState((prev) => ({ ...prev, visible: false, animated: true }));
       wasActiveRef.current = false;
       return;
     }
 
-    if (!hasMeasured || !wasActiveRef.current) {
-      pillX.setValue(layout.x);
-      if (!hasMeasured) setHasMeasured(true);
-    } else {
-      Animated.spring(pillX, {
-        toValue: layout.x,
-        stiffness: 450,
-        damping: 35,
-        mass: 1,
-        useNativeDriver: true,
-      }).start();
-    }
-
-    Animated.timing(pillOpacity, {
-      toValue: 1,
-      duration: 160,
-      useNativeDriver: true,
-    }).start();
+    setPillState({
+      x: layout.x,
+      visible: true,
+      animated: hasMeasured && wasActiveRef.current,
+    });
+    if (!hasMeasured) setHasMeasured(true);
     wasActiveRef.current = true;
+    scrollToLayout(layout);
+  }, [activeId, hasActiveItem, hasMeasured, scrollToLayout]);
 
-    if (isScrollable && scrollRef.current) {
-      const targetScroll = Math.max(0, layout.x - dockInnerWidth / 2 + layout.width / 2);
-      scrollRef.current.scrollTo({ x: targetScroll, animated: true });
+  const handlePress = (id: string) => {
+    const layout = tabLayouts.current[id];
+    if (layout) {
+      setPillState({
+        x: layout.x,
+        visible: true,
+        animated: hasMeasured && wasActiveRef.current,
+      });
+      if (!hasMeasured) setHasMeasured(true);
+      wasActiveRef.current = true;
+      scrollToLayout(layout);
     }
-  }, [activeId, hasActiveItem, hasMeasured, isScrollable, dockInnerWidth, pillX, pillOpacity]);
+    lastPressedRef.current = id;
+    setVisualActive(id);
+    startTransition(() => {
+      onSelect(id);
+    });
+  };
 
   return (
     <View
@@ -165,26 +188,21 @@ export function LiquidDock({
             style={styles.dockScroll}
             contentContainerStyle={[styles.dockContent, { flexDirection: flexRow }]}
           >
-            {/* Animated sliding flat grey pill */}
-            {hasMeasured && (
-              <Animated.View
-                pointerEvents="none"
-                style={[
-                  styles.slidingPillWrap,
-                  {
-                    width: itemWidth,
-                    opacity: pillOpacity,
-                    transform: [{ translateX: pillX }],
-                  },
-                ]}
-              >
-                <View style={[styles.slidingPill, { backgroundColor: flatPillBg }]} />
-              </Animated.View>
+            {/* Core Animation (iOS) / Reanimated (Android & web) sliding pill */}
+            {hasMeasured && pillHeight > 0 && (
+              <SlidingPill
+                x={pillState.x}
+                width={itemWidth}
+                height={pillHeight}
+                isDark={isDark}
+                visible={pillState.visible}
+                animated={pillState.animated}
+              />
             )}
 
             {items.map((item) => {
               const Icon = item.icon;
-              const active = item.id === activeId;
+              const active = item.id === visualActive;
               return (
                 <Pressable
                   key={item.id}
@@ -192,12 +210,15 @@ export function LiquidDock({
                   accessibilityLabel={item.label}
                   accessibilityRole="tab"
                   accessibilityState={{ selected: active }}
-                  onPress={() => onSelect(item.id)}
+                  onPress={() => handlePress(item.id)}
                   onLayout={(e) => {
-                    const { x, width } = e.nativeEvent.layout;
-                    tabLayouts.current[item.id] = { x, width };
-                    if (item.id === activeId && !hasMeasured) {
-                      pillX.setValue(x);
+                    const { x, width, height } = e.nativeEvent.layout;
+                    tabLayouts.current[item.id] = { x, width, height };
+                    if (height > 0 && Math.abs(height - pillHeight) > 0.5) {
+                      setPillHeight(height);
+                    }
+                    if (item.id === visualActive && !hasMeasured) {
+                      setPillState({ x, visible: true, animated: false });
                       setHasMeasured(true);
                     }
                   }}
@@ -264,16 +285,6 @@ const styles = StyleSheet.create({
   dockContent: {
     alignItems: 'center',
     position: 'relative',
-  },
-  slidingPillWrap: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-  },
-  slidingPill: {
-    flex: 1,
-    borderRadius: 999,
   },
   tab: {
     alignItems: 'center',
