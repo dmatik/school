@@ -217,6 +217,11 @@
   },
   "auth": {
     "login_subtitle": "התחברות למערכת בית הספר",
+    "server_url": "כתובת שרת (URL)",
+    "server_url_placeholder": "https://school.example.com",
+    "server_url_required": "נא להזין את כתובת השרת",
+    "server_url_invalid": "כתובת שרת לא תקינה. חייבת להתחיל ב-http:// או https://",
+    "server_unreachable": "לא ניתן להתחבר לשרת. אנא בדוק את הכתובת ונסה שנית.",
     "username": "שם משתמש",
     "username_placeholder": "הזן שם משתמש",
     "password": "סיסמה",

@@ -63,7 +63,7 @@ export default defineConfig({
     maxWorkers: 1,
     fileParallelism: false,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
-    exclude: ['node_modules', 'dist', 'e2e/**'],
+    exclude: ['node_modules', 'dist', 'e2e/**', 'mobile/**'],
   },
   build: {
     chunkSizeWarningLimit: 1000,

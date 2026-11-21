@@ -3,6 +3,14 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { SchedulePage } from '../components/SchedulePage'
 import { ScheduleTable } from '../components/ui/schedule-table'
 import { buildPdfFromJpeg, generateSchedulePdfFile } from '../lib/schedule-pdf'
+import {
+  SCHEDULE_PDF_FILENAME,
+  SCHEDULE_PDF_LAYOUT,
+  buildSchedulePdfHtml,
+  buildSchedulePdfModel
+} from '../lib/schedule-pdf-shared'
+import { getChildSolidHex } from '../lib/child-colors'
+import { getSubjectColorSpec } from '../lib/subject-palette'
 import type { User, ScheduleLesson, ScheduleFinishTime, WebtopConfig } from '../types'
 import Database from 'better-sqlite3'
 import { initDb } from '../../server/db'
@@ -748,6 +756,116 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     expect(file.name).toBe('schedule.pdf')
     const header = new TextDecoder().decode((await file.arrayBuffer()).slice(0, 8))
     expect(header).toBe('%PDF-1.4')
+  })
+
+  it('resolves child solid hexes and subject palette colors consistently', () => {
+    expect(getChildSolidHex('blue')).toBe('#3B82C4')
+    expect(getChildSolidHex('rose')).toBe('#C86478')
+    expect(getChildSolidHex(null)).toBe('#2463eb')
+    expect(getChildSolidHex('unknown', '#123456')).toBe('#123456')
+
+    expect(getSubjectColorSpec('מתמטיקה')).toEqual({
+      key: 'math',
+      textLight: '#3B82C4',
+      textDark: '#68A8E8'
+    })
+    expect(getSubjectColorSpec('תנ״ך')).toEqual({
+      key: 'bible',
+      textLight: '#8B5E3C',
+      textDark: '#C89B74'
+    })
+    expect(getSubjectColorSpec('עברית')).toEqual({
+      key: 'hebrew',
+      textLight: '#C84B4B',
+      textDark: '#E57373'
+    })
+    expect(getSubjectColorSpec('אומנות')).toEqual({
+      key: 'art',
+      textLight: '#525866',
+      textDark: '#d4d4d8'
+    })
+  })
+
+  it('builds shared schedule PDF model with accurate geometry, row count, colors, and dismissal fallbacks', () => {
+    const model = buildSchedulePdfModel({
+      lessons: [
+        ...mockLessons,
+        { id: 'lesson-8', childId: 'child-abc-1', dayOfWeek: 2, hourNum: 8, subject: 'היסטוריה' },
+        { id: 'lesson-blank', childId: 'child-abc-1', dayOfWeek: 3, hourNum: 10, subject: '   ' }
+      ],
+      finishTimes: mockFinishTimes,
+      childColor: 'emerald',
+      isRtl: true,
+      t: (key) => key
+    })
+
+    expect(SCHEDULE_PDF_FILENAME).toBe('schedule.pdf')
+    expect(model.isRtl).toBe(true)
+    expect(model.headerBgHex).toBe('#2CA58D')
+    expect(model.tableW).toBe(Math.round(SCHEDULE_PDF_LAYOUT.canvasWidth * 0.85))
+    expect(model.tableH).toBe(Math.round(SCHEDULE_PDF_LAYOUT.canvasHeight * 0.80))
+    expect(model.rowCount).toBe(8)
+    expect(model.rows[0].cells[0]).toEqual({
+      day: 0,
+      subject: 'מתמטיקה',
+      colorHex: '#3B82C4'
+    })
+    expect(model.dismissalCells[0]).toEqual({
+      day: 0,
+      timeText: '13:30',
+      isEmpty: false,
+      label: 'schedule.finish_time_row'
+    })
+    expect(model.dismissalCells[1]).toEqual({
+      day: 1,
+      timeText: '--:--',
+      isEmpty: true,
+      label: 'schedule.finish_time_row'
+    })
+
+    const minRowModel = buildSchedulePdfModel({
+      lessons: mockLessons,
+      finishTimes: [],
+      childColor: null,
+      isRtl: false,
+      t: (key) => key
+    })
+    expect(minRowModel.rowCount).toBe(6)
+    expect(minRowModel.headerBgHex).toBe('#2463eb')
+  })
+
+  it('builds scale-invariant single-page A4 landscape HTML and escapes dynamic content', () => {
+    const xssSubject = '<script>alert("xss")</script> & \'quote\''
+    const rtlModel = buildSchedulePdfModel({
+      lessons: [
+        ...mockLessons,
+        { id: 'lesson-xss', childId: 'child-abc-1', dayOfWeek: 1, hourNum: 1, subject: xssSubject }
+      ],
+      finishTimes: mockFinishTimes,
+      childColor: 'blue',
+      isRtl: true,
+      t: (key) => key
+    })
+
+    const rtlHtml = buildSchedulePdfHtml(rtlModel)
+    expect(rtlHtml).toContain('<html dir="rtl">')
+    expect(rtlHtml).toContain('size: 841.89pt 595.28pt;')
+    expect(rtlHtml).toContain('width: 841.5pt;')
+    expect(rtlHtml).toContain('height: 594pt;')
+    expect(rtlHtml).toContain('width: 715.61pt;')
+    expect(rtlHtml).toContain('height: 476.37pt;')
+    expect(rtlHtml).not.toMatch(/\d(vw|vh)\b/)
+    expect(rtlHtml).toContain('background: #3B82C4;')
+    expect(rtlHtml).toContain('color:#3B82C4;')
+    expect(rtlHtml).toContain('background: #f1f5f9;')
+    expect(rtlHtml).toContain('<svg viewBox="0 0 64 64"')
+    expect(rtlHtml).toContain('stroke="#2463eb"')
+    expect(rtlHtml).not.toContain('<h1')
+    expect(rtlHtml).not.toContain('<script>')
+    expect(rtlHtml).toContain('&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt; &amp; &#39;quote&#39;')
+
+    const ltrHtml = buildSchedulePdfHtml({ ...rtlModel, isRtl: false })
+    expect(ltrHtml).toContain('<html dir="ltr">')
   })
 
   it('hides the today badge and clears today column highlight when printing', () => {
