@@ -14,6 +14,7 @@
     "../src/types.ts",
     "../src/lib/child-colors.ts",
     "../src/lib/subject-palette.ts",
-    "../src/lib/schedule-pdf-shared.ts"
+    "../src/lib/schedule-pdf-shared.ts",
+    "../src/lib/webauthn-crypto-p256.ts"
   ]
 }

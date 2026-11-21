@@ -8,7 +8,7 @@ import {
 import {
   buildWebAuthnRegistration,
   buildWebAuthnAssertion,
-} from '../../mobile/src/lib/webauthnCrypto';
+} from '../lib/webauthn-crypto-p256';
 
 describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
   it('generates registration and authentication payloads verified by @simplewebauthn/server', async () => {
