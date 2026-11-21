@@ -11,6 +11,9 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    "../src/types.ts"
+    "../src/types.ts",
+    "../src/lib/child-colors.ts",
+    "../src/lib/subject-palette.ts",
+    "../src/lib/schedule-pdf-shared.ts"
   ]
 }

@@ -9,10 +9,12 @@ import {
   Settings,
   Shield,
   Plus,
+  Share2,
 } from 'lucide-react-native';
 import {
   Button,
   FloatingActionButton,
+  LiquidButton,
   SyncButton,
   ModeToggleButton,
   LanguageToggleButton,
@@ -63,6 +65,19 @@ export const LiquidFiltersAndDatePicker: StoryObj = {
             />
           </View>
           <LiquidDatePicker date={date} setDate={setDate} />
+        </View>
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <LiquidTabs
+              tabs={[
+                { label: 'כפיר', value: '1' },
+                { label: 'יובל', value: '2' },
+              ]}
+              value={child === 'all' ? '1' : child}
+              onChange={setChild}
+            />
+          </View>
+          <LiquidButton icon={Share2} label="שיתוף" onPress={() => {}} />
         </View>
       </View>
     );

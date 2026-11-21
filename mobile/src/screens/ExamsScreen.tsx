@@ -271,6 +271,7 @@ export function ExamsScreen({
           </View>
         ) : filtered.length === 0 ? (
           <EmptyStateCard
+            centered
             icon={FileCheck}
             title={
               period === 'future'
@@ -424,6 +425,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     padding: 16,
     paddingBottom: 110,
     gap: 12,
@@ -433,8 +435,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   center: {
+    flex: 1,
     paddingVertical: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalFooterRow: {
     flexDirection: 'row',

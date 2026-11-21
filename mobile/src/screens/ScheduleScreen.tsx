@@ -1,21 +1,19 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Animated,
   View,
-  RefreshControl,
   ActivityIndicator,
   Pressable,
   Text,
   StyleSheet,
 } from 'react-native';
 import { CalendarDays, Pencil, Check, Share2 } from 'lucide-react-native';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../theme/ThemeContext';
 import { heeboFont } from '../theme/typography';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
+import { shareSchedulePdfMobile } from '../lib/schedulePdf';
 import {
   FieldLabel,
   FilledInput,
@@ -24,7 +22,7 @@ import {
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
-import { Button, FloatingActionButton } from '../components/ui/Buttons';
+import { Button, FloatingActionButton, LiquidButton } from '../components/ui/Buttons';
 import { FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type {
@@ -55,7 +53,7 @@ export function ScheduleScreen({
   const [lessons, setLessons] = useState<ScheduleLesson[]>([]);
   const [finishTimes, setFinishTimes] = useState<ScheduleFinishTime[]>([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+  const [sharingPdf, setSharingPdf] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
   const [editingLesson, setEditingLesson] = useState<{
@@ -96,14 +94,12 @@ export function ScheduleScreen({
     }
   }, [isChild, currentUser.linkedChildId]);
 
-  const loadSchedule = useCallback(async (childId: string, isRefresh = false) => {
+  const loadSchedule = useCallback(async (childId: string) => {
     if (!childId) {
       setLoading(false);
-      setRefreshing(false);
       return;
     }
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    setLoading(true);
 
     try {
       const res = await apiFetch(`/api/schedule?childId=${encodeURIComponent(childId)}`);
@@ -116,7 +112,6 @@ export function ScheduleScreen({
       console.error('Schedule load error:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 
@@ -131,6 +126,39 @@ export function ScheduleScreen({
       setLoading(false);
     }
   }, [selectedChildId, config, loadSchedule]);
+
+  const currentChild = useMemo(() => {
+    if (!config?.linkedChildren?.length) return null;
+    if (selectedChildId) {
+      return (
+        config.linkedChildren.find(
+          (c) => c.id === selectedChildId || c.externalId === selectedChildId
+        ) || null
+      );
+    }
+    if (currentUser.linkedChildId) {
+      return (
+        config.linkedChildren.find(
+          (c) =>
+            c.id === currentUser.linkedChildId ||
+            c.externalId === currentUser.linkedChildId
+        ) || null
+      );
+    }
+    return config.linkedChildren[0] || null;
+  }, [config, selectedChildId, currentUser.linkedChildId]);
+
+  const handleSelectChild = useCallback(
+    (childId: string) => {
+      if (isEditMode) {
+        setIsEditMode(false);
+      }
+      if (childId !== selectedChildId) {
+        setSelectedChildId(childId);
+      }
+    },
+    [isEditMode, selectedChildId]
+  );
 
   const handleSaveLesson = async (subjectOverride?: string) => {
     if (!editingLesson || !selectedChildId) return;
@@ -175,57 +203,25 @@ export function ScheduleScreen({
     }
   };
 
-  const handleSharePdf = async () => {
-    const child = config?.linkedChildren?.find((c) => c.id === selectedChildId);
-    const childName = child ? `${child.firstName} ${child.lastName}`.trim() : '';
-    const maxHour = Math.max(6, lessons.reduce((acc, l) => Math.max(acc, l.hourNum), 0));
-    const days = [0, 1, 2, 3, 4, 5];
-
-    const headerCells = days
-      .map((d) => `<th>${t(`schedule.days.day_${d}`)}</th>`)
-      .join('');
-    const rows = Array.from({ length: maxHour }, (_, idx) => {
-      const hour = idx + 1;
-      const cells = days
-        .map((d) => {
-          const l = lessons.find((item) => item.dayOfWeek === d && item.hourNum === hour);
-          return `<td>${l ? l.subject : ''}</td>`;
-        })
-        .join('');
-      return `<tr><th>${hour}</th>${cells}</tr>`;
-    }).join('');
-
-    const html = `
-      <html dir="${isRTL ? 'rtl' : 'ltr'}">
-        <head>
-          <meta charset="utf-8" />
-          <style>
-            body { font-family: sans-serif; padding: 20px; }
-            h1 { font-size: 18px; margin-bottom: 12px; }
-            table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-            th, td { border: 1px solid #cbd5e1; padding: 8px; text-align: center; font-size: 12px; }
-            th { background: #f1f5f9; }
-          </style>
-        </head>
-        <body>
-          <h1>${t('schedule.title')}${childName ? ` - ${childName}` : ''}</h1>
-          <table>
-            <thead><tr><th>#</th>${headerCells}</tr></thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </body>
-      </html>
-    `;
-
+  const handleSharePdf = useCallback(async () => {
+    if (sharingPdf) return;
+    setSharingPdf(true);
     try {
-      const { uri } = await Print.printToFileAsync({ html });
-      if (await Sharing.isAvailableAsync()) {
-        await Sharing.shareAsync(uri);
-      }
+      await shareSchedulePdfMobile({
+        lessons,
+        finishTimes,
+        childColor: currentChild?.color,
+        isRtl: isRTL,
+        t,
+      });
     } catch (err) {
       console.error('Schedule share PDF failed:', err);
+    } finally {
+      setSharingPdf(false);
     }
-  };
+  }, [sharingPdf, lessons, finishTimes, currentChild?.color, isRTL, t]);
+
+  const hasChildFilter = isParent && (config?.linkedChildren?.length || 0) > 0;
 
   return (
     <View style={{ flex: 1 }}>
@@ -240,50 +236,44 @@ export function ScheduleScreen({
           <NoticeBanner variant="warning" description={t('schedule.child_unlinked_desc')} />
         ) : null}
 
-        {isParent && (config?.linkedChildren?.length || 0) > 0 && (
-          <StickyFilterBar>
-            <View style={[styles.filterRow, { flexDirection: flexRow }]}>
-              <View style={{ flex: 1 }}>
-                <LiquidTabs
-                  testID="schedule-child-selector"
-                  tabs={(config?.linkedChildren || []).map((c) => ({
-                    label: c.firstName,
-                    value: c.id,
-                  }))}
-                  value={selectedChildId}
-                  onChange={setSelectedChildId}
+        {(hasChildFilter || Boolean(selectedChildId)) && (
+          <StickyFilterBar style={styles.scheduleStickyFilterBar}>
+            <View
+              style={[
+                styles.filterRow,
+                {
+                  flexDirection: flexRow,
+                  justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+                },
+              ]}
+            >
+              {hasChildFilter && (
+                <View style={{ flex: 1, minWidth: 0 }}>
+                  <LiquidTabs
+                    testID="schedule-child-selector"
+                    tabs={(config?.linkedChildren || []).map((c) => ({
+                      label: c.firstName,
+                      value: c.id,
+                    }))}
+                    value={selectedChildId}
+                    onChange={handleSelectChild}
+                  />
+                </View>
+              )}
+              {selectedChildId ? (
+                <LiquidButton
+                  testID="schedule-share-btn"
+                  icon={Share2}
+                  label={t('schedule.share')}
+                  accessibilityLabel={t('schedule.share')}
+                  disabled={loading || sharingPdf}
+                  loading={sharingPdf}
+                  onPress={handleSharePdf}
                 />
-              </View>
-              <Pressable
-                testID="schedule-share-btn"
-                accessibilityLabel={t('schedule.share')}
-                onPress={handleSharePdf}
-                style={[
-                  styles.shareBtn,
-                  { backgroundColor: palette.card, borderColor: palette.border },
-                ]}
-              >
-                <Share2 size={16} color={palette.foreground} />
-              </Pressable>
+              ) : null}
             </View>
           </StickyFilterBar>
         )}
-
-        {isChild && selectedChildId ? (
-          <View style={[styles.filterRow, { flexDirection: flexRow, justifyContent: 'flex-end' }]}>
-            <Pressable
-              testID="schedule-share-btn"
-              accessibilityLabel={t('schedule.share')}
-              onPress={handleSharePdf}
-              style={[
-                styles.shareBtn,
-                { backgroundColor: palette.card, borderColor: palette.border },
-              ]}
-            >
-              <Share2 size={16} color={palette.foreground} />
-            </Pressable>
-          </View>
-        ) : null}
 
         {loading ? (
           <View style={styles.center}>
@@ -291,6 +281,7 @@ export function ScheduleScreen({
           </View>
         ) : !selectedChildId ? (
           <EmptyStateCard
+            centered
             icon={CalendarDays}
             title={t('schedule.no_students_found')}
             description={t('schedule.no_children_warning')}
@@ -299,12 +290,17 @@ export function ScheduleScreen({
           <ScheduleTable
             lessons={lessons}
             finishTimes={finishTimes}
+            childColorId={currentChild?.color}
             isEditMode={isEditMode}
+            canEdit={isParent && isEditMode}
+            resetScrollKey={selectedChildId}
             onPressCell={(dayOfWeek, hourNum, lesson) => {
+              if (!isParent || !isEditMode) return;
               setEditingLesson({ dayOfWeek, hourNum });
               setFormSubject(lesson?.subject || '');
             }}
             onPressFinishTime={(dayOfWeek, currentFinish) => {
+              if (!isParent || !isEditMode) return;
               setEditingFinishDay(dayOfWeek);
               setFormFinishTime(currentFinish || '');
             }}
@@ -447,6 +443,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   content: {
+    flexGrow: 1,
     padding: 16,
     paddingBottom: 110,
     gap: 12,
@@ -455,17 +452,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
   },
-  shareBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  scheduleStickyFilterBar: {
+    marginBottom: 12,
   },
   center: {
+    flex: 1,
     paddingVertical: 48,
     alignItems: 'center',
+    justifyContent: 'center',
   },
   modalFooterRow: {
     flexDirection: 'row',

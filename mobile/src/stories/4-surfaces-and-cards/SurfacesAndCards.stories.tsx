@@ -108,10 +108,35 @@ export const CardsAndSurfaces: StoryObj = {
       <ScheduleTable
         lessons={[
           { id: '1', childId: '1', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
-          { id: '2', childId: '1', dayOfWeek: 1, hourNum: 2, subject: 'אנגלית' },
+          { id: '2', childId: '1', dayOfWeek: 0, hourNum: 2, subject: 'אנגלית' },
+          { id: '3', childId: '1', dayOfWeek: 1, hourNum: 1, subject: 'עברית' },
+          { id: '4', childId: '1', dayOfWeek: 1, hourNum: 2, subject: 'מדעים' },
+          { id: '5', childId: '1', dayOfWeek: 2, hourNum: 1, subject: 'תנ״ך' },
+          { id: '6', childId: '1', dayOfWeek: 2, hourNum: 3, subject: 'חינוך גופני' },
+          { id: '7', childId: '1', dayOfWeek: 3, hourNum: 1, subject: 'היסטוריה' },
         ]}
-        finishTimes={[{ id: 'f1', childId: '1', dayOfWeek: 0, finishTime: '13:30' }]}
+        finishTimes={[
+          { id: 'f1', childId: '1', dayOfWeek: 0, finishTime: '13:30' },
+          { id: 'f2', childId: '1', dayOfWeek: 1, finishTime: '14:15' },
+          { id: 'f3', childId: '1', dayOfWeek: 2, finishTime: '12:45' },
+        ]}
+        childColorId="blue"
+        currentDayOfWeek={1}
         isEditMode={false}
+        onPressCell={() => {}}
+        onPressFinishTime={() => {}}
+      />
+
+      <ScheduleTable
+        lessons={[
+          { id: 'e1', childId: '2', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
+          { id: 'e2', childId: '2', dayOfWeek: 1, hourNum: 1, subject: 'מדעים' },
+        ]}
+        finishTimes={[{ id: 'ef1', childId: '2', dayOfWeek: 0, finishTime: '13:30' }]}
+        childColorId="rose"
+        currentDayOfWeek={1}
+        isEditMode
+        canEdit
         onPressCell={() => {}}
         onPressFinishTime={() => {}}
       />

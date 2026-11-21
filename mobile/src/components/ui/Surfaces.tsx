@@ -137,14 +137,16 @@ export function EmptyStateCard({
   title,
   description,
   action,
+  centered = false,
 }: {
   icon: LucideIcon;
   title: string;
   description?: string;
   action?: React.ReactNode;
+  centered?: boolean;
 }) {
   const { palette } = useTheme();
-  return (
+  const card = (
     <CardSurface style={styles.emptyCard}>
       <View style={[styles.emptyIcon, { backgroundColor: palette.muted }]}>
         <Icon size={28} color={palette.mutedForeground} />
@@ -158,6 +160,12 @@ export function EmptyStateCard({
       {action ? <View style={{ marginTop: 12 }}>{action}</View> : null}
     </CardSurface>
   );
+
+  if (centered) {
+    return <View style={styles.emptyCenteredWrap}>{card}</View>;
+  }
+
+  return card;
 }
 
 export function NoticeBanner({
@@ -268,6 +276,11 @@ const styles = StyleSheet.create({
   infoValue: {
     fontSize: 13,
     ...heeboFont('600'),
+  },
+  emptyCenteredWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    paddingVertical: 12,
   },
   emptyCard: {
     padding: 28,

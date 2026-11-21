@@ -10,6 +10,7 @@ import {
   ScrollView,
   StyleSheet,
   type TextInputProps,
+  type ViewStyle,
 } from 'react-native';
 import { Search, X, ChevronDown, Check, type LucideIcon } from 'lucide-react-native';
 import Reanimated, {
@@ -338,8 +339,10 @@ export function ColorSwatchPicker({
 
 export function StickyFilterBar({
   children,
+  style,
 }: {
   children: React.ReactNode;
+  style?: ViewStyle;
 }) {
   const { headerHeight, scrollY } = useScrollHeader();
   const [naturalY, setNaturalY] = useState<number | null>(null);
@@ -347,14 +350,22 @@ export function StickyFilterBar({
   const stickyTop = headerHeight + 8;
   const threshold = naturalY !== null ? Math.max(0, naturalY - stickyTop) : 52;
 
-  const translateY = scrollY.interpolate({
-    inputRange: [0, threshold, threshold + 10000],
-    outputRange: [0, 0, 10000],
-    extrapolate: 'clamp',
-  });
+  const translateY =
+    threshold > 0
+      ? scrollY.interpolate({
+          inputRange: [0, threshold, threshold + 10000],
+          outputRange: [0, 0, 10000],
+          extrapolate: 'clamp',
+        })
+      : scrollY.interpolate({
+          inputRange: [0, 10000],
+          outputRange: [0, 10000],
+          extrapolate: 'clamp',
+        });
 
   return (
     <Animated.View
+      pointerEvents="box-none"
       onLayout={(e) => {
         const y = e.nativeEvent.layout.y;
         if (y > 0 && y !== naturalY) {
@@ -363,6 +374,7 @@ export function StickyFilterBar({
       }}
       style={[
         styles.stickyFilterBar,
+        style,
         { transform: [{ translateY }] },
       ]}
     >
@@ -608,6 +620,7 @@ const styles = StyleSheet.create({
   stickyFilterBar: {
     zIndex: 15,
     gap: 8,
+    marginBottom: 6,
   },
   tabsShell: {
     height: 40,

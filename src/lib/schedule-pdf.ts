@@ -1,29 +1,14 @@
 import type { TFunction } from "i18next"
-import type { ScheduleFinishTime, ScheduleLesson } from "@/types"
-import { getChildAccentColor } from "@/lib/child-colors"
-import { getSubjectConfig } from "@/lib/subject-icons"
+import {
+  SCHEDULE_PDF_DAYS,
+  SCHEDULE_PDF_FILENAME,
+  SCHEDULE_PDF_LAYOUT,
+  buildSchedulePdfModel,
+  type SchedulePdfInput
+} from "./schedule-pdf-shared"
 
-const SCHEDULE_DAYS = [0, 1, 2, 3, 4, 5] as const
-
-// A4 landscape dimensions in PDF points (72 pt/inch)
-const PDF_PAGE_WIDTH_PT = 841.89
-const PDF_PAGE_HEIGHT_PT = 595.28
-
-// High-DPI canvas matching A4 landscape aspect ratio
-const CANVAS_WIDTH = 2400
-const CANVAS_HEIGHT = 1697
-
-export interface SchedulePdfOptions {
-  lessons: ScheduleLesson[]
-  finishTimes: ScheduleFinishTime[]
-  childColor?: string | null
-  isRtl: boolean
+export interface SchedulePdfOptions extends SchedulePdfInput {
   t: TFunction
-}
-
-function extractHexFromTailwindClass(className: string, fallback: string): string {
-  const match = className.match(/#([0-9a-fA-F]{6})/)
-  return match ? `#${match[1]}` : fallback
 }
 
 function drawRoundedRectPath(
@@ -51,7 +36,7 @@ function drawRoundedRectPath(
 function drawClockIcon(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
   ctx.save()
   ctx.strokeStyle = color
-  ctx.lineWidth = 5
+  ctx.lineWidth = SCHEDULE_PDF_LAYOUT.clockStrokePx
   ctx.lineCap = "round"
   ctx.lineJoin = "round"
 
@@ -132,6 +117,7 @@ export function buildPdfFromJpeg(
   imageWidth: number,
   imageHeight: number
 ): Uint8Array {
+  const { pageWidthPt, pageHeightPt } = SCHEDULE_PDF_LAYOUT
   const chunks: Uint8Array[] = []
   const offsets: number[] = []
   let byteLength = 0
@@ -158,7 +144,7 @@ export function buildPdfFromJpeg(
   // 3: Page (A4 Landscape)
   offsets.push(byteLength)
   pushText(
-    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_PAGE_WIDTH_PT} ${PDF_PAGE_HEIGHT_PT}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidthPt} ${pageHeightPt}] /Resources << /XObject << /Im0 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`
   )
 
   // 4: Image XObject
@@ -170,7 +156,7 @@ export function buildPdfFromJpeg(
   pushText("\nendstream\nendobj\n")
 
   // 5: Page Content Stream
-  const contentStream = `q\n${PDF_PAGE_WIDTH_PT} 0 0 ${PDF_PAGE_HEIGHT_PT} 0 0 cm\n/Im0 Do\nQ\n`
+  const contentStream = `q\n${pageWidthPt} 0 0 ${pageHeightPt} 0 0 cm\n/Im0 Do\nQ\n`
   offsets.push(byteLength)
   pushText(`5 0 obj\n<< /Length ${contentStream.length} >>\nstream\n${contentStream}endstream\nendobj\n`)
 
@@ -193,6 +179,7 @@ export function buildPdfFromJpeg(
 }
 
 function buildMinimalFallbackPdf(): Uint8Array {
+  const { pageWidthPt, pageHeightPt } = SCHEDULE_PDF_LAYOUT
   const chunks: Uint8Array[] = []
   const offsets: number[] = []
   let byteLength = 0
@@ -210,7 +197,7 @@ function buildMinimalFallbackPdf(): Uint8Array {
   pushText("2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n")
   offsets.push(byteLength)
   pushText(
-    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PDF_PAGE_WIDTH_PT} ${PDF_PAGE_HEIGHT_PT}] >>\nendobj\n`
+    `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidthPt} ${pageHeightPt}] >>\nendobj\n`
   )
   const xrefStart = byteLength
   pushText(`xref\n0 ${offsets.length + 1}\n0000000000 65535 f \n`)
@@ -230,20 +217,29 @@ function buildMinimalFallbackPdf(): Uint8Array {
 
 /**
  * Renders the 6-day weekly schedule into a centered landscape A4 PDF File
- * matching the print layout, child header color, subject colors, and typography.
+ * driven by the shared PDF model used across Web and Mobile.
  */
-export function generateSchedulePdfFile({
-  lessons,
-  finishTimes,
-  childColor,
-  isRtl,
-  t
-}: SchedulePdfOptions): File {
-  const fileName = "schedule.pdf"
+export function generateSchedulePdfFile(options: SchedulePdfOptions): File {
+  const fileName = SCHEDULE_PDF_FILENAME
+  const {
+    canvasWidth,
+    canvasHeight,
+    borderRadiusPx,
+    outerBorderWidthPx,
+    innerBorderWidthPx,
+    mainFontPx,
+    subLabelFontPx,
+    subjectLineHeightPx,
+    subjectHorizontalPaddingPx,
+    dismissalLabelHorizontalPaddingPx,
+    clockRadiusPx,
+    fontFamily,
+    colors
+  } = SCHEDULE_PDF_LAYOUT
 
   const canvas = document.createElement("canvas")
-  canvas.width = CANVAS_WIDTH
-  canvas.height = CANVAS_HEIGHT
+  canvas.width = canvasWidth
+  canvas.height = canvasHeight
   const ctx = canvas.getContext("2d")
 
   if (!ctx) {
@@ -251,78 +247,61 @@ export function generateSchedulePdfFile({
     return new File([fallbackBytes as BlobPart], fileName, { type: "application/pdf" })
   }
 
+  const model = buildSchedulePdfModel(options)
+  const {
+    isRtl,
+    tableW,
+    tableH,
+    tableX,
+    tableY,
+    hourColW,
+    dayColW,
+    headerH,
+    dismissalH,
+    lessonRowH
+  } = model
+
   // White landscape page background
-  ctx.fillStyle = "#ffffff"
-  ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT)
-
-  // Table centered at 85% width x 80% height with comfortable page margins
-  const tableW = Math.round(CANVAS_WIDTH * 0.85)
-  const tableH = Math.round(CANVAS_HEIGHT * 0.80)
-  const tableX = Math.round((CANVAS_WIDTH - tableW) / 2)
-  const tableY = Math.round((CANVAS_HEIGHT - tableH) / 2)
-  const borderRadius = 32
-
-  const hourColW = 150
-  const dayColW = (tableW - hourColW) / SCHEDULE_DAYS.length
-  const headerH = 150
-  const dismissalH = 186
-
-  const maxPopulatedHour = lessons.reduce((max, item) => Math.max(max, item.hourNum), 0)
-  const rowCount = Math.max(6, maxPopulatedHour)
-  const lessonRowH = (tableH - headerH - dismissalH) / rowCount
-
-  const lessonMap = new Map<string, ScheduleLesson>()
-  for (const l of lessons) {
-    lessonMap.set(`${l.dayOfWeek}-${l.hourNum}`, l)
-  }
-  const finishTimeMap = new Map<number, string>()
-  for (const f of finishTimes) {
-    if (f.finishTime) {
-      finishTimeMap.set(f.dayOfWeek, f.finishTime)
-    }
-  }
-
-  const headerBgHex = extractHexFromTailwindClass(getChildAccentColor(childColor), "#2463eb")
-  const borderColor = "#94a3b8"
-  const fontFamily = "'Heebo', 'Assistant', sans-serif"
+  ctx.fillStyle = colors.pageBg
+  ctx.fillRect(0, 0, canvasWidth, canvasHeight)
 
   // Clip everything inside the rounded table container
   ctx.save()
-  drawRoundedRectPath(ctx, tableX, tableY, tableW, tableH, borderRadius)
+  drawRoundedRectPath(ctx, tableX, tableY, tableW, tableH, borderRadiusPx)
   ctx.clip()
 
   // White card interior
-  ctx.fillStyle = "#ffffff"
+  ctx.fillStyle = colors.pageBg
   ctx.fillRect(tableX, tableY, tableW, tableH)
 
   // Compute column X positions matching RTL / LTR order
   const hourX = isRtl ? tableX + tableW - hourColW : tableX
   const dayX = (dayIndex: number) =>
     isRtl
-      ? tableX + (SCHEDULE_DAYS.length - 1 - dayIndex) * dayColW
+      ? tableX + (SCHEDULE_PDF_DAYS.length - 1 - dayIndex) * dayColW
       : tableX + hourColW + dayIndex * dayColW
 
   // 1. Header Row
-  ctx.fillStyle = headerBgHex
+  ctx.fillStyle = model.headerBgHex
   ctx.fillRect(tableX, tableY, tableW, headerH)
 
   ctx.textAlign = "center"
   ctx.textBaseline = "middle"
   ctx.direction = isRtl ? "rtl" : "ltr"
-  ctx.fillStyle = "#ffffff"
-  ctx.font = `700 52px ${fontFamily}`
+  ctx.fillStyle = colors.headerText
+  ctx.font = `700 ${mainFontPx}px ${fontFamily}`
 
   const headerCenterY = tableY + headerH / 2
-  ctx.fillText(t("schedule.hour_col_header"), hourX + hourColW / 2, headerCenterY)
-  for (const day of SCHEDULE_DAYS) {
-    const x = dayX(day)
-    ctx.fillText(t(`schedule.days.day_${day}`), x + dayColW / 2, headerCenterY)
+  ctx.fillText(model.hourHeader, hourX + hourColW / 2, headerCenterY)
+  for (const header of model.dayHeaders) {
+    const x = dayX(header.day)
+    ctx.fillText(header.label, x + dayColW / 2, headerCenterY)
   }
 
   // Header vertical dividers
-  ctx.strokeStyle = "rgba(255, 255, 255, 0.4)"
-  ctx.lineWidth = 2.5
-  for (let i = 1; i <= SCHEDULE_DAYS.length; i++) {
+  ctx.strokeStyle = colors.headerDivider
+  ctx.lineWidth = innerBorderWidthPx
+  for (let i = 1; i <= SCHEDULE_PDF_DAYS.length; i++) {
     const lineX = isRtl ? tableX + i * dayColW : tableX + hourColW + (i - 1) * dayColW
     ctx.beginPath()
     ctx.moveTo(lineX, tableY)
@@ -331,85 +310,86 @@ export function generateSchedulePdfFile({
   }
 
   // 2. Lesson Rows
-  for (let idx = 0; idx < rowCount; idx++) {
-    const hourNum = idx + 1
+  model.rows.forEach((row, idx) => {
     const rowY = tableY + headerH + idx * lessonRowH
     const rowCenterY = rowY + lessonRowH / 2
 
     // Hour number cell
-    ctx.fillStyle = "#475569"
-    ctx.font = `700 52px ${fontFamily}`
-    ctx.fillText(String(hourNum), hourX + hourColW / 2, rowCenterY)
+    ctx.fillStyle = colors.hourText
+    ctx.font = `700 ${mainFontPx}px ${fontFamily}`
+    ctx.fillText(String(row.hourNum), hourX + hourColW / 2, rowCenterY)
 
     // Day cells
-    for (const day of SCHEDULE_DAYS) {
-      const lesson = lessonMap.get(`${day}-${hourNum}`)
-      if (!lesson) continue
+    for (const cell of row.cells) {
+      if (!cell.subject) continue
 
-      const x = dayX(day)
-      const subjectHex = extractHexFromTailwindClass(getSubjectConfig(lesson.subject).textClass, "#525866")
-      ctx.fillStyle = subjectHex
-      ctx.font = `700 52px ${fontFamily}`
+      const x = dayX(cell.day)
+      ctx.fillStyle = cell.colorHex
+      ctx.font = `700 ${mainFontPx}px ${fontFamily}`
 
-      const lines = wrapTextLines(ctx, lesson.subject, dayColW - 32, 2)
-      const lineHeight = 58
-      const totalTextH = lines.length * lineHeight
-      const startY = rowCenterY - totalTextH / 2 + lineHeight / 2
+      const lines = wrapTextLines(ctx, cell.subject, dayColW - subjectHorizontalPaddingPx, 2)
+      const totalTextH = lines.length * subjectLineHeightPx
+      const startY = rowCenterY - totalTextH / 2 + subjectLineHeightPx / 2
 
       for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
-        ctx.fillText(lines[lineIdx], x + dayColW / 2, startY + lineIdx * lineHeight)
+        ctx.fillText(lines[lineIdx], x + dayColW / 2, startY + lineIdx * subjectLineHeightPx)
       }
     }
 
     // Horizontal row separator
     if (idx > 0) {
-      ctx.strokeStyle = borderColor
-      ctx.lineWidth = 2.5
+      ctx.strokeStyle = colors.borderColor
+      ctx.lineWidth = innerBorderWidthPx
       ctx.beginPath()
       ctx.moveTo(tableX, rowY)
       ctx.lineTo(tableX + tableW, rowY)
       ctx.stroke()
     }
-  }
+  })
 
   // 3. Dismissal Finish Time Row
   const dismissalY = tableY + tableH - dismissalH
-  ctx.fillStyle = "#f1f5f9"
+  ctx.fillStyle = colors.dismissalBg
   ctx.fillRect(tableX, dismissalY, tableW, dismissalH)
 
   // Top border of dismissal row
-  ctx.strokeStyle = borderColor
-  ctx.lineWidth = 2.5
+  ctx.strokeStyle = colors.borderColor
+  ctx.lineWidth = innerBorderWidthPx
   ctx.beginPath()
   ctx.moveTo(tableX, dismissalY)
   ctx.lineTo(tableX + tableW, dismissalY)
   ctx.stroke()
 
   // Clock icon in # column
-  drawClockIcon(ctx, hourX + hourColW / 2, dismissalY + dismissalH / 2, 27, "#2463eb")
+  drawClockIcon(
+    ctx,
+    hourX + hourColW / 2,
+    dismissalY + dismissalH / 2,
+    clockRadiusPx,
+    colors.clockColor
+  )
 
-  for (const day of SCHEDULE_DAYS) {
-    const x = dayX(day)
-    const finishTime = finishTimeMap.get(day)
+  for (const cell of model.dismissalCells) {
+    const x = dayX(cell.day)
     const centerX = x + dayColW / 2
 
-    ctx.fillStyle = finishTime ? "#0f172a" : "#94a3b8"
-    ctx.font = `700 52px ${fontFamily}`
-    ctx.fillText(finishTime || "--:--", centerX, dismissalY + dismissalH * 0.36)
+    ctx.fillStyle = cell.isEmpty ? colors.dismissalEmptyText : colors.dismissalTimeText
+    ctx.font = `700 ${mainFontPx}px ${fontFamily}`
+    ctx.fillText(cell.timeText, centerX, dismissalY + dismissalH * 0.36)
 
-    ctx.fillStyle = "#64748b"
-    ctx.font = `500 40px ${fontFamily}`
+    ctx.fillStyle = colors.dismissalLabelText
+    ctx.font = `500 ${subLabelFontPx}px ${fontFamily}`
     ctx.fillText(
-      truncateWithEllipsis(ctx, t("schedule.finish_time_row"), dayColW - 24),
+      truncateWithEllipsis(ctx, cell.label, dayColW - dismissalLabelHorizontalPaddingPx),
       centerX,
       dismissalY + dismissalH * 0.72
     )
   }
 
   // Vertical column dividers across all lesson + dismissal rows
-  ctx.strokeStyle = borderColor
-  ctx.lineWidth = 2.5
-  for (let i = 1; i <= SCHEDULE_DAYS.length; i++) {
+  ctx.strokeStyle = colors.borderColor
+  ctx.lineWidth = innerBorderWidthPx
+  for (let i = 1; i <= SCHEDULE_PDF_DAYS.length; i++) {
     const lineX = isRtl ? tableX + i * dayColW : tableX + hourColW + (i - 1) * dayColW
     ctx.beginPath()
     ctx.moveTo(lineX, tableY + headerH)
@@ -420,9 +400,9 @@ export function generateSchedulePdfFile({
   ctx.restore()
 
   // Crisp outer rounded border
-  ctx.strokeStyle = borderColor
-  ctx.lineWidth = 3
-  drawRoundedRectPath(ctx, tableX, tableY, tableW, tableH, borderRadius)
+  ctx.strokeStyle = colors.borderColor
+  ctx.lineWidth = outerBorderWidthPx
+  drawRoundedRectPath(ctx, tableX, tableY, tableW, tableH, borderRadiusPx)
   ctx.stroke()
 
   const dataUrl = canvas.toDataURL("image/jpeg", 0.94)
@@ -433,7 +413,7 @@ export function generateSchedulePdfFile({
   }
 
   const jpegBytes = base64ToUint8Array(base64Part)
-  const pdfBytes = buildPdfFromJpeg(jpegBytes, CANVAS_WIDTH, CANVAS_HEIGHT)
+  const pdfBytes = buildPdfFromJpeg(jpegBytes, canvasWidth, canvasHeight)
   return new File([pdfBytes as BlobPart], fileName, { type: "application/pdf" })
 }
 

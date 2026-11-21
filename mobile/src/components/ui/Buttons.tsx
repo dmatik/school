@@ -117,6 +117,67 @@ export function Button({
   );
 }
 
+export function LiquidButton({
+  label,
+  icon: Icon,
+  active = false,
+  disabled = false,
+  loading = false,
+  onPress,
+  style,
+  testID,
+  accessibilityLabel,
+}: {
+  label?: string;
+  icon?: LucideIcon;
+  active?: boolean;
+  disabled?: boolean;
+  loading?: boolean;
+  onPress: () => void;
+  style?: ViewStyle;
+  testID?: string;
+  accessibilityLabel?: string;
+}) {
+  const { palette, isDark } = useTheme();
+  const { flexRow } = useDirection();
+  const tintColor = active
+    ? palette.foreground
+    : isDark
+      ? 'rgba(248, 250, 252, 0.85)'
+      : palette.mutedForeground;
+
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityLabel={accessibilityLabel || label}
+      accessibilityRole="button"
+      onPress={onPress}
+      disabled={disabled || loading}
+      style={({ pressed }) => [
+        styles.liquidShell,
+        {
+          flexDirection: flexRow,
+          opacity: disabled || loading ? 0.5 : pressed ? 0.78 : 1,
+          transform: [{ scale: pressed ? 0.97 : 1 }],
+        },
+        style,
+      ]}
+    >
+      <GlassBackdrop />
+      {loading ? (
+        <ActivityIndicator size="small" color={tintColor} />
+      ) : Icon ? (
+        <Icon size={18} strokeWidth={1.85} color={tintColor} />
+      ) : null}
+      {label ? (
+        <Text numberOfLines={1} style={[styles.liquidButtonText, { color: tintColor }]}>
+          {label}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+}
+
 export function FloatingActionButton({
   icon: Icon,
   onPress,
@@ -302,6 +363,21 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     ...heeboFont('600'),
+  },
+  liquidShell: {
+    height: 40,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    overflow: 'hidden',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  liquidButtonText: {
+    fontSize: 16,
+    ...heeboFont('500'),
   },
   fab: {
     position: 'absolute',
