@@ -43,6 +43,7 @@ interface ScrollHeaderContextValue {
   scrollY: Animated.Value;
   onScroll: (...args: any[]) => void;
   resetScroll: () => void;
+  switchTabScroll: (tab: string) => void;
   pullToRefreshProps: PullToRefreshScrollProps;
   pullDistance: SharedValue<number>;
   isPulling: SharedValue<boolean>;
@@ -60,6 +61,8 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   const syncConfigRef = useRef<{ onRefresh?: () => void; syncing?: boolean }>({});
   const isDraggingRef = useRef(false);
   const readyRef = useRef(false);
+  const currentTabRef = useRef<string>('homework');
+  const tabOffsetsRef = useRef<Record<string, number>>({});
   const [pullReady, setPullReady] = useState(false);
 
   const pullDistance = useSharedValue(0);
@@ -96,8 +99,9 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
       useNativeDriver: true,
       listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
         const y = e.nativeEvent.contentOffset.y;
+        tabOffsetsRef.current[currentTabRef.current] = Math.max(0, y);
+        if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
         const pull = y < 0 ? -y : 0;
         pullDistance.value = pull;
         isPulling.value = pull > 4;
@@ -110,7 +114,18 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
     })
   ).current;
 
+  const switchTabScroll = useCallback(
+    (tab: string) => {
+      currentTabRef.current = tab;
+      scrollY.setValue(tabOffsetsRef.current[tab] ?? 0);
+      clearPullState();
+    },
+    [scrollY, clearPullState]
+  );
+
   const resetScroll = useCallback(() => {
+    tabOffsetsRef.current = {};
+    currentTabRef.current = 'homework';
     scrollY.setValue(0);
     clearPullState();
   }, [scrollY, clearPullState]);
@@ -129,6 +144,7 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
         scrollY,
         onScroll,
         resetScroll,
+        switchTabScroll,
         pullToRefreshProps,
         pullDistance,
         isPulling,

@@ -25,6 +25,8 @@ import { LiquidTabs } from '../../components/ui/FormFields';
 import { LiquidDatePicker } from '../../components/ui/LiquidDatePicker';
 import { LiquidDock } from '../../components/ui/LiquidDock';
 import { MobileHeader } from '../../components/ui/MobileHeader';
+import { SlidingPill } from '../../components/ui/SlidingPill';
+import { useTheme } from '../../theme/ThemeContext';
 
 const meta: Meta = {
   title: '2 - Buttons & Nav/NavigationAndActions',
@@ -133,6 +135,25 @@ export const DockAndHeader: StoryObj = {
           activeId={active}
           onSelect={setActive}
         />
+      </View>
+    );
+  },
+};
+
+export const SlidingPillDemo: StoryObj = {
+  render: () => {
+    const { isDark } = useTheme();
+    const [pos, setPos] = useState({ x: 0, width: 72 });
+
+    return (
+      <View style={{ gap: 16 }}>
+        <View style={{ height: 40, borderRadius: 999, position: 'relative', justifyContent: 'center' }}>
+          <SlidingPill x={pos.x} width={pos.width} height={32} isDark={isDark} top={4} />
+        </View>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <Button label="Short (0, 72)" onPress={() => setPos({ x: 0, width: 72 })} />
+          <Button label="Wide (80, 140)" onPress={() => setPos({ x: 80, width: 140 })} />
+        </View>
       </View>
     );
   },

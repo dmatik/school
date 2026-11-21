@@ -46,11 +46,17 @@
     "build:android": "NODE_USE_SYSTEM_CA=1 expo run:android",
     "storybook": "EXPO_PUBLIC_STORYBOOK_ENABLED=true NODE_USE_SYSTEM_CA=1 expo start --dev-client --port 8082",
     "storybook:generate": "sb-rn-get-stories --config-path .rnstorybook",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "lint": "expo lint"
   },
   "overrides": {
     "glob": "^14.0.6",
     "minimatch": "^11.0.9"
+  },
+  "reanimated": {
+    "staticFeatureFlags": {
+      "IOS_SYNCHRONOUSLY_UPDATE_UI_PROPS": true
+    }
   },
   "private": true
 }

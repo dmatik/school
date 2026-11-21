@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { startTransition, useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -15,11 +15,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { Search, X, ChevronDown, Check, type LucideIcon } from 'lucide-react-native';
-import Reanimated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
-} from 'react-native-reanimated';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
@@ -27,6 +22,7 @@ import { useDirection } from '../../i18n';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
 import { useScrollHeader } from './MobileHeader';
 import { GlassBackdrop } from './GlassBackdrop';
+import { SlidingPill } from './SlidingPill';
 
 export function FieldLabel({
   label,
@@ -780,30 +776,26 @@ export function LiquidTabs({
 }) {
   const { palette, isDark } = useTheme();
   const { isRTL, flexRow } = useDirection();
-  const flatPillBg = isDark ? 'rgba(6, 10, 18, 0.55)' : 'rgba(15, 23, 42, 0.08)';
 
-  const tabLayouts = useRef<Record<string, { x: number; width: number }>>({});
+  const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const viewportWidth = useRef(0);
   const scrollOffset = useRef(0);
   const [hasMeasured, setHasMeasured] = useState(false);
-  const pillX = useSharedValue(0);
-  const pillW = useSharedValue(0);
+  const [pillHeight, setPillHeight] = useState(32);
+  const [visualValue, setVisualValue] = useState(value);
+  const lastPressedRef = useRef<string | null>(null);
+  const changeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [pillState, setPillState] = useState({ x: 0, width: 0, animated: false });
   const tabsKey = tabs.map((t) => `${t.value}:${t.label}`).join('|');
 
   useEffect(() => {
-    const layout = tabLayouts.current[value];
-    if (!layout) return;
-
-    const springConfig = {
-      stiffness: 450,
-      damping: 35,
-      mass: 1,
+    return () => {
+      if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
     };
-    pillX.value = withSpring(layout.x, springConfig);
-    pillW.value = withSpring(layout.width, springConfig);
+  }, []);
 
-    // Ensure selected pill is always fully visible inside the scrollable filter bar
+  const scrollToTab = useCallback((layout: { x: number; width: number }) => {
     if (scrollRef.current && viewportWidth.current > 0) {
       const leftEdge = layout.x;
       const rightEdge = layout.x + layout.width;
@@ -820,12 +812,43 @@ export function LiquidTabs({
         scrollOffset.current = nextX;
       }
     }
-  }, [value, hasMeasured, tabsKey, pillX, pillW]);
+  }, []);
 
-  const pillAnimatedStyle = useAnimatedStyle(() => ({
-    left: pillX.value,
-    width: pillW.value,
-  }));
+  useEffect(() => {
+    setVisualValue(value);
+
+    // If this change was already animated optimistically in handlePress, avoid re-triggering.
+    if (lastPressedRef.current === value) {
+      lastPressedRef.current = null;
+      return;
+    }
+    lastPressedRef.current = null;
+
+    const layout = tabLayouts.current[value];
+    if (!layout) return;
+
+    setPillState({ x: layout.x, width: layout.width, animated: hasMeasured });
+    scrollToTab(layout);
+  }, [value, hasMeasured, tabsKey, scrollToTab]);
+
+  const handlePress = (val: string) => {
+    const layout = tabLayouts.current[val];
+    if (layout) {
+      setPillState({ x: layout.x, width: layout.width, animated: true });
+      scrollToTab(layout);
+    }
+    lastPressedRef.current = val;
+    setVisualValue(val);
+
+    // Let the pill spring finish on an idle main thread before remounting the filtered card list.
+    if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
+    changeTimerRef.current = setTimeout(() => {
+      changeTimerRef.current = null;
+      startTransition(() => {
+        onChange(val);
+      });
+    }, 220);
+  };
 
   const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);
 
@@ -855,29 +878,33 @@ export function LiquidTabs({
           scrollEventThrottle={16}
           contentContainerStyle={[styles.tabsContainer, { flexDirection: flexRow }]}
         >
-          {hasMeasured && (
-            <Reanimated.View
-              pointerEvents="none"
-              style={[styles.tabSlidingPillWrap, pillAnimatedStyle]}
-            >
-              <View style={[styles.tabSlidingPill, { backgroundColor: flatPillBg }]} />
-            </Reanimated.View>
+          {hasMeasured && pillHeight > 0 && (
+            <SlidingPill
+              x={pillState.x}
+              width={pillState.width}
+              height={pillHeight}
+              isDark={isDark}
+              animated={pillState.animated}
+              top={4}
+            />
           )}
 
           {tabs.map((tab) => {
-            const active = tab.value === value;
+            const active = tab.value === visualValue;
             return (
               <Pressable
                 key={tab.value}
-                onPress={() => onChange(tab.value)}
+                onPress={() => handlePress(tab.value)}
                 onLayout={(e) => {
-                  const { x, width } = e.nativeEvent.layout;
+                  const { x, width, height } = e.nativeEvent.layout;
                   const prev = tabLayouts.current[tab.value];
                   const changed = !prev || prev.x !== x || prev.width !== width;
-                  tabLayouts.current[tab.value] = { x, width };
-                  if (tab.value === value && (!hasMeasured || changed)) {
-                    pillX.value = x;
-                    pillW.value = width;
+                  tabLayouts.current[tab.value] = { x, width, height };
+                  if (height > 0 && Math.abs(height - pillHeight) > 0.5) {
+                    setPillHeight(height);
+                  }
+                  if (tab.value === visualValue && (!hasMeasured || changed)) {
+                    setPillState({ x, width, animated: false });
                     if (!hasMeasured) setHasMeasured(true);
                   }
                 }}
@@ -1149,15 +1176,6 @@ const styles = StyleSheet.create({
     gap: 0,
     alignItems: 'center',
     position: 'relative',
-  },
-  tabSlidingPillWrap: {
-    position: 'absolute',
-    top: 4,
-    bottom: 4,
-  },
-  tabSlidingPill: {
-    flex: 1,
-    borderRadius: 999,
   },
   tabItem: {
     height: 32,
