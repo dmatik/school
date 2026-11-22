@@ -233,6 +233,7 @@ export function LoginScreen({
               <IconInput
                 testID="username-input"
                 icon={UserIcon}
+                forceLtr
                 value={username}
                 onChangeText={setUsername}
                 placeholder={t('auth.username_placeholder')}
@@ -247,6 +248,7 @@ export function LoginScreen({
               <IconInput
                 testID="password-input"
                 icon={Lock}
+                forceLtr
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"

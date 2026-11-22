@@ -128,6 +128,7 @@ export function LoginView({
               <IconInput
                 id="username"
                 type="text"
+                dir="ltr"
                 icon={UserIcon}
                 autoComplete="username"
                 placeholder={t("auth.username_placeholder")}
@@ -142,6 +143,7 @@ export function LoginView({
               <IconInput
                 id="password"
                 type="password"
+                dir="ltr"
                 icon={Lock}
                 autoComplete="current-password"
                 placeholder="••••••••"
