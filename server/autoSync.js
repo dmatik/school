@@ -52,8 +52,7 @@ export function createAutoSync({
   now = () => Date.now(),
   random = Math.random,
   allowed = isAutoSyncAllowed,
-  logger = webtopLog,
-  onStateChange = () => {}
+  logger = webtopLog
 }) {
   let timer = null;
   let transientFailures = 0;
@@ -66,7 +65,6 @@ export function createAutoSync({
   const setNextSync = (credsId, delayMs) => {
     db.prepare('UPDATE webtop_credentials SET next_sync_at = ? WHERE id = ?')
       .run(new Date(now() + delayMs).toISOString(), credsId);
-    onStateChange();
   };
 
   function schedule(delayMs) {
@@ -102,7 +100,6 @@ export function createAutoSync({
       transientFailures = 0;
       db.prepare(`UPDATE webtop_credentials SET consecutive_failures = 0, auto_sync_paused_reason = NULL WHERE id = ?`)
         .run(creds.id);
-      onStateChange();
       return;
     }
     if (error instanceof WebtopAuthError) {
@@ -111,7 +108,6 @@ export function createAutoSync({
       db.prepare(`UPDATE webtop_credentials SET consecutive_failures = ?, auto_sync_paused_reason = ? WHERE id = ?`)
         .run(failures, reason, creds.id);
       if (reason) logger.lockout('[AutoSync] Auto-sync paused after repeated wrong-password failures', { failures });
-      onStateChange();
     }
   }
 
@@ -209,7 +205,6 @@ export function createAutoSync({
       WHERE id = ?
     `).run(enabled ? 1 : 0, creds.id);
     if (enabled && allowed()) schedule(computeNextDelayMs(now(), random));
-    onStateChange();
     return true;
   }
 

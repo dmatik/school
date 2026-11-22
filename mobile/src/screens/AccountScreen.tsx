@@ -53,10 +53,12 @@ import type { User } from '../../../src/types';
 
 export function AccountScreen({
   currentUser,
+  syncTrigger = 0,
   onUserUpdated,
   onLogout,
 }: {
   currentUser: User;
+  syncTrigger?: number;
   onUserUpdated: (user: User) => void;
   onLogout: () => void;
 }) {
@@ -121,7 +123,7 @@ export function AccountScreen({
     return () => {
       active = false;
     };
-  }, [loadPasskeys]);
+  }, [loadPasskeys, syncTrigger]);
 
   const getDefaultPasskeyName = () => {
     if (Platform.OS === 'ios') return t('account.passkey_device_iphone');

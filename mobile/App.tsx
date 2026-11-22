@@ -57,10 +57,31 @@ function AppShell() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('homework');
   const [visitedTabs, setVisitedTabs] = useState<Set<AppTab>>(() => new Set(['homework']));
-  const { syncState, domainVersions, checkNow } = useServerSync(Boolean(currentUser));
-  const lastSyncedAt = syncState.lastSyncedAt;
+  const { webtopState, foregroundTrigger, refreshConfig } = useServerSync(Boolean(currentUser));
+  const lastSyncedAt = webtopState.lastSyncedAt;
 
   const [syncTrigger, setSyncTrigger] = useState(0);
+  const [tabSyncTriggers, setTabSyncTriggers] = useState<Record<AppTab, number>>({
+    homework: 0,
+    incidents: 0,
+    exams: 0,
+    schedule: 0,
+    settings: 0,
+    admin: 0,
+    account: 0,
+  });
+  const activeTabRef = useRef<AppTab>(activeTab);
+  useEffect(() => {
+    activeTabRef.current = activeTab;
+  }, [activeTab]);
+
+  // Case 2 (Return from Background): silently refresh only the currently visible tab
+  useEffect(() => {
+    if (foregroundTrigger === 0) return;
+    const current = activeTabRef.current;
+    setTabSyncTriggers((prev) => ({ ...prev, [current]: prev[current] + 1 }));
+  }, [foregroundTrigger]);
+
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
   const syncSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -107,10 +128,17 @@ function AppShell() {
   const selectTab = useCallback(
     (nextTab: AppTab) => {
       switchTabScroll(nextTab);
-      setVisitedTabs((prev) => (prev.has(nextTab) ? prev : new Set(prev).add(nextTab)));
+      const alreadyVisited = visitedTabs.has(nextTab);
+      if (!alreadyVisited) {
+        setVisitedTabs((prev) => new Set(prev).add(nextTab));
+      } else if (nextTab !== activeTab) {
+        // Case 3 (Dock tab switch): silently refresh only the newly selected tab
+        setTabSyncTriggers((prev) => ({ ...prev, [nextTab]: prev[nextTab] + 1 }));
+      }
       setActiveTab(nextTab);
+      void refreshConfig(false);
     },
-    [switchTabScroll]
+    [switchTabScroll, visitedTabs, activeTab, refreshConfig]
   );
 
   const handleLoginSuccess = (serverUrl: string, token: string, user: User) => {
@@ -137,15 +165,15 @@ function AppShell() {
     try {
       // 1. Immediately refresh internal server state across active views
       setSyncTrigger((prev) => prev + 1);
-      const latestCfg = await checkNow(false);
-      const isConfigured = latestCfg?.configured ?? syncState.configured;
+      const latestCfg = await refreshConfig(false);
+      const isConfigured = latestCfg?.configured ?? webtopState.configured;
 
       // 2. If Webtop is configured, also sync with Webtop and refresh again
       if (isConfigured) {
         const res = await apiFetch('/api/webtop/sync', { method: 'POST' });
         if (res.ok) {
           setSyncTrigger((prev) => prev + 1);
-          await checkNow(false);
+          await refreshConfig(false);
         }
       }
 
@@ -232,7 +260,7 @@ function AppShell() {
             pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'homework' && styles.tabPaneHidden]}
           >
-            <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.homework} />
+            <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.homework} />
           </View>
         )}
         {visitedTabs.has('incidents') && (
@@ -240,7 +268,7 @@ function AppShell() {
             pointerEvents={activeTab === 'incidents' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'incidents' && styles.tabPaneHidden]}
           >
-            <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.incidents} />
+            <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.incidents} />
           </View>
         )}
         {visitedTabs.has('exams') && (
@@ -248,7 +276,7 @@ function AppShell() {
             pointerEvents={activeTab === 'exams' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'exams' && styles.tabPaneHidden]}
           >
-            <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.exams} />
+            <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.exams} />
           </View>
         )}
         {visitedTabs.has('schedule') && (
@@ -256,7 +284,7 @@ function AppShell() {
             pointerEvents={activeTab === 'schedule' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'schedule' && styles.tabPaneHidden]}
           >
-            <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.schedule} />
+            <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.schedule} />
           </View>
         )}
         {visitedTabs.has('settings') && (
@@ -266,10 +294,10 @@ function AppShell() {
           >
             <SettingsScreen
               currentUser={currentUser}
-              syncTrigger={syncTrigger + domainVersions.config}
+              syncTrigger={syncTrigger + tabSyncTriggers.settings}
               onSyncCompleted={() => {
                 setSyncTrigger((prev) => prev + 1);
-                void checkNow(false);
+                void refreshConfig(false);
               }}
             />
           </View>
@@ -279,7 +307,7 @@ function AppShell() {
             pointerEvents={activeTab === 'admin' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'admin' && styles.tabPaneHidden]}
           >
-            <AdminScreen currentUser={currentUser} />
+            <AdminScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.admin} />
           </View>
         )}
         {visitedTabs.has('account') && (
@@ -289,6 +317,7 @@ function AppShell() {
           >
             <AccountScreen
               currentUser={currentUser}
+              syncTrigger={syncTrigger + tabSyncTriggers.account}
               onUserUpdated={setCurrentUser}
               onLogout={handleLogout}
             />
