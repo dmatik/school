@@ -1,0 +1,56 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/schedule.spec.ts & e2e/navigation.spec.ts: Exams FAB modal & Admin Add User full-screen modal
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${ADMIN_USERNAME}"
+      PASSWORD: "${ADMIN_PASSWORD}"
+
+# 1. Exams floating Add Exam button & modal
+- tapOn:
+    id: "dock-tab-exams"
+- assertVisible:
+    text: "מבחנים|Exams"
+- assertVisible:
+    id: "add-exam-fab"
+- tapOn:
+    id: "add-exam-fab"
+- assertVisible:
+    id: "exam-modal"
+- assertVisible:
+    id: "exam-name-input"
+- assertVisible:
+    id: "exam-save-btn"
+- assertVisible:
+    id: "exam-cancel-btn"
+- tapOn:
+    id: "exam-cancel-btn"
+- assertNotVisible:
+    id: "exam-modal"
+
+# 2. Admin floating Add User button & full-screen modal
+# Tap Settings first so LiquidDock auto-scrolls the 6th tab (Admin) into view
+- tapOn:
+    id: "dock-tab-settings"
+- waitForAnimationToEnd
+- tapOn:
+    id: "dock-tab-admin"
+- assertVisible:
+    id: "add-user-fab"
+- tapOn:
+    id: "add-user-fab"
+- assertVisible:
+    id: "user-modal"
+- assertVisible:
+    id: "create-username"
+- assertVisible:
+    id: "create-user-submit"
+- assertVisible:
+    id: "create-user-cancel"
+- tapOn:
+    id: "create-user-cancel"
+- assertNotVisible:
+    id: "user-modal"

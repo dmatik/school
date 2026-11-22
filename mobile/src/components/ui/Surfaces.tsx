@@ -16,13 +16,16 @@ import { useDirection } from '../../i18n';
 export function CardSurface({
   children,
   style,
+  testID,
 }: {
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   const { palette } = useTheme();
   return (
     <View
+      testID={testID}
       style={[
         styles.cardSurface,
         {
@@ -47,6 +50,7 @@ export function SectionCard({
   style,
   headerStyle,
   contentStyle,
+  testID,
 }: {
   icon?: LucideIcon;
   title?: string;
@@ -57,6 +61,7 @@ export function SectionCard({
   style?: StyleProp<ViewStyle>;
   headerStyle?: StyleProp<ViewStyle>;
   contentStyle?: StyleProp<ViewStyle>;
+  testID?: string;
 }) {
   const { palette } = useTheme();
   const { flexRow, textAlign, isRTL } = useDirection();
@@ -67,7 +72,7 @@ export function SectionCard({
   const childArray = React.Children.toArray(children);
 
   return (
-    <CardSurface style={[styles.sectionCard, style]}>
+    <CardSurface testID={testID} style={[styles.sectionCard, style]}>
       {hasHeader && (
         <View
           style={[

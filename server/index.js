@@ -940,6 +940,22 @@ async function syncWebtopData() {
     throw new Error('Webtop credentials not configured');
   }
 
+  if (process.env.WEBTOP_DISABLE_EXTERNAL === 'true') {
+    const now = new Date().toISOString();
+    const childrenCount = db.prepare("SELECT COUNT(*) as count FROM children WHERE external_source = 'webtop'").get()?.count || 0;
+    db.prepare(`
+      UPDATE webtop_credentials
+      SET last_synced_at = ?, sync_status = 'success', sync_error = null, updated_at = ?
+      WHERE id = ?
+    `).run(now, now, creds.id);
+    return {
+      mocked: true,
+      childrenCount,
+      incidentsCount: 0,
+      homeworkCount: 0
+    };
+  }
+
   const plainPassword = decryptPassword(creds.encrypted_password);
 
   // Transparently re-encrypt credentials if stored under legacy secret
@@ -1408,6 +1424,9 @@ app.get('/api/webtop/config', authenticate, (req, res) => {
 
 // POST /api/webtop/test - verify credentials live without persisting
 app.post('/api/webtop/test', authenticate, requireParent, async (req, res) => {
+  if (process.env.WEBTOP_DISABLE_EXTERNAL === 'true') {
+    return res.status(503).json({ error: 'External Webtop calls are disabled in test mode' });
+  }
   try {
     const { username, password } = req.body;
     if (!username || !password) {
@@ -1445,6 +1464,9 @@ app.post('/api/webtop/test', authenticate, requireParent, async (req, res) => {
 
 // POST /api/webtop/config - save credentials & run initial sync (parent only)
 app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => {
+  if (process.env.WEBTOP_DISABLE_EXTERNAL === 'true') {
+    return res.status(503).json({ error: 'External Webtop calls are disabled in test mode' });
+  }
   try {
     const { username, password, selectedChildId } = req.body;
     if (!username || !password) {

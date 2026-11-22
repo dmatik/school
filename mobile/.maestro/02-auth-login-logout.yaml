@@ -1,0 +1,37 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/auth.spec.ts: logs in with dedicated test user, logs out, and confirms session cleared
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${ADMIN_USERNAME}"
+      PASSWORD: "${ADMIN_PASSWORD}"
+
+- assertVisible:
+    id: "mobile-header-title"
+- assertVisible:
+    text: "שיעורי בית|Homework"
+
+# Navigate to Account via header avatar and log out
+- tapOn:
+    id: "header-account-button"
+- assertVisible:
+    text: "הגדרות חשבון|Account Settings"
+- scrollUntilVisible:
+    element:
+      id: "logout-button"
+    direction: DOWN
+- tapOn:
+    id: "logout-button"
+
+# Should return to Login screen
+- assertVisible:
+    id: "username-input"
+
+# Relaunch without clearing state to verify auth token was actually cleared on logout
+- launchApp:
+    clearState: false
+- assertVisible:
+    id: "username-input"

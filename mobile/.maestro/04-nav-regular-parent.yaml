@@ -1,0 +1,37 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/navigation.spec.ts: regular parent sees 5 tabs (no Admin) and sees Webtop Integration in Settings
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${PARENT_USERNAME}"
+      PASSWORD: "${PARENT_PASSWORD}"
+
+- assertVisible:
+    id: "dock-tab-homework"
+- assertVisible:
+    id: "dock-tab-incidents"
+- assertVisible:
+    id: "dock-tab-exams"
+- assertVisible:
+    id: "dock-tab-schedule"
+- assertVisible:
+    id: "dock-tab-settings"
+- assertNotVisible:
+    id: "dock-tab-admin"
+
+- tapOn:
+    id: "dock-tab-schedule"
+- assertVisible:
+    text: "מערכת שעות|Weekly Schedule"
+
+- tapOn:
+    id: "dock-tab-settings"
+- assertVisible:
+    text: "הגדרות|Settings"
+- assertVisible:
+    id: "settings-webtop-card"
+- assertVisible:
+    text: "חיבור למערכת Webtop|Webtop Integration"

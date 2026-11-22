@@ -1,4 +1,20 @@
 flows:
-  - auth.yaml
-  - navigation.yaml
-  - schedule.yaml
+  - 01-auth-form-and-invalid.yaml
+  - 02-auth-login-logout.yaml
+  - 03-nav-admin.yaml
+  - 04-nav-regular-parent.yaml
+  - 05-nav-child.yaml
+  - 06-schedule-parent.yaml
+  - 07-schedule-child-readonly.yaml
+  - 08-modals-exams-and-admin.yaml
+executionOrder:
+  continueOnFailure: true
+  flowsOrder:
+    - 01-auth-form-and-invalid
+    - 02-auth-login-logout
+    - 03-nav-admin
+    - 04-nav-regular-parent
+    - 05-nav-child
+    - 06-schedule-parent
+    - 07-schedule-child-readonly
+    - 08-modals-exams-and-admin

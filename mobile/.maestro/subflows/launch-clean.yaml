@@ -1,0 +1,35 @@
+appId: com.dmatik.school
+---
+- launchApp:
+    clearState: true
+    clearKeychain: true
+
+# If running against an Expo Dev Client debug build, clearState resets the saved Metro URL.
+# Connect back to local Metro automatically when the Dev Launcher screen appears.
+- runFlow:
+    when:
+      visible: "Development servers|Enter URL manually|Fetch development servers"
+    commands:
+      - openLink: "com.school.app://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+
+# Wait for Metro bundle to finish loading (either Dev Menu onboarding or LoginScreen)
+- extendedWaitUntil:
+    visible: "Continue|This is the developer menu|כתובת שרת|Server URL"
+    timeout: 60000
+
+# Dismiss Expo Dev Client's first-launch "This is the developer menu" onboarding sheet
+- runFlow:
+    when:
+      visible: "This is the developer menu"
+    commands:
+      - tapOn: "Continue"
+      - extendedWaitUntil:
+          notVisible: "This is the developer menu"
+          timeout: 10000
+      - waitForAnimationToEnd
+
+- extendedWaitUntil:
+    visible:
+      id: "server-url-input"
+    timeout: 15000
+- waitForAnimationToEnd

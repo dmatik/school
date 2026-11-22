@@ -328,6 +328,7 @@ export function ExamsScreen({
       )}
 
       <FullScreenModal
+        testID="exam-modal"
         visible={modalOpen}
         onClose={() => setModalOpen(false)}
         title={editingExam ? t('exams.edit_modal_title') : t('exams.add_modal_title')}
@@ -351,12 +352,14 @@ export function ExamsScreen({
             )}
             <View style={{ flexDirection: flexRow, gap: 8, alignItems: 'center' }}>
               <Button
+                testID="exam-cancel-btn"
                 label={t('common.cancel')}
                 variant="outline"
                 size="sm"
                 onPress={() => setModalOpen(false)}
               />
               <Button
+                testID="exam-save-btn"
                 label={t('common.save')}
                 size="sm"
                 loading={saving}
@@ -381,6 +384,7 @@ export function ExamsScreen({
         <View style={{ gap: 6 }}>
           <FieldLabel label={t('exams.name_label')} />
           <FilledInput
+            testID="exam-name-input"
             value={formName}
             onChangeText={setFormName}
             placeholder={t('exams.name_placeholder')}

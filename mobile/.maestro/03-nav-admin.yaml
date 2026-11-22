@@ -1,0 +1,78 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/navigation.spec.ts: admin sees all 6 tabs, mobile header titles, and Account without Webtop config
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${ADMIN_USERNAME}"
+      PASSWORD: "${ADMIN_PASSWORD}"
+
+# 1. Homework (default tab) with synthetic data
+- assertVisible:
+    id: "mobile-header-title"
+- assertVisible:
+    text: "שיעורי בית|Homework"
+- assertVisible:
+    id: "homework-search-input"
+- assertVisible:
+    text: "מתמטיקה"
+
+# 2. Incidents tab
+- tapOn:
+    id: "dock-tab-incidents"
+- assertVisible:
+    text: "אירועי משמעת|School Incidents"
+- assertVisible:
+    id: "incidents-search-input"
+- assertVisible:
+    text: ".*מילה טובה.*"
+
+# 3. Exams tab
+- tapOn:
+    id: "dock-tab-exams"
+- assertVisible:
+    text: "מבחנים|Exams"
+- assertVisible:
+    id: "exams-search-input"
+- assertVisible:
+    text: ".*מבחן במתמטיקה.*"
+
+# 4. Schedule tab
+- tapOn:
+    id: "dock-tab-schedule"
+- assertVisible:
+    text: "מערכת שעות|Weekly Schedule"
+
+# 5. Settings tab (parent/admin sees Webtop Integration card)
+- tapOn:
+    id: "dock-tab-settings"
+- assertVisible:
+    text: "הגדרות|Settings"
+- assertVisible:
+    id: "settings-webtop-card"
+- assertVisible:
+    text: "חיבור למערכת Webtop|Webtop Integration"
+
+# 6. Admin tab
+- tapOn:
+    id: "dock-tab-admin"
+- assertVisible:
+    text: "ניהול מערכת|Administration|System Administration"
+- assertVisible:
+    id: "add-user-fab"
+
+# 7. Account screen via header avatar
+- tapOn:
+    id: "header-account-button"
+- assertVisible:
+    text: "הגדרות חשבון|Account Settings"
+- assertNotVisible:
+    id: "settings-webtop-card"
+- scrollUntilVisible:
+    element:
+      id: "logout-button"
+    direction: DOWN
+- assertVisible:
+    id: "logout-button"

@@ -258,6 +258,8 @@ function AppShell() {
         {visitedTabs.has('homework') && (
           <View
             pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'homework'}
+            importantForAccessibility={activeTab === 'homework' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'homework' && styles.tabPaneHidden]}
           >
             <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.homework} />
@@ -266,6 +268,8 @@ function AppShell() {
         {visitedTabs.has('incidents') && (
           <View
             pointerEvents={activeTab === 'incidents' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'incidents'}
+            importantForAccessibility={activeTab === 'incidents' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'incidents' && styles.tabPaneHidden]}
           >
             <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.incidents} />
@@ -274,6 +278,8 @@ function AppShell() {
         {visitedTabs.has('exams') && (
           <View
             pointerEvents={activeTab === 'exams' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'exams'}
+            importantForAccessibility={activeTab === 'exams' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'exams' && styles.tabPaneHidden]}
           >
             <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.exams} />
@@ -282,6 +288,8 @@ function AppShell() {
         {visitedTabs.has('schedule') && (
           <View
             pointerEvents={activeTab === 'schedule' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'schedule'}
+            importantForAccessibility={activeTab === 'schedule' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'schedule' && styles.tabPaneHidden]}
           >
             <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.schedule} />
@@ -290,6 +298,8 @@ function AppShell() {
         {visitedTabs.has('settings') && (
           <View
             pointerEvents={activeTab === 'settings' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'settings'}
+            importantForAccessibility={activeTab === 'settings' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'settings' && styles.tabPaneHidden]}
           >
             <SettingsScreen
@@ -305,6 +315,8 @@ function AppShell() {
         {visitedTabs.has('admin') && currentUser.role === 'admin' && (
           <View
             pointerEvents={activeTab === 'admin' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'admin'}
+            importantForAccessibility={activeTab === 'admin' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'admin' && styles.tabPaneHidden]}
           >
             <AdminScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.admin} />
@@ -313,6 +325,8 @@ function AppShell() {
         {visitedTabs.has('account') && (
           <View
             pointerEvents={activeTab === 'account' ? 'auto' : 'none'}
+            accessibilityElementsHidden={activeTab !== 'account'}
+            importantForAccessibility={activeTab === 'account' ? 'yes' : 'no-hide-descendants'}
             style={[styles.tabPane, activeTab !== 'account' && styles.tabPaneHidden]}
           >
             <AccountScreen

@@ -10,11 +10,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.join(__dirname, '../data');
-const DB_FILE = path.join(DATA_DIR, 'school.db');
+const DB_FILE = process.env.SCHOOL_DB_PATH
+  ? path.resolve(process.env.SCHOOL_DB_PATH)
+  : path.join(DATA_DIR, 'school.db');
+const DB_DIR = path.dirname(DB_FILE);
 
-// Ensure data directory exists
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+// Ensure database directory exists
+if (!fs.existsSync(DB_DIR)) {
+  fs.mkdirSync(DB_DIR, { recursive: true });
 }
 
 // Open SQLite database

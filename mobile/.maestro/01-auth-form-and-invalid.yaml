@@ -1,0 +1,22 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/auth.spec.ts: displays login form & shows error on invalid credentials
+- runFlow: subflows/launch-clean.yaml
+
+- assertVisible:
+    id: "server-url-input"
+- assertVisible:
+    id: "username-input"
+- assertVisible:
+    id: "password-input"
+- assertVisible:
+    id: "login-submit-button"
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "nonexistent_user_123"
+      PASSWORD: "wrong_password_123"
+
+- assertVisible:
+    id: "login-error-box"

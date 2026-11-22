@@ -1,0 +1,37 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/navigation.spec.ts: child user sees 5 tabs, Appearance & Language, NO Webtop config, and Sync button works safely
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${CHILD_USERNAME}"
+      PASSWORD: "${CHILD_PASSWORD}"
+
+- assertNotVisible:
+    id: "dock-tab-admin"
+- assertVisible:
+    id: "header-sync-button"
+
+# Tap Sync button (server runs with WEBTOP_DISABLE_EXTERNAL=true so zero real Webtop calls occur)
+- tapOn:
+    id: "header-sync-button"
+
+- tapOn:
+    id: "dock-tab-schedule"
+- assertVisible:
+    text: "מערכת שעות|Weekly Schedule"
+
+- tapOn:
+    id: "dock-tab-settings"
+- assertVisible:
+    text: "הגדרות|Settings"
+- assertVisible:
+    id: "settings-language-selector"
+- assertVisible:
+    id: "settings-theme-selector"
+- assertNotVisible:
+    id: "settings-webtop-card"
+- assertNotVisible:
+    text: "חיבור למערכת Webtop|Webtop Integration"

@@ -1,0 +1,48 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/schedule.spec.ts: parent schedule, child selector, 3-day mobile table, share button, and edit FAB toggle
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${ADMIN_USERNAME}"
+      PASSWORD: "${ADMIN_PASSWORD}"
+
+- tapOn:
+    id: "dock-tab-schedule"
+- assertVisible:
+    text: "מערכת שעות|Weekly Schedule"
+
+- assertVisible:
+    id: "schedule-child-selector"
+- assertVisible:
+    id: "schedule-share-btn"
+- assertVisible:
+    id: "schedule-table"
+- assertVisible:
+    id: "schedule-hour-col"
+- assertVisible:
+    id: "schedule-finish-icon"
+- assertVisible:
+    id: "schedule-dismissal-row"
+
+# Switch between synthetic children
+- tapOn:
+    text: "${CHILD2_NAME}"
+- assertVisible:
+    id: "schedule-table"
+- tapOn:
+    text: "${CHILD1_NAME}"
+
+# Toggle edit mode FAB on and off
+- assertVisible:
+    id: "schedule-edit-fab"
+- tapOn:
+    id: "schedule-edit-fab"
+- assertVisible:
+    id: "schedule-edit-fab"
+- tapOn:
+    id: "schedule-edit-fab"
+- assertVisible:
+    id: "schedule-edit-fab"
