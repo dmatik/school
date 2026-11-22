@@ -198,6 +198,7 @@ export function ScheduleTable({
 
       {/* Unified Schedule Table Container */}
       <View
+        testID="schedule-table"
         onLayout={(e) => {
           const nextW = e.nativeEvent.layout.width;
           if (nextW > 0 && Math.abs(nextW - tableWidth) > 0.5) {

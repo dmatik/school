@@ -340,6 +340,7 @@ export function SettingsScreen({
         {/* Webtop Integration Card */}
         {!isChild && (
           <SectionCard
+            testID="settings-webtop-card"
             icon={GraduationCap}
             title={t('account.webtop_title')}
             description={t('account.webtop_desc')}

@@ -1,0 +1,23 @@
+appId: com.dmatik.school
+---
+# Mirrors e2e/schedule.spec.ts: child user views schedule in read-only mode without child selector or edit FAB
+- runFlow: subflows/launch-clean.yaml
+
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${CHILD_USERNAME}"
+      PASSWORD: "${CHILD_PASSWORD}"
+
+- tapOn:
+    id: "dock-tab-schedule"
+- assertVisible:
+    text: "מערכת שעות|Weekly Schedule"
+- assertVisible:
+    id: "schedule-table"
+- assertVisible:
+    id: "schedule-hour-col"
+- assertNotVisible:
+    id: "schedule-child-selector"
+- assertNotVisible:
+    id: "schedule-edit-fab"

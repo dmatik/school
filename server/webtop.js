@@ -114,6 +114,9 @@ function isTransientNetworkError(err) {
 }
 
 async function fetchWithRetry(url, buildOptions, maxRetries = 2) {
+  if (process.env.WEBTOP_DISABLE_EXTERNAL === 'true') {
+    throw new Error('External Webtop calls are disabled in test mode');
+  }
   let lastError;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     try {

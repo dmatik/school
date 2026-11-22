@@ -1,0 +1,35 @@
+appId: com.dmatik.school
+---
+- tapOn:
+    id: "server-url-input"
+- waitForAnimationToEnd
+- inputText: "${SERVER_URL}"
+- runFlow:
+    when:
+      visible: "https://school.example.com"
+    commands:
+      - tapOn:
+          id: "server-url-input"
+      - waitForAnimationToEnd
+      - inputText: "${SERVER_URL}"
+- tapOn:
+    id: "username-input"
+- waitForAnimationToEnd
+- inputText: "${USERNAME}"
+- tapOn:
+    id: "password-input"
+- waitForAnimationToEnd
+- inputText: "${PASSWORD}"
+- hideKeyboard
+- tapOn:
+    id: "login-submit-button"
+- waitForAnimationToEnd
+# Dismiss iOS system "Save Password?" prompt if shown (not present on Android)
+- runFlow:
+    when:
+      visible: "Save Password\\?|Not Now"
+    commands:
+      - tapOn:
+          text: "Not Now"
+          optional: true
+      - waitForAnimationToEnd
