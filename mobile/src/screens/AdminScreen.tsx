@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -24,7 +24,13 @@ import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User, WebtopChild } from '../../../src/types';
 
-export function AdminScreen({ currentUser }: { currentUser: User }) {
+export function AdminScreen({
+  currentUser,
+  syncTrigger = 0,
+}: {
+  currentUser: User;
+  syncTrigger?: number;
+}) {
   const { t } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
@@ -35,6 +41,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const hasLoadedRef = useRef(false);
 
   const [userModalOpen, setUserModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
@@ -57,7 +64,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
 
   const loadData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setRefreshing(true);
-    else setLoading(true);
+    else if (!hasLoadedRef.current) setLoading(true);
     try {
       const [usersRes, cfgRes] = await Promise.all([
         apiFetch('/api/admin/users'),
@@ -71,6 +78,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
         const cfg = await cfgRes.json();
         setChildren(cfg.linkedChildren || []);
       }
+      hasLoadedRef.current = true;
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -79,7 +87,7 @@ export function AdminScreen({ currentUser }: { currentUser: User }) {
 
   useEffect(() => {
     loadData();
-  }, [loadData]);
+  }, [loadData, syncTrigger]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();

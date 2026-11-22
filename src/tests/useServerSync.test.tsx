@@ -2,13 +2,10 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useServerSync } from '@/hooks/useServerSync'
 
-function mockSyncResponse(overrides: Record<string, unknown> = {}) {
+function mockConfigResponse(overrides: Record<string, unknown> = {}) {
   return {
     ok: true,
     json: async () => ({
-      version: 1,
-      serverEpoch: 'epoch-1',
-      domains: { homework: 1, incidents: 1, exams: 1, schedule: 1, config: 1 },
       configured: true,
       lastSyncedAt: '2026-11-22T05:00:00.000Z',
       nextSyncAt: null,
@@ -21,7 +18,7 @@ function mockSyncResponse(overrides: Record<string, unknown> = {}) {
   } as Response
 }
 
-describe('useServerSync', () => {
+describe('useServerSync (event-driven, no periodic polling)', () => {
   beforeEach(() => {
     vi.useFakeTimers()
     Object.defineProperty(document, 'visibilityState', {
@@ -35,73 +32,56 @@ describe('useServerSync', () => {
     vi.restoreAllMocks()
   })
 
-  it('establishes baseline on mount without bumping domainVersions, then bumps only changed domains', async () => {
+  it('fetches /api/webtop/config on app open and does NOT poll periodically while idle', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValueOnce(mockSyncResponse())
-      .mockResolvedValueOnce(
-        mockSyncResponse({
-          version: 2,
-          domains: { homework: 2, incidents: 1, exams: 1, schedule: 1, config: 1 },
-        })
-      )
+      .mockResolvedValue(mockConfigResponse())
 
-    const { result } = renderHook(() => useServerSync('test-token', 30_000))
+    const { result } = renderHook(() => useServerSync('test-token'))
 
     await act(async () => {
       await Promise.resolve()
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(1)
-    expect(result.current.syncState.configured).toBe(true)
-    expect(result.current.domainVersions).toEqual({
-      homework: 0,
-      incidents: 0,
-      exams: 0,
-      schedule: 0,
-      config: 0,
-    })
+    expect(fetchMock).toHaveBeenCalledWith('/api/webtop/config', expect.any(Object))
+    expect(result.current.webtopState.lastSyncedAt).toBe('2026-11-22T05:00:00.000Z')
+    expect(result.current.foregroundTrigger).toBe(0)
 
+    // Advance 5 minutes while tab stays open — zero periodic polling requests
     await act(async () => {
-      await vi.advanceTimersByTimeAsync(30_000)
+      await vi.advanceTimersByTimeAsync(5 * 60_000)
     })
 
-    expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(result.current.domainVersions).toEqual({
-      homework: 1,
-      incidents: 0,
-      exams: 0,
-      schedule: 0,
-      config: 0,
-    })
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.current.foregroundTrigger).toBe(0)
   })
 
-  it('pauses polling when hidden and checks immediately on return to visible', async () => {
+  it('refreshes config and increments foregroundTrigger when returning from background', async () => {
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(mockSyncResponse())
+      .mockResolvedValueOnce(mockConfigResponse())
+      .mockResolvedValueOnce(
+        mockConfigResponse({ lastSyncedAt: '2026-11-22T08:15:00.000Z' })
+      )
 
-    renderHook(() => useServerSync('test-token', 30_000))
+    const { result } = renderHook(() => useServerSync('test-token'))
 
     await act(async () => {
       await Promise.resolve()
     })
     expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(result.current.foregroundTrigger).toBe(0)
 
-    // Hide tab -> polling stops
+    // Simulate leaving and returning after 2 seconds
     await act(async () => {
+      await vi.advanceTimersByTimeAsync(2_000)
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
         value: 'hidden',
       })
       document.dispatchEvent(new Event('visibilitychange'))
-      await vi.advanceTimersByTimeAsync(90_000)
-    })
 
-    expect(fetchMock).toHaveBeenCalledTimes(1)
-
-    // Return to visible -> immediate check
-    await act(async () => {
       Object.defineProperty(document, 'visibilityState', {
         configurable: true,
         value: 'visible',
@@ -111,6 +91,8 @@ describe('useServerSync', () => {
     })
 
     expect(fetchMock).toHaveBeenCalledTimes(2)
+    expect(result.current.foregroundTrigger).toBe(1)
+    expect(result.current.webtopState.lastSyncedAt).toBe('2026-11-22T08:15:00.000Z')
   })
 
   it('triggers sync-if-stale only when autoSyncAvailable and autoSyncEnabled, and throttles it', async () => {
@@ -122,13 +104,13 @@ describe('useServerSync', () => {
           json: async () => ({ skipped: true, reason: 'fresh' }),
         } as Response
       }
-      return mockSyncResponse({
+      return mockConfigResponse({
         autoSyncAvailable: true,
         autoSyncEnabled: true,
       })
     })
 
-    renderHook(() => useServerSync('test-token', 30_000))
+    renderHook(() => useServerSync('test-token'))
 
     await act(async () => {
       await Promise.resolve()
@@ -140,7 +122,7 @@ describe('useServerSync', () => {
     ).length
     expect(staleCallsAfterMount).toBe(1)
 
-    // Focus 2 seconds later -> should check /api/sync/state but NOT call sync-if-stale again (5-min throttle)
+    // Focus 2 seconds later -> refreshes config, but does NOT call sync-if-stale again (5-min throttle)
     await act(async () => {
       await vi.advanceTimersByTimeAsync(2_000)
       window.dispatchEvent(new Event('focus'))
