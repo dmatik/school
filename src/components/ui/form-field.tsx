@@ -55,12 +55,14 @@ export function IconInput({
   variant = "filled",
   className,
   wrapperClassName,
+  dir,
   ...props
 }: IconInputProps) {
   return (
-    <div className={cn("relative w-full", wrapperClassName)}>
+    <div dir={dir} className={cn("relative w-full", wrapperClassName)}>
       <Icon className="absolute start-3 top-2.5 h-4 w-4 text-muted-foreground pointer-events-none" />
       <Input
+        dir={dir}
         className={cn(
           "ps-9 h-9 text-sm rounded-full border-transparent",
           variant === "filled" && "bg-muted dark:bg-secondary",
