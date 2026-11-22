@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -91,12 +91,16 @@ export function ScheduleScreen({
     }
   }, [isChild, currentUser.linkedChildId]);
 
-  const loadSchedule = useCallback(async (childId: string) => {
+  const lastLoadedChildIdRef = useRef<string | null>(null);
+
+  const loadSchedule = useCallback(async (childId: string, showSpinner = false) => {
     if (!childId) {
       setLoading(false);
       return;
     }
-    setLoading(true);
+    if (showSpinner) {
+      setLoading(true);
+    }
 
     try {
       const res = await apiFetch(`/api/schedule?childId=${encodeURIComponent(childId)}`);
@@ -118,11 +122,13 @@ export function ScheduleScreen({
 
   useEffect(() => {
     if (selectedChildId) {
-      loadSchedule(selectedChildId);
+      const isChildSwitch = lastLoadedChildIdRef.current !== selectedChildId;
+      lastLoadedChildIdRef.current = selectedChildId;
+      loadSchedule(selectedChildId, isChildSwitch);
     } else if (config !== null) {
       setLoading(false);
     }
-  }, [selectedChildId, config, loadSchedule]);
+  }, [selectedChildId, config, loadSchedule, syncTrigger]);
 
   const currentChild = useMemo(() => {
     if (!config?.linkedChildren?.length) return null;

@@ -7,6 +7,7 @@ import jwt from 'jsonwebtoken';
 import { fileURLToPath } from 'url';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { createAutoSync } from './autoSync.js';
+import { bumpSyncState, getSyncStateSnapshot } from './syncState.js';
 import { webtopLog, appLog, maskUser } from './webtopLogger.js';
 import {
   generateRegistrationOptions,
@@ -1329,10 +1330,12 @@ async function runWebtopSync() {
   activeSyncPromise = syncWebtopData()
     .then((result) => {
       autoSync.recordResult(null);
+      bumpSyncState('homework', 'incidents', 'exams', 'schedule', 'config');
       return result;
     })
     .catch((err) => {
       autoSync.recordResult(err);
+      bumpSyncState('config');
       throw err;
     })
     .finally(() => {
@@ -1342,7 +1345,34 @@ async function runWebtopSync() {
 }
 
 // Production-only background sync (no-op in development/test; see server/autoSync.js)
-const autoSync = createAutoSync({ db, runSync: () => runWebtopSync() });
+const autoSync = createAutoSync({
+  db,
+  runSync: () => runWebtopSync(),
+  onStateChange: () => bumpSyncState('config')
+});
+
+// GET /api/sync/state - lightweight client-to-server synchronization state
+app.get('/api/sync/state', authenticate, (req, res) => {
+  try {
+    const creds = db.prepare(`
+      SELECT last_synced_at, sync_status
+      FROM webtop_credentials
+      ORDER BY updated_at DESC
+      LIMIT 1
+    `).get();
+
+    res.json({
+      ...getSyncStateSnapshot(),
+      configured: Boolean(creds),
+      lastSyncedAt: creds ? creds.last_synced_at : null,
+      syncStatus: creds ? creds.sync_status : 'idle',
+      ...autoSync.getStatus()
+    });
+  } catch (err) {
+    console.error('Failed to fetch sync state:', err);
+    res.status(500).json({ error: 'Failed to fetch sync state' });
+  }
+});
 
 // GET /api/webtop/config
 app.get('/api/webtop/config', authenticate, (req, res) => {
@@ -1527,6 +1557,7 @@ app.post('/api/webtop/config', authenticate, requireParent, async (req, res) => 
       logWebtopFailure('Initial sync warning', syncErr);
     }
 
+    bumpSyncState('homework', 'incidents', 'exams', 'schedule', 'config');
     appLog.info('Webtop config updated', { user: req.user.username, webtopUser: maskUser(username) });
 
     res.json({
@@ -1573,6 +1604,7 @@ app.patch('/api/webtop/child', authenticate, requireParent, (req, res) => {
     }
 
     appLog.info('Active child switched', { user: req.user.username, childId: targetChildId });
+    bumpSyncState('config');
 
     res.json({ success: true, selectedChildId: targetChildId });
   } catch (err) {
@@ -1616,6 +1648,7 @@ app.patch('/api/webtop/child-color', authenticate, requireParent, (req, res) => 
     `).all();
 
     appLog.info('Child color updated', { user: req.user.username, childId, color: cleanColor || 'default' });
+    bumpSyncState('config');
 
     res.json({ success: true, linkedChildren });
   } catch (err) {
@@ -1691,6 +1724,7 @@ app.delete('/api/webtop/config', authenticate, requireParent, (req, res) => {
       db.prepare("DELETE FROM children WHERE external_source = 'webtop'").run();
     });
     deleteTx();
+    bumpSyncState('homework', 'incidents', 'exams', 'schedule', 'config');
     appLog.info('Webtop config deleted', { user: req.user.username });
     res.json({ success: true });
   } catch (err) {
@@ -1793,6 +1827,7 @@ app.patch('/api/homework/:id/toggle', authenticate, (req, res) => {
 
     const newCompleted = item.completed ? 0 : 1;
     db.prepare('UPDATE homework SET completed = ? WHERE id = ?').run(newCompleted, req.params.id);
+    bumpSyncState('homework');
 
     appLog.info('Homework toggled', {
       user: req.user.username,
@@ -1904,6 +1939,7 @@ app.post('/api/exams', authenticate, requireParent, (req, res) => {
       INSERT INTO exams (id, user_id, child_id, student_name, name, description, date, grade, created_at, updated_at)
       VALUES (?, 'family', ?, ?, ?, ?, ?, ?, ?, ?)
     `).run(id, child.id, studentName, cleanName, cleanDescription, cleanDate, cleanGrade, now, now);
+    bumpSyncState('exams');
 
     appLog.info('Exam created', {
       user: req.user.username,
@@ -1999,6 +2035,7 @@ app.put('/api/exams/:id', authenticate, requireParent, (req, res) => {
       SET child_id = ?, student_name = ?, name = ?, description = ?, date = ?, grade = ?, updated_at = ?
       WHERE id = ?
     `).run(targetChildId, targetStudentName, targetName, targetDescription, targetDate, targetGrade, now, req.params.id);
+    bumpSyncState('exams');
 
     appLog.info('Exam updated', {
       user: req.user.username,
@@ -2037,6 +2074,7 @@ app.delete('/api/exams/:id', authenticate, requireParent, (req, res) => {
     }
 
     db.prepare('DELETE FROM exams WHERE id = ?').run(req.params.id);
+    bumpSyncState('exams');
     appLog.info('Exam deleted', {
       user: req.user.username,
       examId: req.params.id,
@@ -2138,6 +2176,7 @@ app.put('/api/schedule/lesson', authenticate, requireParent, (req, res) => {
         DELETE FROM schedule_lessons
         WHERE child_id = ? AND day_of_week = ? AND hour_num = ?
       `).run(child.id, parsedDay, parsedHour);
+      bumpSyncState('schedule');
 
       appLog.info('Schedule lesson updated', { user: req.user.username, childId: child.id, day: parsedDay, hour: parsedHour, subject: 'cleared' });
       return res.json({ deleted: true, dayOfWeek: parsedDay, hourNum: parsedHour });
@@ -2163,6 +2202,7 @@ app.put('/api/schedule/lesson', authenticate, requireParent, (req, res) => {
     `).get(child.id, parsedDay, parsedHour);
 
     appLog.info('Schedule lesson updated', { user: req.user.username, childId: child.id, day: parsedDay, hour: parsedHour, subject: cleanSubject });
+    bumpSyncState('schedule');
     res.json({ lesson: saved });
   } catch (err) {
     console.error('Failed to update schedule lesson:', err);
@@ -2201,6 +2241,7 @@ app.put('/api/schedule/finish-time', authenticate, requireParent, (req, res) => 
         DELETE FROM schedule_day_settings
         WHERE child_id = ? AND day_of_week = ?
       `).run(child.id, parsedDay);
+      bumpSyncState('schedule');
 
       appLog.info('Schedule finish time updated', { user: req.user.username, childId: child.id, day: parsedDay, finishTime: 'cleared' });
       return res.json({ deleted: true, dayOfWeek: parsedDay });
@@ -2229,6 +2270,7 @@ app.put('/api/schedule/finish-time', authenticate, requireParent, (req, res) => 
     `).get(child.id, parsedDay);
 
     appLog.info('Schedule finish time updated', { user: req.user.username, childId: child.id, day: parsedDay, finishTime: cleanTime });
+    bumpSyncState('schedule');
     res.json({ finishTime: saved });
   } catch (err) {
     console.error('Failed to update finish time:', err);
@@ -2310,6 +2352,7 @@ app.put('/api/schedule/batch', authenticate, requireParent, (req, res) => {
     });
 
     saveBatch();
+    bumpSyncState('schedule');
 
     const updatedLessons = db.prepare(`
       SELECT id, child_id as childId, day_of_week as dayOfWeek, hour_num as hourNum, subject, coalesce(teacher, '') as teacher, coalesce(room, '') as room, updated_at as updatedAt
