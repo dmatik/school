@@ -2,7 +2,7 @@
   "expo": {
     "name": "בית הספר",
     "slug": "school-mobile",
-    "version": "1.7.1",
+    "version": "1.7.2",
     "platforms": [
       "ios",
       "android",
