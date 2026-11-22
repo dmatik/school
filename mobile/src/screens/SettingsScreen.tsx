@@ -94,7 +94,7 @@ export function SettingsScreen({
         const data: WebtopConfig = await res.json();
         hasLoadedWebtopRef.current = true;
         setConfig(data);
-        if (data.username) {
+        if (data.username && !isEditingWebtop) {
           setWebtopUsername(data.username);
         }
       }
@@ -103,7 +103,7 @@ export function SettingsScreen({
     } finally {
       setLoadingWebtop(false);
     }
-  }, [isChild]);
+  }, [isChild, isEditingWebtop]);
 
   useEffect(() => {
     loadConfig();

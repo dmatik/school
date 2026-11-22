@@ -22,6 +22,7 @@ import {
   hydrateSession,
   setActiveSession,
 } from './src/lib/api';
+import { useServerSync } from './src/hooks/useServerSync';
 import {
   MobileHeader,
   ScrollHeaderProvider,
@@ -56,10 +57,12 @@ function AppShell() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [activeTab, setActiveTab] = useState<AppTab>('homework');
   const [visitedTabs, setVisitedTabs] = useState<Set<AppTab>>(() => new Set(['homework']));
+  const { syncState, domainVersions, checkNow } = useServerSync(Boolean(currentUser));
+  const lastSyncedAt = syncState.lastSyncedAt;
+
   const [syncTrigger, setSyncTrigger] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null);
   const syncSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
@@ -71,19 +74,6 @@ function AppShell() {
   useEffect(() => {
     resetScroll();
   }, [currentUser?.id, resetScroll]);
-
-  useEffect(() => {
-    if (!currentUser) {
-      setLastSyncedAt(null);
-      return;
-    }
-    apiFetch('/api/webtop/config')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((cfg) => {
-        if (cfg?.lastSyncedAt) setLastSyncedAt(cfg.lastSyncedAt);
-      })
-      .catch(() => {});
-  }, [currentUser, syncTrigger]);
 
   useEffect(() => {
     let cancelled = false;
@@ -145,14 +135,24 @@ function AppShell() {
     setSyncSuccess(false);
     if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current);
     try {
-      const res = await apiFetch('/api/webtop/sync', { method: 'POST' });
-      if (res.ok) {
-        setSyncSuccess(true);
-        setSyncTrigger((prev) => prev + 1);
-        syncSuccessTimerRef.current = setTimeout(() => {
-          setSyncSuccess(false);
-        }, 3000);
+      // 1. Immediately refresh internal server state across active views
+      setSyncTrigger((prev) => prev + 1);
+      const latestCfg = await checkNow(false);
+      const isConfigured = latestCfg?.configured ?? syncState.configured;
+
+      // 2. If Webtop is configured, also sync with Webtop and refresh again
+      if (isConfigured) {
+        const res = await apiFetch('/api/webtop/sync', { method: 'POST' });
+        if (res.ok) {
+          setSyncTrigger((prev) => prev + 1);
+          await checkNow(false);
+        }
       }
+
+      setSyncSuccess(true);
+      syncSuccessTimerRef.current = setTimeout(() => {
+        setSyncSuccess(false);
+      }, 2000);
     } finally {
       setSyncing(false);
     }
@@ -232,7 +232,7 @@ function AppShell() {
             pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'homework' && styles.tabPaneHidden]}
           >
-            <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+            <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.homework} />
           </View>
         )}
         {visitedTabs.has('incidents') && (
@@ -240,7 +240,7 @@ function AppShell() {
             pointerEvents={activeTab === 'incidents' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'incidents' && styles.tabPaneHidden]}
           >
-            <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+            <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.incidents} />
           </View>
         )}
         {visitedTabs.has('exams') && (
@@ -248,7 +248,7 @@ function AppShell() {
             pointerEvents={activeTab === 'exams' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'exams' && styles.tabPaneHidden]}
           >
-            <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+            <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.exams} />
           </View>
         )}
         {visitedTabs.has('schedule') && (
@@ -256,7 +256,7 @@ function AppShell() {
             pointerEvents={activeTab === 'schedule' ? 'auto' : 'none'}
             style={[styles.tabPane, activeTab !== 'schedule' && styles.tabPaneHidden]}
           >
-            <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger} />
+            <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger + domainVersions.schedule} />
           </View>
         )}
         {visitedTabs.has('settings') && (
@@ -266,8 +266,11 @@ function AppShell() {
           >
             <SettingsScreen
               currentUser={currentUser}
-              syncTrigger={syncTrigger}
-              onSyncCompleted={() => setSyncTrigger((prev) => prev + 1)}
+              syncTrigger={syncTrigger + domainVersions.config}
+              onSyncCompleted={() => {
+                setSyncTrigger((prev) => prev + 1);
+                void checkNow(false);
+              }}
             />
           </View>
         )}

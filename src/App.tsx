@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, Suspense, lazy } from "react"
+import { useState, useEffect, useRef, useMemo, Suspense, lazy } from "react"
 import { motion, AnimatePresence } from "framer-motion"
 import {
   AlertCircle,
@@ -24,6 +24,7 @@ import { LiquidDock, type DockItem } from "@/components/ui/liquid-dock"
 import { SyncButton } from "@/components/ui/sync-button"
 import { PullToRefresh } from "@/components/ui/pull-to-refresh"
 import { NoticeBanner } from "@/components/ui/notice-banner"
+import { useServerSync } from "@/hooks/useServerSync"
 import { toast } from "@/hooks/use-toast"
 import type { User } from "@/types"
 import { LoginView } from "@/components/LoginView"
@@ -173,16 +174,19 @@ function App() {
     setIsScrolling(false)
   }
 
-  // Webtop sync state & triggers
-  const [webtopConfigured, setWebtopConfigured] = useState(false)
-  const [lastSyncedAt, setLastSyncedAt] = useState<string | null>(null)
+  // Client-to-server synchronization (silent focus + 30s foreground polling)
+  const { syncState, domainVersions, checkNow } = useServerSync(token)
+  const webtopConfigured = syncState.configured
+  const lastSyncedAt = syncState.lastSyncedAt
+  const autoSyncPaused = syncState.autoSyncPaused
+
+  // Manual sync UI state
   const [syncing, setSyncing] = useState(false)
   const [syncSuccess, setSyncSuccess] = useState(false)
-  const [syncSummary, setSyncSummary] = useState<string | null>(null)
   const syncSuccessTimerRef = useRef<NodeJS.Timeout | null>(null)
   const [syncTrigger, setSyncTrigger] = useState(0)
-  const [autoSyncPaused, setAutoSyncPaused] = useState(false)
-  const onOpenSyncCheckedRef = useRef(false)
+
+  const [syncSummary, setSyncSummary] = useState<string | null>(null)
 
   const mobileNavItems = useMemo<DockItem<AppTab>[]>(() => {
     const items: DockItem<AppTab>[] = [
@@ -198,59 +202,15 @@ function App() {
     return items
   }, [currentUser?.role, t])
 
-  const checkWebtopConfig = useCallback(async () => {
-    if (!token) return
-    try {
-      const res = await fetch("/api/webtop/config", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      if (res.ok) {
-        const data = await res.json()
-        setWebtopConfigured(Boolean(data.configured))
-        setLastSyncedAt(data.configured ? (data.lastSyncedAt ?? null) : null)
-        setAutoSyncPaused(Boolean(data.autoSyncAvailable && data.autoSyncPaused))
-        return data as { configured?: boolean; autoSyncAvailable?: boolean; autoSyncEnabled?: boolean; lastSyncedAt?: string | null }
-      }
-    } catch {
-      // ignore
-    }
-    return null
-  }, [token])
-
   useEffect(() => {
-    checkWebtopConfig()
     const handleConfigChange = () => {
-      checkWebtopConfig()
+      void checkNow(false)
     }
     window.addEventListener("webtop:configured", handleConfigChange)
     return () => {
       window.removeEventListener("webtop:configured", handleConfigChange)
     }
-  }, [checkWebtopConfig])
-
-  // Production only: when the app is opened, refresh stale data (server decides; it skips in dev)
-  useEffect(() => {
-    if (!token || onOpenSyncCheckedRef.current) return
-    onOpenSyncCheckedRef.current = true
-    ;(async () => {
-      const cfg = await checkWebtopConfig()
-      if (!cfg?.configured || !cfg.autoSyncAvailable || !cfg.autoSyncEnabled) return
-      try {
-        const res = await fetch("/api/webtop/sync-if-stale", {
-          method: "POST",
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        if (!res.ok) return
-        const data = await res.json()
-        if (!data.skipped) {
-          setSyncTrigger(prev => prev + 1)
-          checkWebtopConfig()
-        }
-      } catch {
-        // silent: background refresh must never disturb the user
-      }
-    })()
-  }, [token, checkWebtopConfig])
+  }, [checkNow])
 
   // Listen to external sync events (e.g. from SettingsPage) to show green checkmark
   useEffect(() => {
@@ -263,7 +223,7 @@ function App() {
         }))
       }
       setSyncSuccess(true)
-      checkWebtopConfig()
+      void checkNow(false)
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
       syncSuccessTimerRef.current = setTimeout(() => {
         setSyncSuccess(false)
@@ -275,7 +235,7 @@ function App() {
       window.removeEventListener("webtop:synced", handleSyncedEvent)
       if (syncSuccessTimerRef.current) clearTimeout(syncSuccessTimerRef.current)
     }
-  }, [t, checkWebtopConfig])
+  }, [t, checkNow])
 
   const handleSync = async () => {
     if (!token || syncing) return
@@ -286,8 +246,8 @@ function App() {
     try {
       // 1. Immediately refresh internal DB state across active views
       setSyncTrigger(prev => prev + 1)
-      const cfg = await checkWebtopConfig()
-      const isConfigured = cfg?.configured ?? webtopConfigured
+      const latestCfg = await checkNow(false)
+      const isConfigured = latestCfg?.configured ?? webtopConfigured
 
       // 2. If Webtop is configured, fetch latest from Webtop (reusing active session if valid)
       if (isConfigured) {
@@ -302,7 +262,7 @@ function App() {
         }
 
         setSyncTrigger(prev => prev + 1)
-        setLastSyncedAt(new Date().toISOString())
+        await checkNow(false)
         const summary = t("account.webtop_sync_success", {
           incidents: data.result?.incidentsCount || 0,
           homework: data.result?.homeworkCount || 0
@@ -475,11 +435,11 @@ function App() {
                     className="h-full print:h-full"
                   >
                     <Suspense fallback={<LoadingSpinner />}>
-                      {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                      {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                      {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                      {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
-                      {activeTab === 'settings' && <SettingsPage token={token} syncTrigger={syncTrigger} currentUser={currentUser} />}
+                      {activeTab === 'homework' && <HomeworkPage token={token} syncTrigger={syncTrigger + domainVersions.homework} currentUser={currentUser} />}
+                      {activeTab === 'incidents' && <IncidentsPage token={token} syncTrigger={syncTrigger + domainVersions.incidents} currentUser={currentUser} />}
+                      {activeTab === 'exams' && <ExamsPage token={token} syncTrigger={syncTrigger + domainVersions.exams} currentUser={currentUser} />}
+                      {activeTab === 'schedule' && <SchedulePage token={token} syncTrigger={syncTrigger + domainVersions.schedule} currentUser={currentUser} />}
+                      {activeTab === 'settings' && <SettingsPage token={token} syncTrigger={syncTrigger + domainVersions.config} currentUser={currentUser} />}
                       {activeTab === 'admin' && currentUser.role === 'admin' && (
                         <AdminPage
                           currentUser={currentUser}

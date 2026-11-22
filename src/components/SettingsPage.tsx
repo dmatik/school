@@ -70,7 +70,7 @@ export function SettingsPage({ token, syncTrigger, currentUser }: SettingsPagePr
         const data: WebtopConfig = await res.json()
         hasLoadedWebtopRef.current = true
         setWebtopConfig(data)
-        if (data.username) {
+        if (data.username && !isEditingWebtop) {
           setWebtopUsername(data.username)
         }
       }
@@ -79,7 +79,7 @@ export function SettingsPage({ token, syncTrigger, currentUser }: SettingsPagePr
     } finally {
       setLoadingWebtop(false)
     }
-  }, [token, isChild])
+  }, [token, isChild, isEditingWebtop])
 
   useEffect(() => {
     if (!isChild) {
