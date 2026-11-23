@@ -31,7 +31,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
 import i18n from '../../i18n';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { getDockBottomMargin } from './LiquidDock';
 
 export function Button({
@@ -314,6 +314,7 @@ export function LiquidButton({
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.liquidShell,
+        getGlassShadow(isDark),
         {
           flexDirection: flexRow,
           opacity: disabled || loading ? 0.5 : pressed ? 0.78 : 1,
@@ -367,7 +368,7 @@ export function FloatingActionButton({
   variant?: 'primary' | 'success';
 }) {
   const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { isRTL } = useDirection();
   const bottomOffset = getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
 
@@ -379,6 +380,7 @@ export function FloatingActionButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.fab,
+        getGlassShadow(isDark),
         {
           bottom: bottomOffset,
           left: isRTL ? 16 : undefined,
@@ -610,7 +612,6 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 14,
     borderRadius: 999,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -626,7 +627,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 30,

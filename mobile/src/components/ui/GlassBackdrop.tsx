@@ -3,6 +3,14 @@ import { View, StyleSheet } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../../theme/ThemeContext';
 
+export function getGlassShadow(isDark: boolean) {
+  return {
+    boxShadow: isDark
+      ? '0 2px 10px rgba(0, 0, 0, 0.16)'
+      : '0 2px 10px rgba(0, 0, 0, 0.05)',
+  };
+}
+
 export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number }) {
   const { palette, isDark } = useTheme();
 

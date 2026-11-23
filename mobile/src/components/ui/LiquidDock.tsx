@@ -13,7 +13,7 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { SlidingPill } from './SlidingPill';
 
 export interface DockTabItem {
@@ -178,10 +178,8 @@ export function LiquidDock({
           styles.dockShadow,
           {
             maxWidth: maxDockWidth,
-            boxShadow: isDark
-              ? '0 4px 12px rgba(0, 0, 0, 0.24)'
-              : '0 4px 12px rgba(0, 0, 0, 0.08)',
           },
+          getGlassShadow(isDark),
         ]}
       >
         <View
