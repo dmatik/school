@@ -32,6 +32,7 @@ import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
 import i18n from '../../i18n';
 import { GlassBackdrop } from './GlassBackdrop';
+import { getDockBottomMargin } from './LiquidDock';
 
 export function Button({
   label,
@@ -346,7 +347,7 @@ const FAB_CONTENT_CLEARANCE = 16;
  */
 export function useFabScrollPadding(visible = true): number {
   const insets = useSafeAreaInsets();
-  const baseBottom = Math.max(insets.bottom - 10, 10);
+  const baseBottom = getDockBottomMargin(insets.bottom);
   if (!visible) {
     return baseBottom + FAB_DOCK_GAP;
   }
@@ -368,7 +369,7 @@ export function FloatingActionButton({
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { isRTL } = useDirection();
-  const bottomOffset = Math.max(insets.bottom - 10, 10) + FAB_DOCK_GAP;
+  const bottomOffset = getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
 
   return (
     <Pressable
