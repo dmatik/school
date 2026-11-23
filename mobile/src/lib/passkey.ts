@@ -8,7 +8,13 @@ import {
   bytesToBase64Url,
   utf8ToBytes,
 } from './webauthnCrypto';
+import {
+  filterSavedPasskeyAccounts,
+  type StoredPasskeyEntry,
+} from '../../../src/lib/passkey-accounts';
 import type { User } from '../../../src/types';
+
+export type { StoredPasskeyEntry };
 
 export interface PasskeyInfo {
   id: string;
@@ -19,14 +25,11 @@ export interface PasskeyInfo {
   lastUsedAt: string | null;
 }
 
-interface StoredPasskeyEntry {
-  credentialId: string;
-  serverUrl: string;
-  username: string;
-  userId: string;
-  counter: number;
-  useBiometrics: boolean;
-  createdAt: string;
+export async function getSavedPasskeyAccounts(
+  serverUrl: string
+): Promise<StoredPasskeyEntry[]> {
+  const index = await readLocalIndex();
+  return filterSavedPasskeyAccounts(index, serverUrl);
 }
 
 const PASSKEY_INDEX_KEY = 'school_passkey_index_v1';
@@ -158,7 +161,7 @@ export async function isPasskeySupported(): Promise<boolean> {
  */
 export async function registerPasskey(
   deviceName: string,
-  currentUser: Pick<User, 'id' | 'username'>,
+  currentUser: Pick<User, 'id' | 'username' | 'firstName' | 'lastName'>,
   promptMessage = 'Authenticate to create passkey'
 ): Promise<PasskeyInfo> {
   const serverUrl = getActiveServerUrl();
@@ -213,6 +216,7 @@ export async function registerPasskey(
   }
 
   // 4. Record local metadata index for this server
+  const cleanDeviceName = deviceName.trim() || 'Passkey';
   const index = await readLocalIndex();
   const nextIndex: StoredPasskeyEntry[] = [
     {
@@ -220,6 +224,9 @@ export async function registerPasskey(
       serverUrl: origin,
       username: currentUser.username,
       userId: currentUser.id,
+      firstName: currentUser.firstName || '',
+      lastName: currentUser.lastName || '',
+      deviceName: cleanDeviceName,
       counter: 0,
       useBiometrics: usedBio,
       createdAt: verifyData.passkey.createdAt || new Date().toISOString(),
@@ -325,10 +332,15 @@ export async function loginWithPasskey(
     throw new Error(verifyData?.error || 'Passkey authentication failed');
   }
 
-  // 5. Update local counter
+  // 5. Update local counter and backfill user profile metadata
   const updatedIndex = index.map((e) =>
     e.credentialId === matchedEntry!.credentialId
-      ? { ...e, counter: nextCounter }
+      ? {
+          ...e,
+          counter: nextCounter,
+          firstName: verifyData.user.firstName ?? e.firstName,
+          lastName: verifyData.user.lastName ?? e.lastName,
+        }
       : e
   );
   await writeLocalIndex(updatedIndex);
