@@ -9,6 +9,10 @@ import {
   buildWebAuthnRegistration,
   buildWebAuthnAssertion,
 } from '../lib/webauthn-crypto-p256';
+import {
+  filterSavedPasskeyAccounts,
+  type StoredPasskeyEntry,
+} from '../../mobile/src/lib/passkeyAccounts';
 
 describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
   it('generates registration and authentication payloads verified by @simplewebauthn/server', async () => {
@@ -88,5 +92,54 @@ describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
 
     expect(authVerification.verified).toBe(true);
     expect(authVerification.authenticationInfo.newCounter).toBe(1);
+  });
+
+  it('filters saved passkey accounts by server origin and deduplicates by username', () => {
+    const entries: StoredPasskeyEntry[] = [
+      {
+        credentialId: 'cred-1',
+        serverUrl: 'https://school.example.com',
+        username: 'Parent1',
+        userId: 'u1',
+        firstName: 'Dana',
+        lastName: 'Cohen',
+        deviceName: 'iPhone Passkey',
+        counter: 2,
+        useBiometrics: true,
+        createdAt: '2026-11-22T10:00:00.000Z',
+      },
+      {
+        credentialId: 'cred-2',
+        serverUrl: 'https://school.example.com',
+        username: 'parent1',
+        userId: 'u1',
+        counter: 0,
+        useBiometrics: true,
+        createdAt: '2026-11-21T10:00:00.000Z',
+      },
+      {
+        credentialId: 'cred-3',
+        serverUrl: 'https://school.example.com',
+        username: 'parent2',
+        userId: 'u2',
+        firstName: 'Avi',
+        counter: 1,
+        useBiometrics: true,
+        createdAt: '2026-11-22T09:00:00.000Z',
+      },
+      {
+        credentialId: 'cred-other',
+        serverUrl: 'https://other.example.com',
+        username: 'otheruser',
+        userId: 'u3',
+        counter: 0,
+        useBiometrics: true,
+        createdAt: '2026-11-22T08:00:00.000Z',
+      },
+    ];
+
+    const filtered = filterSavedPasskeyAccounts(entries, 'https://school.example.com/api');
+    expect(filtered).toHaveLength(2);
+    expect(filtered.map((e) => e.credentialId)).toEqual(['cred-1', 'cred-3']);
   });
 });

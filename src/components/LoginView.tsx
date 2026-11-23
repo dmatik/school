@@ -196,10 +196,6 @@ export function LoginView({
                 </Button>
               </>
             )}
-
-            <div className="text-center text-xs text-muted-foreground pt-4 border-t border-border/40">
-              {t("auth.default_credentials_hint")}
-            </div>
           </form>
         </CardContent>
       </Card>

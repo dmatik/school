@@ -24,6 +24,7 @@ import {
   IncidentCard,
   ExamCard,
   AdminUserRow,
+  PasskeyAccountRow,
 } from '../../components/ui/Cards';
 import { ScheduleTable } from '../../components/ui/ScheduleTable';
 import { useTheme } from '../../theme/ThemeContext';
@@ -104,6 +105,14 @@ export const CardsAndSurfaces: StoryObj = {
           onEdit={() => {}}
           onResetPassword={() => {}}
           onDelete={() => {}}
+        />
+
+        <PasskeyAccountRow
+          username="parent1"
+          firstName="דנה"
+          lastName="כהן"
+          deviceName="מפתח גישה ל-iPhone"
+          onPress={() => {}}
         />
 
         <SectionCard

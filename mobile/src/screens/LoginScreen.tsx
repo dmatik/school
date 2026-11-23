@@ -19,7 +19,12 @@ import {
   persistSession,
   getActiveServerUrl,
 } from '../lib/api';
-import { isPasskeySupported, loginWithPasskey } from '../lib/passkey';
+import {
+  getSavedPasskeyAccounts,
+  isPasskeySupported,
+  loginWithPasskey,
+  type StoredPasskeyEntry,
+} from '../lib/passkey';
 import { mobileStorage } from '../lib/storage';
 import {
   Button,
@@ -28,6 +33,8 @@ import {
 } from '../components/ui/Buttons';
 import { FieldLabel, IconInput } from '../components/ui/FormFields';
 import { NoticeBanner } from '../components/ui/Surfaces';
+import { PasskeyAccountRow } from '../components/ui/Cards';
+import { Modal } from '../components/ui/Modal';
 import type { User } from '../../../src/types';
 
 export function LoginScreen({
@@ -46,6 +53,8 @@ export function LoginScreen({
   const [loading, setLoading] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [hasPasskeySupport, setHasPasskeySupport] = useState(false);
+  const [passkeyAccounts, setPasskeyAccounts] = useState<StoredPasskeyEntry[]>([]);
+  const [showPasskeyPicker, setShowPasskeyPicker] = useState(false);
 
   useEffect(() => {
     if (!serverUrl) {
@@ -123,6 +132,33 @@ export function LoginScreen({
     }
   };
 
+  const executePasskeyLogin = async (normalizedUrl: string, targetUsername?: string) => {
+    setPasskeyLoading(true);
+    try {
+      const reachable = await verifyServerConnection(normalizedUrl);
+      if (!reachable) {
+        setError(t('auth.server_unreachable'));
+        return;
+      }
+
+      const result = await loginWithPasskey(
+        normalizedUrl,
+        targetUsername,
+        t('auth.login_with_passkey')
+      );
+      await persistSession(normalizedUrl, result.token);
+      onLoginSuccess(normalizedUrl, result.token, result.user);
+    } catch (err) {
+      const errorObj = err as Error & { name?: string };
+      // Silently ignore user cancellation of the OS biometric prompt
+      if (errorObj.name !== 'NotAllowedError') {
+        setError(errorObj.message || t('auth.passkey_failed'));
+      }
+    } finally {
+      setPasskeyLoading(false);
+    }
+  };
+
   const handlePasskeyLogin = async () => {
     setError(null);
 
@@ -139,30 +175,28 @@ export function LoginScreen({
       return;
     }
 
-    setPasskeyLoading(true);
-    try {
-      const reachable = await verifyServerConnection(normalizedUrl);
-      if (!reachable) {
-        setError(t('auth.server_unreachable'));
+    const typedUsername = username.trim();
+    if (!typedUsername) {
+      const accounts = await getSavedPasskeyAccounts(normalizedUrl);
+      if (accounts.length > 1) {
+        setPasskeyAccounts(accounts);
+        setShowPasskeyPicker(true);
         return;
       }
-
-      const result = await loginWithPasskey(
-        normalizedUrl,
-        username.trim() || undefined,
-        t('auth.login_with_passkey')
-      );
-      await persistSession(normalizedUrl, result.token);
-      onLoginSuccess(normalizedUrl, result.token, result.user);
-    } catch (err) {
-      const errorObj = err as Error & { name?: string };
-      // Silently ignore user cancellation of the OS biometric prompt
-      if (errorObj.name !== 'NotAllowedError') {
-        setError(errorObj.message || t('auth.passkey_failed'));
-      }
-    } finally {
-      setPasskeyLoading(false);
     }
+
+    await executePasskeyLogin(normalizedUrl, typedUsername || undefined);
+  };
+
+  const handleSelectPasskeyAccount = async (account: StoredPasskeyEntry) => {
+    setShowPasskeyPicker(false);
+    let normalizedUrl: string;
+    try {
+      normalizedUrl = normalizeServerUrl(serverUrl);
+    } catch {
+      return;
+    }
+    await executePasskeyLogin(normalizedUrl, account.username);
   };
 
   return (
@@ -307,15 +341,43 @@ export function LoginScreen({
                 />
               </>
             ) : null}
-
-            <View style={[styles.footerHint, { borderTopColor: palette.border }]}>
-              <Text style={[styles.hintText, { color: palette.mutedForeground }]}>
-                {t('auth.default_credentials_hint')}
-              </Text>
-            </View>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <Modal
+        testID="passkey-account-picker-modal"
+        visible={showPasskeyPicker}
+        onClose={() => setShowPasskeyPicker(false)}
+        title={t('auth.select_passkey_account_title')}
+        description={t('auth.select_passkey_account_desc')}
+        icon={Fingerprint}
+        maxWidth="sm"
+        footer={
+          <Button
+            label={t('common.cancel')}
+            variant="outline"
+            size="sm"
+            onPress={() => setShowPasskeyPicker(false)}
+          />
+        }
+      >
+        <View style={{ gap: 10 }}>
+          {passkeyAccounts.map((account) => (
+            <PasskeyAccountRow
+              key={account.credentialId}
+              testID={`passkey-account-${account.username}`}
+              username={account.username}
+              firstName={account.firstName}
+              lastName={account.lastName}
+              deviceName={account.deviceName}
+              onPress={() => {
+                void handleSelectPasskeyAccount(account);
+              }}
+            />
+          ))}
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -380,14 +442,5 @@ const styles = StyleSheet.create({
     ...heeboFont('500'),
     textTransform: 'uppercase',
     letterSpacing: 0.4,
-  },
-  footerHint: {
-    borderTopWidth: 1,
-    paddingTop: 12,
-    marginTop: 4,
-  },
-  hintText: {
-    fontSize: 11,
-    textAlign: 'center',
   },
 });

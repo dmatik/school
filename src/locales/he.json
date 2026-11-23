@@ -229,10 +229,11 @@
     "logging_in": "מתחבר...",
     "login_failed": "שם משתמש או סיסמה שגויים",
     "logout": "התנתק",
-    "default_credentials_hint": "פרטי ברירת מחדל למנהל: admin / admin",
     "login_with_passkey": "התחבר באמצעות מפתח גישה (Passkey)",
-    "or_use_password": "או התחבר באמצעות סיסמה",
-    "passkey_failed": "ההתחברות באמצעות מפתח גישה נכשלה או בוטלה."
+    "or_use_password": "או התחבר באמצעות מפתח גישה",
+    "passkey_failed": "ההתחברות באמצעות מפתח גישה נכשלה או בוטלה.",
+    "select_passkey_account_title": "בחירת חשבון להתחברות",
+    "select_passkey_account_desc": "בחר עם איזה מפתח גישה שמור ברצונך להתחבר"
   },
   "account": {
     "title": "הגדרות חשבון",

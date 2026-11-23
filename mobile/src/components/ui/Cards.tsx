@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Pencil, KeyRound, Trash2, Calendar } from 'lucide-react-native';
+import { Pencil, KeyRound, Trash2, Calendar, Fingerprint } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
@@ -371,6 +371,71 @@ export function AdminUserRow({
   );
 }
 
+export function PasskeyAccountRow({
+  username,
+  firstName,
+  lastName,
+  deviceName,
+  onPress,
+  testID,
+}: {
+  username: string;
+  firstName?: string;
+  lastName?: string;
+  deviceName?: string;
+  onPress: () => void;
+  testID?: string;
+}) {
+  const { palette } = useTheme();
+  const { flexRow, textAlign } = useDirection();
+  const displayName = [firstName, lastName].filter(Boolean).join(' ') || username;
+  const metaText = deviceName ? `@${username} · ${deviceName}` : `@${username}`;
+
+  return (
+    <Pressable
+      testID={testID}
+      onPress={onPress}
+      style={({ pressed }) => [pressed && { opacity: 0.78 }]}
+    >
+      <CardSurface style={styles.passkeyAccountCard}>
+        <View style={[styles.topRow, { flexDirection: flexRow }]}>
+          <UserAvatar
+            user={{
+              username,
+              firstName: firstName || '',
+              lastName: lastName || '',
+              avatar: '',
+            }}
+            size={38}
+          />
+          <View style={{ flex: 1, minWidth: 0 }}>
+            <Text
+              numberOfLines={1}
+              style={[styles.subjectTitle, { color: palette.foreground, textAlign }]}
+            >
+              {displayName}
+            </Text>
+            <Text
+              numberOfLines={1}
+              style={[styles.subMeta, { color: palette.mutedForeground, textAlign }]}
+            >
+              {metaText}
+            </Text>
+          </View>
+          <View
+            style={[
+              styles.passkeyIconBadge,
+              { backgroundColor: 'rgba(59, 130, 196, 0.12)' },
+            ]}
+          >
+            <Fingerprint size={18} color={palette.primary} />
+          </View>
+        </View>
+      </CardSurface>
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   card: {
     padding: 14,
@@ -467,5 +532,15 @@ const styles = StyleSheet.create({
   },
   iconBtn: {
     padding: 4,
+  },
+  passkeyAccountCard: {
+    padding: 12,
+  },
+  passkeyIconBadge: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

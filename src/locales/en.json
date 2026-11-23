@@ -229,10 +229,11 @@
     "logging_in": "Signing In...",
     "login_failed": "Invalid username or password",
     "logout": "Sign Out",
-    "default_credentials_hint": "Default admin credentials: admin / admin",
     "login_with_passkey": "Sign in with Passkey",
-    "or_use_password": "or sign in with password",
-    "passkey_failed": "Passkey sign-in failed or was cancelled."
+    "or_use_password": "or sign in with passkey",
+    "passkey_failed": "Passkey sign-in failed or was cancelled.",
+    "select_passkey_account_title": "Choose an Account",
+    "select_passkey_account_desc": "Select which saved passkey account to sign in with"
   },
   "account": {
     "title": "Account Settings",
