@@ -19,7 +19,7 @@ import {
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { AdminUserRow } from '../components/ui/Cards';
-import { Button, FloatingActionButton } from '../components/ui/Buttons';
+import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User, WebtopChild } from '../../../src/types';
@@ -216,12 +216,14 @@ export function AdminScreen({
     }
   };
 
+  const bottomPadding = useFabScrollPadding();
+
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}

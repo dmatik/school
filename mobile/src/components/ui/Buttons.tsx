@@ -336,6 +336,23 @@ export function LiquidButton({
   );
 }
 
+const FAB_SIZE = 50;
+const FAB_DOCK_GAP = 86;
+const FAB_CONTENT_CLEARANCE = 16;
+
+/**
+ * Returns the bottom scroll padding needed so the last item scrolls cleanly
+ * above the FloatingActionButton (or above the dock when no FAB is visible).
+ */
+export function useFabScrollPadding(visible = true): number {
+  const insets = useSafeAreaInsets();
+  const baseBottom = Math.max(insets.bottom - 10, 10);
+  if (!visible) {
+    return baseBottom + FAB_DOCK_GAP;
+  }
+  return baseBottom + FAB_DOCK_GAP + FAB_SIZE + FAB_CONTENT_CLEARANCE;
+}
+
 export function FloatingActionButton({
   icon: Icon,
   onPress,
@@ -351,7 +368,7 @@ export function FloatingActionButton({
   const insets = useSafeAreaInsets();
   const { palette } = useTheme();
   const { isRTL } = useDirection();
-  const bottomOffset = Math.max(insets.bottom - 10, 10) + 86;
+  const bottomOffset = Math.max(insets.bottom - 10, 10) + FAB_DOCK_GAP;
 
   return (
     <Pressable

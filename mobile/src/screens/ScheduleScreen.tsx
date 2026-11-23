@@ -20,7 +20,7 @@ import {
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
-import { Button, FloatingActionButton, LiquidButton } from '../components/ui/Buttons';
+import { Button, FloatingActionButton, LiquidButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type {
@@ -225,13 +225,14 @@ export function ScheduleScreen({
   }, [sharingPdf, lessons, finishTimes, currentChild?.color, isRTL, t]);
 
   const hasChildFilter = isParent && (config?.linkedChildren?.length || 0) > 0;
+  const bottomPadding = useFabScrollPadding(Boolean(isParent && selectedChildId));
 
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
