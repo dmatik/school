@@ -11,7 +11,7 @@ import {
 import {
   filterSavedPasskeyAccounts,
   type StoredPasskeyEntry,
-} from './passkeyAccounts';
+} from '../../../src/lib/passkey-accounts';
 import type { User } from '../../../src/types';
 
 export type { StoredPasskeyEntry };

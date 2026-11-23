@@ -12,7 +12,7 @@ import {
 import {
   filterSavedPasskeyAccounts,
   type StoredPasskeyEntry,
-} from '../../mobile/src/lib/passkeyAccounts';
+} from '../lib/passkey-accounts';
 
 describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
   it('generates registration and authentication payloads verified by @simplewebauthn/server', async () => {
