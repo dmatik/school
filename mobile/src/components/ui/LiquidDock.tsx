@@ -13,13 +13,17 @@ import type { LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { SlidingPill } from './SlidingPill';
 
 export interface DockTabItem {
   id: string;
   label: string;
   icon: LucideIcon;
+}
+
+export function getDockBottomMargin(insetBottom: number): number {
+  return Math.max(insetBottom - 15, 13);
 }
 
 function SettingsActiveIcon({
@@ -84,12 +88,12 @@ export function LiquidDock({
   const isScrollable = items.length > 5;
   const isFiveOrMore = items.length >= 5;
   const maxDockWidth = Math.min(364, screenWidth - 24);
-  const dockInnerWidth = Math.max(maxDockWidth - 12, 240);
+  const dockInnerWidth = Math.max(maxDockWidth - 8, 240);
   const itemWidth = isScrollable
     ? Math.floor(dockInnerWidth / 5)
     : isFiveOrMore
     ? Math.floor(dockInnerWidth / items.length)
-    : Math.min(88, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
+    : Math.min(90, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
@@ -165,25 +169,29 @@ export function LiquidDock({
     <View
       style={[
         styles.wrapper,
-        { paddingBottom: Math.max(insets.bottom - 10, 10) },
+        { paddingBottom: getDockBottomMargin(insets.bottom) },
       ]}
       pointerEvents="box-none"
     >
       <View
-        testID="mobile-dock"
-        accessibilityLabel="Mobile Navigation"
         style={[
-          styles.dock,
+          styles.dockShadow,
           {
             maxWidth: maxDockWidth,
           },
+          getGlassShadow(isDark),
         ]}
       >
-        <GlassBackdrop />
-        <ScrollView
-            ref={scrollRef}
-            horizontal
-            scrollEnabled={isScrollable}
+        <View
+          testID="mobile-dock"
+          accessibilityLabel="Mobile Navigation"
+          style={styles.dock}
+        >
+          <GlassBackdrop />
+          <ScrollView
+              ref={scrollRef}
+              horizontal
+              scrollEnabled={isScrollable}
             showsHorizontalScrollIndicator={false}
             style={styles.dockScroll}
             contentContainerStyle={[styles.dockContent, { flexDirection: flexRow }]}
@@ -255,6 +263,7 @@ export function LiquidDock({
               );
             })}
           </ScrollView>
+        </View>
       </View>
     </View>
   );
@@ -272,10 +281,13 @@ const styles = StyleSheet.create({
   containerWidth: {
     width: '100%',
   },
+  dockShadow: {
+    borderRadius: 999,
+  },
   dock: {
     borderRadius: 999,
-    paddingHorizontal: 6,
-    paddingVertical: 6,
+    paddingHorizontal: 4,
+    paddingVertical: 4,
     overflow: 'hidden',
   },
   dockScroll: {
@@ -289,7 +301,7 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 4,
     borderRadius: 999,
     gap: 4,

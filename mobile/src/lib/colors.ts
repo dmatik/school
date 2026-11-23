@@ -60,7 +60,7 @@ export const LIGHT_PALETTE: ThemePalette = {
   tealSoft: 'rgba(44, 165, 141, 0.15)',
   amber: '#D4973B',
   amberSoft: 'rgba(212, 151, 59, 0.12)',
-  glassBg: 'rgba(255, 255, 255, 0.90)',
+  glassBg: 'rgba(255, 255, 255, 0.58)',
   glassBorder: 'rgba(15, 23, 42, 0.18)',
 };
 
@@ -93,7 +93,7 @@ export const DARK_PALETTE: ThemePalette = {
   tealSoft: 'rgba(44, 165, 141, 0.25)',
   amber: '#F5D59E',
   amberSoft: 'rgba(212, 151, 59, 0.18)',
-  glassBg: 'rgba(52, 62, 78, 0.86)',
+  glassBg: 'rgba(52, 62, 78, 0.56)',
   glassBorder: 'rgba(255, 255, 255, 0.22)',
 };
 

@@ -25,7 +25,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { Button } from './Buttons';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { FieldLabel } from './FormFields';
 
 function CalendarModal({
@@ -48,7 +48,7 @@ function CalendarModal({
   clearable: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { isRTL, flexRow } = useDirection();
   const dateLocale = (i18n.language || 'he').startsWith('en') ? enUS : he;
 
@@ -255,7 +255,7 @@ export function DatePickerField({
   testID?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
@@ -351,7 +351,7 @@ export function LiquidDatePicker({
   testID?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { isRTL, flexRow } = useDirection();
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
@@ -371,7 +371,7 @@ export function LiquidDatePicker({
 
   return (
     <>
-      <View style={styles.pillOuter}>
+      <View style={[styles.pillOuter, getGlassShadow(isDark)]}>
         <View style={styles.pillShell}>
           <GlassBackdrop />
           <View style={[styles.pillRow, { flexDirection: flexRow }]}>
@@ -444,6 +444,7 @@ export function LiquidDatePicker({
 
 const styles = StyleSheet.create({
   pillOuter: {
+    borderRadius: 999,
     flexGrow: 0,
     flexShrink: 0,
   },

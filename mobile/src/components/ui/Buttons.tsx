@@ -31,7 +31,8 @@ import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
 import i18n from '../../i18n';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
+import { getDockBottomMargin } from './LiquidDock';
 
 export function Button({
   label,
@@ -313,6 +314,7 @@ export function LiquidButton({
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.liquidShell,
+        getGlassShadow(isDark),
         {
           flexDirection: flexRow,
           opacity: disabled || loading ? 0.5 : pressed ? 0.78 : 1,
@@ -336,6 +338,23 @@ export function LiquidButton({
   );
 }
 
+const FAB_SIZE = 50;
+const FAB_DOCK_GAP = 86;
+const FAB_CONTENT_CLEARANCE = 16;
+
+/**
+ * Returns the bottom scroll padding needed so the last item scrolls cleanly
+ * above the FloatingActionButton (or above the dock when no FAB is visible).
+ */
+export function useFabScrollPadding(visible = true): number {
+  const insets = useSafeAreaInsets();
+  const baseBottom = getDockBottomMargin(insets.bottom);
+  if (!visible) {
+    return baseBottom + FAB_DOCK_GAP;
+  }
+  return baseBottom + FAB_DOCK_GAP + FAB_SIZE + FAB_CONTENT_CLEARANCE;
+}
+
 export function FloatingActionButton({
   icon: Icon,
   onPress,
@@ -349,9 +368,9 @@ export function FloatingActionButton({
   variant?: 'primary' | 'success';
 }) {
   const insets = useSafeAreaInsets();
-  const { palette } = useTheme();
+  const { palette, isDark } = useTheme();
   const { isRTL } = useDirection();
-  const bottomOffset = Math.max(insets.bottom - 10, 10) + 86;
+  const bottomOffset = getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
 
   return (
     <Pressable
@@ -361,6 +380,7 @@ export function FloatingActionButton({
       onPress={onPress}
       style={({ pressed }) => [
         styles.fab,
+        getGlassShadow(isDark),
         {
           bottom: bottomOffset,
           left: isRTL ? 16 : undefined,
@@ -592,7 +612,6 @@ const styles = StyleSheet.create({
     height: 40,
     paddingHorizontal: 14,
     borderRadius: 999,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
@@ -608,7 +627,6 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
-    overflow: 'hidden',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 30,

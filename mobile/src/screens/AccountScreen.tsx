@@ -394,6 +394,49 @@ export function AccountScreen({
           />
         </SectionCard>
 
+        <SectionCard
+          icon={Lock}
+          title={t('account.change_password')}
+          description={t('account.change_password_desc')}
+        >
+          <View style={{ gap: 6 }}>
+            <FieldLabel label={t('account.current_password')} />
+            <FilledInput
+              value={currentPassword}
+              onChangeText={setCurrentPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={{ gap: 6 }}>
+            <FieldLabel label={t('account.new_password')} />
+            <FilledInput
+              value={newPassword}
+              onChangeText={setNewPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          <View style={{ gap: 6 }}>
+            <FieldLabel label={t('account.confirm_password')} />
+            <FilledInput
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              secureTextEntry
+              autoCapitalize="none"
+            />
+          </View>
+
+          <Button
+            label={t('account.update_password_button')}
+            loading={savingPassword}
+            disabled={!currentPassword || !newPassword || !confirmPassword}
+            onPress={handleChangePassword}
+          />
+        </SectionCard>
+
         {passkeySupported ? (
           <SectionCard
             icon={Fingerprint}
@@ -534,49 +577,6 @@ export function AccountScreen({
             ) : null}
           </SectionCard>
         ) : null}
-
-        <SectionCard
-          icon={Lock}
-          title={t('account.change_password')}
-          description={t('account.change_password_desc')}
-        >
-          <View style={{ gap: 6 }}>
-            <FieldLabel label={t('account.current_password')} />
-            <FilledInput
-              value={currentPassword}
-              onChangeText={setCurrentPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={{ gap: 6 }}>
-            <FieldLabel label={t('account.new_password')} />
-            <FilledInput
-              value={newPassword}
-              onChangeText={setNewPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
-
-          <View style={{ gap: 6 }}>
-            <FieldLabel label={t('account.confirm_password')} />
-            <FilledInput
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              secureTextEntry
-              autoCapitalize="none"
-            />
-          </View>
-
-          <Button
-            label={t('account.update_password_button')}
-            loading={savingPassword}
-            disabled={!currentPassword || !newPassword || !confirmPassword}
-            onPress={handleChangePassword}
-          />
-        </SectionCard>
 
         <Button
           testID="logout-button"

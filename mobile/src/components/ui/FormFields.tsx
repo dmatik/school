@@ -21,7 +21,7 @@ import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
 import { useScrollHeader } from './MobileHeader';
-import { GlassBackdrop } from './GlassBackdrop';
+import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { SlidingPill } from './SlidingPill';
 
 export function FieldLabel({
@@ -853,7 +853,7 @@ export function LiquidTabs({
   const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);
 
   return (
-    <View style={[styles.tabsOuter, { alignSelf: alignStart }]}>
+    <View style={[styles.tabsOuter, getGlassShadow(isDark), { alignSelf: alignStart }]}>
       <View
         style={[
           styles.tabsShell,
@@ -1151,6 +1151,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
   },
   tabsOuter: {
+    borderRadius: 999,
     flexGrow: 0,
     flexShrink: 0,
     maxWidth: '100%',

@@ -26,7 +26,7 @@ import { DatePickerField } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { ExamCard } from '../components/ui/Cards';
-import { Button, FloatingActionButton } from '../components/ui/Buttons';
+import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { ExamItem, WebtopConfig, User } from '../../../src/types';
@@ -211,13 +211,14 @@ export function ExamsScreen({
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
   const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
+  const bottomPadding = useFabScrollPadding(isParent);
 
   return (
     <View style={{ flex: 1 }}>
       <Animated.ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
