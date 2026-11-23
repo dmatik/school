@@ -174,20 +174,26 @@ export function LiquidDock({
       pointerEvents="box-none"
     >
       <View
-        testID="mobile-dock"
-        accessibilityLabel="Mobile Navigation"
         style={[
-          styles.dock,
+          styles.dockShadow,
           {
             maxWidth: maxDockWidth,
+            boxShadow: isDark
+              ? '0 4px 12px rgba(0, 0, 0, 0.24)'
+              : '0 4px 12px rgba(0, 0, 0, 0.08)',
           },
         ]}
       >
-        <GlassBackdrop />
-        <ScrollView
-            ref={scrollRef}
-            horizontal
-            scrollEnabled={isScrollable}
+        <View
+          testID="mobile-dock"
+          accessibilityLabel="Mobile Navigation"
+          style={styles.dock}
+        >
+          <GlassBackdrop />
+          <ScrollView
+              ref={scrollRef}
+              horizontal
+              scrollEnabled={isScrollable}
             showsHorizontalScrollIndicator={false}
             style={styles.dockScroll}
             contentContainerStyle={[styles.dockContent, { flexDirection: flexRow }]}
@@ -259,6 +265,7 @@ export function LiquidDock({
               );
             })}
           </ScrollView>
+        </View>
       </View>
     </View>
   );
@@ -275,6 +282,9 @@ const styles = StyleSheet.create({
   },
   containerWidth: {
     width: '100%',
+  },
+  dockShadow: {
+    borderRadius: 999,
   },
   dock: {
     borderRadius: 999,
