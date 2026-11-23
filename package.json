@@ -22,6 +22,7 @@
     "storybook": "NODE_OPTIONS='--no-deprecation' storybook dev -p 6006 --disable-telemetry",
     "build-storybook": "storybook build --disable-telemetry",
     "mobile:start": "npm --prefix mobile run start",
+    "mobile:go": "npm --prefix mobile run start:go",
     "mobile:ios": "npm --prefix mobile run ios",
     "mobile:ios:release": "npm --prefix mobile run ios:release",
     "mobile:ios:ipa": "npm --prefix mobile run ios:ipa",

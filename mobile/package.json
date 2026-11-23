@@ -18,6 +18,7 @@
     "expo-secure-store": "~58.0.3",
     "expo-sharing": "~58.0.23",
     "expo-status-bar": "~58.0.5",
+    "expo-updates": "~58.0.22",
     "i18next": "^27.2.1",
     "lucide-react-native": "^1.76.0",
     "react": "19.3.0",
@@ -38,6 +39,7 @@
   },
   "scripts": {
     "start": "NODE_USE_SYSTEM_CA=1 expo start --dev-client",
+    "start:go": "NODE_USE_SYSTEM_CA=1 expo start --go",
     "android": "NODE_USE_SYSTEM_CA=1 node scripts/start-dev.mjs --android",
     "ios": "NODE_USE_SYSTEM_CA=1 node scripts/start-dev.mjs --ios",
     "ios:release": "NODE_USE_SYSTEM_CA=1 expo run:ios --configuration Release --device",
