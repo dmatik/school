@@ -22,7 +22,10 @@
       }
     },
     "extra": {
-      "supportsRTL": true
+      "supportsRTL": true,
+      "eas": {
+        "projectId": "7d5cf527-489c-4cbe-a8a9-4797c1884b03"
+      }
     },
     "ios": {
       "bundleIdentifier": "com.dmatik.school",
@@ -73,6 +76,13 @@
       "expo-localization",
       "expo-sharing",
       "expo-font"
-    ]
+    ],
+    "owner": "dmatik",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/7d5cf527-489c-4cbe-a8a9-4797c1884b03"
+    }
   }
 }
