@@ -79,7 +79,7 @@
     ],
     "owner": "dmatik",
     "runtimeVersion": {
-      "policy": "appVersion"
+      "policy": "sdkVersion"
     },
     "updates": {
       "url": "https://u.expo.dev/7d5cf527-489c-4cbe-a8a9-4797c1884b03"
