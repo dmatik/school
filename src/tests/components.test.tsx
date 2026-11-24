@@ -430,6 +430,10 @@ describe('AppSidebar Component', () => {
     const btn = screen.getByRole('button', { name: 'Test Item' })
     expect(btn.className).toContain('text-muted-foreground')
     expect(btn.className).toContain('apple-liquid-pill-hover')
+    expect(btn.className).not.toContain('hover:text-foreground')
+    expect(btn.className).not.toContain('border-transparent')
+    expect(btn.className).not.toMatch(/\btransition-/)
+    expect(btn.querySelector('svg')?.getAttribute('class')).not.toMatch(/\btransition-/)
 
     rerender(
       <SidebarNavButton
