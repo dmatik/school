@@ -55,16 +55,16 @@ export function SidebarNavButton({
       whileTap={{ scale: 0.98 }}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold transition-colors duration-200 border border-transparent select-none",
+        "flex items-center gap-3 w-full h-10 px-3.5 rounded-full text-sm font-semibold select-none",
         active
           ? "apple-liquid-pill text-primary dark:!bg-primary/20 dark:text-primary dark:shadow-xs"
-          : "text-muted-foreground apple-liquid-pill-hover hover:text-foreground",
+          : "text-muted-foreground apple-liquid-pill-hover",
         className
       )}
     >
       <IconComponent
         className={cn(
-          "w-4 h-4 shrink-0 transition-all",
+          "w-4 h-4 shrink-0",
           active ? "stroke-[2px] dock-icon-full text-primary" : "text-muted-foreground"
         )}
       />
