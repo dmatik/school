@@ -17,6 +17,7 @@ import {
 import db, { initDb } from './db.js';
 import { WebtopClient, WebtopAuthError, clearWebtopSession, encryptPassword, decryptPassword, getWebtopStudyYear, setEncryptionSecret, matchChildWithPrevious, generateChildId, generateIncidentId } from './webtop.js';
 import { getWebAuthnConfig, resolveTrustProxy } from './webauthn-config.js';
+import { SERVER_VERSION } from './version.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -173,7 +174,7 @@ app.use('/api', (req, res, next) => {
 
 // Health check endpoint for mobile server URL verification
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok', app: 'school' });
+  res.json({ status: 'ok', app: 'school', version: SERVER_VERSION });
 });
 
 // Serve static files from the React app
