@@ -10,7 +10,7 @@ appId: com.dmatik.school
     when:
       visible: "Development servers|Enter URL manually|Fetch development servers"
     commands:
-      - openLink: "com.school.app://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
+      - openLink: "school://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
 
 # Wait for Metro bundle to finish loading (either Dev Menu onboarding or LoginScreen)
 - extendedWaitUntil:
