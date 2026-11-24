@@ -24,6 +24,7 @@
     "mobile:start": "npm --prefix mobile run start",
     "mobile:go": "npm --prefix mobile run start:go",
     "mobile:ios": "npm --prefix mobile run ios",
+    "mobile:ios:build": "npm --prefix mobile run build:ios",
     "mobile:ios:release": "npm --prefix mobile run ios:release",
     "mobile:ios:ipa": "npm --prefix mobile run ios:ipa",
     "mobile:android": "npm --prefix mobile run android",
