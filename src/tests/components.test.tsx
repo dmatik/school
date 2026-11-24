@@ -521,7 +521,7 @@ describe('LiquidDock Component', () => {
     )
 
     const btn = screen.getByRole('button', { name: 'Tab' })
-    expect(btn.className).toContain('w-[72px]')
+    expect(btn.className).toContain('w-[77px]')
 
     rerender(
       <LiquidDockItem
@@ -533,7 +533,7 @@ describe('LiquidDock Component', () => {
       />
     )
 
-    expect(btn.className).toContain('w-[56px]')
+    expect(btn.className).toContain('w-[60px]')
     expect(btn.className).toContain('text-primary')
   })
 
@@ -1849,6 +1849,51 @@ describe('LiquidButton & ScheduleTable Print Support', () => {
     const scrollContainer = tablist.firstElementChild as HTMLElement
     expect(scrollContainer.className).toContain('overflow-x-auto')
     expect(scrollContainer.className).toContain('rounded-full')
+
+    const track = scrollContainer.firstElementChild as HTMLElement
+    expect(track.className).toContain('gap-2')
+    expect(track.className).toContain('px-2')
+    expect(track.className).toContain('w-max')
+
+    const activeTab = screen.getByRole('tab', { name: 'All' })
+    expect(activeTab.className).toContain('h-8')
+    expect(activeTab.className).toContain('px-2')
+
+    const activePill = activeTab.querySelector('.apple-liquid-pill') as HTMLElement
+    expect(activePill).toBeInTheDocument()
+    expect(activePill.className).toContain('inset-y-0')
+    expect(activePill.className).toContain('-inset-x-2')
+  })
+
+  it('uses compact overlapping pill spacing for LiquidTabs size="sm"', () => {
+    render(
+      <LiquidTabs
+        ariaLabel="Compact Filter"
+        size="sm"
+        items={[
+          { id: 'future', label: 'Future' },
+          { id: 'past', label: 'Past' },
+        ]}
+        selectedId="future"
+        onSelect={vi.fn()}
+      />
+    )
+
+    const tablist = screen.getByRole('tablist', { name: 'Compact Filter' })
+    expect(tablist.className).toContain('h-8.5')
+
+    const track = tablist.firstElementChild?.firstElementChild as HTMLElement
+    expect(track.className).toContain('gap-1.5')
+    expect(track.className).toContain('px-1.5')
+
+    const activeTab = screen.getByRole('tab', { name: 'Future' })
+    expect(activeTab.className).toContain('h-6.5')
+    expect(activeTab.className).toContain('px-1.5')
+
+    const activePill = activeTab.querySelector('.apple-liquid-pill') as HTMLElement
+    expect(activePill).toBeInTheDocument()
+    expect(activePill.className).toContain('inset-y-0')
+    expect(activePill.className).toContain('-inset-x-1.5')
   })
 
   it('scrolls the selected LiquidTabs item into view when selectedId changes', () => {

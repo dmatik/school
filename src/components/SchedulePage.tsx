@@ -483,7 +483,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
 
   return (
     <div className="relative h-full w-full overflow-hidden print:h-full print:overflow-visible">
-      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full print:h-full print:overflow-visible print:p-0 print:max-w-none print:items-center print:justify-center">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(1.125rem,env(safe-area-inset-bottom)-2px)+10rem)] px-4 md:pt-0 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full print:h-full print:overflow-visible print:p-0 print:max-w-none print:items-center print:justify-center">
         {/* Header Bar (Desktop only) */}
         <PageHeader title={t("schedule.title")} className="print:hidden" />
 

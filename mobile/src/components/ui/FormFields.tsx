@@ -763,6 +763,8 @@ export function StickyFilterBar({
   );
 }
 
+const TAB_GAP = 8;
+
 export function LiquidTabs({
   tabs,
   value,
@@ -797,17 +799,17 @@ export function LiquidTabs({
 
   const scrollToTab = useCallback((layout: { x: number; width: number }) => {
     if (scrollRef.current && viewportWidth.current > 0) {
-      const leftEdge = layout.x;
-      const rightEdge = layout.x + layout.width;
+      const leftEdge = layout.x - TAB_GAP;
+      const rightEdge = layout.x + layout.width + TAB_GAP;
       const currentLeft = scrollOffset.current;
       const currentRight = currentLeft + viewportWidth.current;
 
       if (leftEdge < currentLeft) {
-        const nextX = Math.max(0, leftEdge - 4);
+        const nextX = Math.max(0, leftEdge);
         scrollRef.current.scrollTo({ x: nextX, animated: true });
         scrollOffset.current = nextX;
       } else if (rightEdge > currentRight) {
-        const nextX = rightEdge - viewportWidth.current + 4;
+        const nextX = rightEdge - viewportWidth.current;
         scrollRef.current.scrollTo({ x: nextX, animated: true });
         scrollOffset.current = nextX;
       }
@@ -880,12 +882,12 @@ export function LiquidTabs({
         >
           {hasMeasured && pillHeight > 0 && (
             <SlidingPill
-              x={pillState.x}
-              width={pillState.width}
+              x={pillState.x - TAB_GAP}
+              width={pillState.width + TAB_GAP * 2}
               height={pillHeight}
               isDark={isDark}
               animated={pillState.animated}
-              top={4}
+              top={0}
             />
           )}
 
@@ -1163,6 +1165,7 @@ const styles = StyleSheet.create({
   },
   tabsShell: {
     height: 40,
+    padding: 4,
     borderRadius: 999,
     overflow: 'hidden',
     flexGrow: 0,
@@ -1171,16 +1174,17 @@ const styles = StyleSheet.create({
   tabsScroll: {
     flexGrow: 0,
     flexShrink: 0,
+    borderRadius: 999,
   },
   tabsContainer: {
-    padding: 4,
-    gap: 0,
+    paddingHorizontal: TAB_GAP,
+    gap: TAB_GAP,
     alignItems: 'center',
     position: 'relative',
   },
   tabItem: {
     height: 32,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     borderRadius: 999,
     alignItems: 'center',
     justifyContent: 'center',

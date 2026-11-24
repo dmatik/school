@@ -56,7 +56,7 @@ export function LiquidDockItem({
       onClick={onClick}
       className={cn(
         "shrink-0 relative flex flex-col items-center justify-center py-2 px-0.5 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        isFiveOrMore ? "w-[56px]" : "w-[72px]",
+        isFiveOrMore ? "w-[60px]" : "w-[77px]",
         active ? "text-primary" : "text-foreground",
         className
       )}
@@ -89,7 +89,7 @@ export function LiquidDockItem({
           <span
             className={cn(
               "text-[10px] leading-none mt-0.5 truncate font-medium transition-colors",
-              isFiveOrMore ? "max-w-[54px]" : "max-w-[68px]",
+              isFiveOrMore ? "max-w-[58px]" : "max-w-[73px]",
               active ? "text-primary font-semibold" : "text-foreground"
             )}
           >
@@ -125,10 +125,10 @@ export function LiquidDock<T extends string = string>({
     <nav
       aria-label="Mobile Navigation"
       className={cn(
-        floating && "md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 mx-auto z-30",
+        floating && "md:hidden fixed bottom-[max(1.125rem,calc(env(safe-area-inset-bottom)-2px))] inset-x-0 mx-auto z-30",
         "p-1 rounded-full apple-liquid-dock transition-all duration-300",
         isScrollable
-          ? "w-[min(338px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
+          ? "w-[min(356px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
           : "w-fit max-w-[calc(100vw-1.5rem)]",
         className
       )}
