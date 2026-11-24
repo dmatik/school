@@ -38,6 +38,7 @@ import {
 import { ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import appConfig from '../../app.json';
+import webPackage from '../../../package.json';
 import type { WebtopConfig, User } from '../../../src/types';
 
 export function SettingsScreen({
@@ -587,12 +588,23 @@ export function SettingsScreen({
           </SectionCard>
         )}
 
-        <Text
-          testID="app-version-text"
-          style={[styles.versionText, { color: palette.mutedForeground }]}
-        >
-          {t('settings.app_version', { version: appConfig.expo.version })}
-        </Text>
+        <View style={[styles.versionRow, { flexDirection: flexRow }]}>
+          <Text
+            testID="app-version-text"
+            style={[styles.versionText, { color: palette.mutedForeground }]}
+          >
+            {t('settings.app_version', { version: appConfig.expo.version })}
+          </Text>
+          <Text style={[styles.versionText, { color: palette.mutedForeground }]}>
+            {' · '}
+          </Text>
+          <Text
+            testID="server-version-text"
+            style={[styles.versionText, { color: palette.mutedForeground }]}
+          >
+            {t('settings.server_version', { version: webPackage.version })}
+          </Text>
+        </View>
       </View>
 
       {!isChild && (
@@ -658,10 +670,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 8,
   },
+  versionRow: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexWrap: 'wrap',
+    paddingTop: 4,
+  },
   versionText: {
     fontSize: 12,
     textAlign: 'center',
-    paddingTop: 4,
     ...heeboFont('400'),
   },
 });
