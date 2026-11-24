@@ -23,7 +23,7 @@ export interface DockTabItem {
 }
 
 export function getDockBottomMargin(insetBottom: number): number {
-  return Math.max(insetBottom - 15, 13);
+  return Math.max(insetBottom - 7, 21);
 }
 
 function SettingsActiveIcon({
@@ -89,15 +89,15 @@ export function LiquidDock({
   const isFiveOrMore = items.length >= 5;
   const itemGap = 8;
   const outerSpace = 8;
-  const maxDockWidth = Math.min(340, screenWidth - 24);
-  const dockInnerWidth = Math.max(maxDockWidth - 8 - outerSpace * 2, 224);
+  const maxDockWidth = Math.min(356, screenWidth - 24);
+  const dockInnerWidth = Math.max(maxDockWidth - 8 - outerSpace * 2, 240);
   const visibleCount = isScrollable ? 5 : Math.max(items.length, 1);
   const totalGaps = Math.max(visibleCount - 1, 0) * itemGap;
   const itemWidth = isScrollable
     ? Math.floor((dockInnerWidth - totalGaps) / 5)
     : isFiveOrMore
     ? Math.floor((dockInnerWidth - totalGaps) / items.length)
-    : Math.min(73, Math.floor((dockInnerWidth - totalGaps) / visibleCount));
+    : Math.min(77, Math.floor((dockInnerWidth - totalGaps) / visibleCount));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
@@ -225,13 +225,15 @@ export function LiquidDock({
                   onPress={() => handlePress(item.id)}
                   onLayout={(e) => {
                     const { x, width, height } = e.nativeEvent.layout;
+                    const prev = tabLayouts.current[item.id];
+                    const changed = !prev || prev.x !== x || prev.width !== width;
                     tabLayouts.current[item.id] = { x, width, height };
                     if (height > 0 && Math.abs(height - pillHeight) > 0.5) {
                       setPillHeight(height);
                     }
-                    if (item.id === visualActive && !hasMeasured) {
+                    if (item.id === visualActive && (!hasMeasured || changed)) {
                       setPillState({ x, visible: true, animated: false });
-                      setHasMeasured(true);
+                      if (!hasMeasured) setHasMeasured(true);
                     }
                   }}
                   style={{ width: itemWidth }}

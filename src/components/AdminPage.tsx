@@ -394,7 +394,7 @@ export function AdminPage({ currentUser, token, syncTrigger }: AdminPageProps) {
 
   return (
     <div className="relative h-full w-full overflow-hidden">
-      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(0.625rem,env(safe-area-inset-bottom)-10px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
+      <div className="h-full flex flex-col pt-[3.75rem] pb-[calc(max(1.125rem,env(safe-area-inset-bottom)-2px)+10rem)] px-4 md:pt-6 md:pb-28 md:px-6 overflow-y-auto overscroll-y-contain gap-4 md:gap-6 max-w-3xl mx-auto w-full">
         {/* Page Header (Desktop only) */}
         <PageHeader sticky={false} title={t("admin.title")} />
 

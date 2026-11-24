@@ -57,48 +57,58 @@ export function LiquidTabs<T extends string = string>({
       )}
       {...props}
     >
-      <div className="flex items-center w-full overflow-x-auto no-scrollbar rounded-full">
-        {items.map((item) => {
-          const isActive = selectedId === item.id
+      <div className="w-full overflow-x-auto no-scrollbar rounded-full">
+        <div
+          className={cn(
+            "flex items-center relative w-max",
+            size === "sm" ? "gap-1.5 px-1.5" : "gap-2 px-2"
+          )}
+        >
+          {items.map((item) => {
+            const isActive = selectedId === item.id
 
-          return (
-            <motion.button
-              key={item.id}
-              ref={(el) => {
-                tabRefs.current[item.id] = el
-              }}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => onSelect(item.id)}
-              title={item.title || (typeof item.label === "string" ? item.label : undefined)}
-              className={cn(
-                "relative flex items-center justify-center rounded-full font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
-                size === "sm" ? "h-6.5 px-3 text-sm" : "h-8 px-4 text-base",
-                isActive
-                  ? "text-foreground"
-                  : "text-muted-foreground dark:text-foreground/85 hover:text-foreground",
-                tabClassName
-              )}
-            >
-              {isActive && (
-                <motion.div
-                  layoutId={layoutId}
-                  transition={{
-                    type: "spring",
-                    stiffness: 450,
-                    damping: 35
-                  }}
-                  className="absolute inset-0 rounded-full apple-liquid-pill"
-                />
-              )}
-              <span className={cn("relative z-10 truncate", maxItemWidth)}>
-                {item.label}
-              </span>
-            </motion.button>
-          )
-        })}
+            return (
+              <motion.button
+                key={item.id}
+                ref={(el) => {
+                  tabRefs.current[item.id] = el
+                }}
+                type="button"
+                role="tab"
+                aria-selected={isActive}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => onSelect(item.id)}
+                title={item.title || (typeof item.label === "string" ? item.label : undefined)}
+                className={cn(
+                  "relative flex items-center justify-center rounded-full font-medium transition-colors select-none shrink-0 focus:outline-none focus-visible:outline-none",
+                  size === "sm" ? "h-6.5 px-1.5 text-sm scroll-mx-1.5" : "h-8 px-2 text-base scroll-mx-2",
+                  isActive
+                    ? "text-foreground"
+                    : "text-muted-foreground dark:text-foreground/85 hover:text-foreground",
+                  tabClassName
+                )}
+              >
+                {isActive && (
+                  <motion.div
+                    layoutId={layoutId}
+                    transition={{
+                      type: "spring",
+                      stiffness: 450,
+                      damping: 35,
+                    }}
+                    className={cn(
+                      "absolute inset-y-0 rounded-full apple-liquid-pill",
+                      size === "sm" ? "-inset-x-1.5" : "-inset-x-2"
+                    )}
+                  />
+                )}
+                <span className={cn("relative z-10 truncate", maxItemWidth)}>
+                  {item.label}
+                </span>
+              </motion.button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
