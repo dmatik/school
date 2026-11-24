@@ -55,8 +55,8 @@ export function LiquidDockItem({
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "shrink-0 relative flex flex-col items-center justify-center py-2 px-1 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
-        isFiveOrMore ? "w-[68px]" : "w-[85px]",
+        "shrink-0 relative flex flex-col items-center justify-center py-2 px-0.5 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        isFiveOrMore ? "w-[56px]" : "w-[72px]",
         active ? "text-primary" : "text-foreground",
         className
       )}
@@ -69,14 +69,14 @@ export function LiquidDockItem({
             stiffness: 450,
             damping: 35,
           }}
-          className="absolute -inset-0.5 rounded-full apple-liquid-pill"
+          className="absolute inset-y-0 -inset-x-2 rounded-full apple-liquid-pill"
         />
       )}
       <div className="relative z-10 flex flex-col items-center justify-center">
         <div className="relative">
           <IconComponent
             className={cn(
-              "stroke-[2px] w-6 h-6 transition-all",
+              "stroke-[2px] w-[22px] h-[22px] transition-all",
               active ? "dock-icon-full text-primary" : "fill-none"
             )}
           />
@@ -86,13 +86,13 @@ export function LiquidDockItem({
             </div>
           )}
         </div>
-        <span
-          className={cn(
-            "text-[10px] leading-none mt-1 truncate font-medium transition-colors",
-            isFiveOrMore ? "max-w-[62px]" : "max-w-[76px]",
-            active ? "text-primary font-semibold" : "text-foreground"
-          )}
-        >
+          <span
+            className={cn(
+              "text-[10px] leading-none mt-0.5 truncate font-medium transition-colors",
+              isFiveOrMore ? "max-w-[54px]" : "max-w-[68px]",
+              active ? "text-primary font-semibold" : "text-foreground"
+            )}
+          >
           {label}
         </span>
       </div>
@@ -126,15 +126,15 @@ export function LiquidDock<T extends string = string>({
       aria-label="Mobile Navigation"
       className={cn(
         floating && "md:hidden fixed bottom-[max(0.625rem,calc(env(safe-area-inset-bottom)-10px))] inset-x-0 mx-auto z-30",
-        "p-1.5 rounded-full apple-liquid-dock transition-all duration-300",
+        "p-1 rounded-full apple-liquid-dock transition-all duration-300",
         isScrollable
-          ? "w-[min(352px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
+          ? "w-[min(338px,calc(100vw-1.5rem))] overflow-x-auto no-scrollbar"
           : "w-fit max-w-[calc(100vw-1.5rem)]",
         className
       )}
       {...props}
     >
-      <div className={cn("flex items-center relative", isFiveOrMore && "w-max")}>
+      <div className={cn("flex items-center relative gap-2 px-2", isFiveOrMore && "w-max")}>
         {items.map((item) => (
           <LiquidDockItem
             key={item.tab}

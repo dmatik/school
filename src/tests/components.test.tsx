@@ -521,7 +521,7 @@ describe('LiquidDock Component', () => {
     )
 
     const btn = screen.getByRole('button', { name: 'Tab' })
-    expect(btn.className).toContain('w-[85px]')
+    expect(btn.className).toContain('w-[72px]')
 
     rerender(
       <LiquidDockItem
@@ -533,7 +533,7 @@ describe('LiquidDock Component', () => {
       />
     )
 
-    expect(btn.className).toContain('w-[68px]')
+    expect(btn.className).toContain('w-[56px]')
     expect(btn.className).toContain('text-primary')
   })
 
