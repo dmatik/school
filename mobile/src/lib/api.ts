@@ -1,4 +1,5 @@
 import { mobileStorage } from './storage';
+import { fetchHealthVersion } from '../../../src/lib/server-version';
 
 export class ServerNotConfiguredError extends Error {
   constructor(message = 'Self-hosted server URL is not configured') {
@@ -82,29 +83,7 @@ export async function verifyServerConnection(serverUrl: string): Promise<boolean
  * Returns null if the server is older (no version field), unreachable, or returns an invalid payload.
  */
 export async function fetchServerVersion(): Promise<string | null> {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 6000);
-  try {
-    const res = await apiFetch('/api/health', {
-      method: 'GET',
-      headers: { Accept: 'application/json' },
-      signal: controller.signal,
-    });
-    if (!res.ok) return null;
-    const data = await res.json().catch(() => null);
-    if (!data || data.status !== 'ok' || data.app !== 'school') {
-      return null;
-    }
-    if (typeof data.version !== 'string') {
-      return null;
-    }
-    const trimmed = data.version.trim();
-    return trimmed || null;
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(timer);
-  }
+  return fetchHealthVersion(apiFetch);
 }
 
 export async function hydrateSession(): Promise<{ serverUrl: string | null; token: string | null }> {

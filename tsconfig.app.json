@@ -41,7 +41,6 @@
     "src"
   ],
   "exclude": [
-    "src/tests/maestro-fixtures.test.ts",
-    "src/tests/server-version.test.ts"
+    "src/tests/maestro-fixtures.test.ts"
   ]
 }
