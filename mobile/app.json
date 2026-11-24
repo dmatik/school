@@ -3,7 +3,7 @@
     "name": "בית הספר",
     "slug": "school-mobile",
     "scheme": "school",
-    "version": "1.7.5",
+    "version": "1.7.6",
     "platforms": [
       "ios",
       "android",
