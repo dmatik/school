@@ -13,7 +13,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '../theme/ThemeContext';
 import { heeboFont } from '../theme/typography';
 import { setAppLanguage, useDirection } from '../i18n';
-import { apiFetch } from '../lib/api';
+import { apiFetch, fetchServerVersion } from '../lib/api';
 import { formatGradeHebrew, formatSystemDateTime } from '../lib/dateUtils';
 import {
   InfoBox,
@@ -38,7 +38,6 @@ import {
 import { ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import appConfig from '../../app.json';
-import webPackage from '../../../package.json';
 import type { WebtopConfig, User } from '../../../src/types';
 
 export function SettingsScreen({
@@ -71,6 +70,7 @@ export function SettingsScreen({
   const hasLoadedWebtopRef = useRef(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [serverVersion, setServerVersion] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     variant: 'info' | 'destructive';
     message: string;
@@ -109,6 +109,18 @@ export function SettingsScreen({
   useEffect(() => {
     loadConfig();
   }, [loadConfig, syncTrigger]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetchServerVersion().then((version) => {
+      if (!cancelled) {
+        setServerVersion(version);
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [syncTrigger]);
 
   const handleTest = async () => {
     if (!webtopUsername || !webtopPassword) {
@@ -602,7 +614,7 @@ export function SettingsScreen({
             testID="server-version-text"
             style={[styles.versionText, { color: palette.mutedForeground }]}
           >
-            {t('settings.server_version', { version: webPackage.version })}
+            {t('settings.server_version', { version: serverVersion ?? '—' })}
           </Text>
         </View>
       </View>
