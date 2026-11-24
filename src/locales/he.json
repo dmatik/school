@@ -356,7 +356,8 @@
     "language_desc": "בחירת שפת התצוגה המועדפת",
     "theme_label": "ערכת נושא",
     "theme_desc": "בחירה בין מצב בהיר, כהה או מערכת",
-    "app_version": "גרסה {{version}}"
+    "app_version": "אפליקציה {{version}}",
+    "server_version": "שרת {{version}}"
   },
   "admin": {
     "title": "ניהול מערכת",

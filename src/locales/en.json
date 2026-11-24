@@ -356,7 +356,8 @@
     "language_desc": "Select your preferred display language",
     "theme_label": "Color Theme",
     "theme_desc": "Choose between light, dark, or system theme",
-    "app_version": "Version {{version}}"
+    "app_version": "App {{version}}",
+    "server_version": "Server {{version}}"
   },
   "admin": {
     "title": "System Administration",
