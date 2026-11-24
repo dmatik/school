@@ -339,7 +339,7 @@ export function LiquidButton({
 }
 
 const FAB_SIZE = 50;
-const FAB_DOCK_GAP = 86;
+const FAB_DOCK_GAP = 78;
 const FAB_CONTENT_CLEARANCE = 16;
 
 /**

@@ -87,13 +87,17 @@ export function LiquidDock({
 
   const isScrollable = items.length > 5;
   const isFiveOrMore = items.length >= 5;
-  const maxDockWidth = Math.min(364, screenWidth - 24);
-  const dockInnerWidth = Math.max(maxDockWidth - 8, 240);
+  const itemGap = 8;
+  const outerSpace = 8;
+  const maxDockWidth = Math.min(340, screenWidth - 24);
+  const dockInnerWidth = Math.max(maxDockWidth - 8 - outerSpace * 2, 224);
+  const visibleCount = isScrollable ? 5 : Math.max(items.length, 1);
+  const totalGaps = Math.max(visibleCount - 1, 0) * itemGap;
   const itemWidth = isScrollable
-    ? Math.floor(dockInnerWidth / 5)
+    ? Math.floor((dockInnerWidth - totalGaps) / 5)
     : isFiveOrMore
-    ? Math.floor(dockInnerWidth / items.length)
-    : Math.min(90, Math.floor(dockInnerWidth / Math.max(items.length, 1)));
+    ? Math.floor((dockInnerWidth - totalGaps) / items.length)
+    : Math.min(73, Math.floor((dockInnerWidth - totalGaps) / visibleCount));
 
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
@@ -199,8 +203,8 @@ export function LiquidDock({
             {/* Core Animation (iOS) / Reanimated (Android & web) sliding pill */}
             {hasMeasured && pillHeight > 0 && (
               <SlidingPill
-                x={pillState.x}
-                width={itemWidth}
+                x={pillState.x - itemGap}
+                width={itemWidth + itemGap * 2}
                 height={pillHeight}
                 isDark={isDark}
                 visible={pillState.visible}
@@ -235,13 +239,13 @@ export function LiquidDock({
                   <View style={styles.tab}>
                     {active && item.id === 'settings' ? (
                       <SettingsActiveIcon
-                        size={24}
+                        size={22}
                         color={palette.primary}
                         fill={activeIconFill}
                       />
                     ) : (
                       <Icon
-                        size={24}
+                        size={22}
                         color={active ? palette.primary : inactiveColor}
                         fill={active ? activeIconFill : 'none'}
                       />
@@ -297,14 +301,16 @@ const styles = StyleSheet.create({
   dockContent: {
     alignItems: 'center',
     position: 'relative',
+    paddingHorizontal: 8,
+    gap: 8,
   },
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    paddingVertical: 8,
+    paddingHorizontal: 2,
     borderRadius: 999,
-    gap: 4,
+    gap: 2,
   },
   tabLabel: {
     fontSize: 10,
