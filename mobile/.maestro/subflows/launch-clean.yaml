@@ -12,12 +12,14 @@ appId: com.dmatik.school
     commands:
       - openLink: "school://expo-development-client/?url=http%3A%2F%2Flocalhost%3A8081"
 
-# Wait for Metro bundle to finish loading (either Dev Menu onboarding or LoginScreen)
+# Wait for LoginScreen (or Dev Menu onboarding if running --dev)
 - extendedWaitUntil:
-    visible: "Continue|This is the developer menu|כתובת שרת|Server URL"
+    visible:
+      id: "server-url-input"
     timeout: 60000
+- waitForAnimationToEnd
 
-# Dismiss Expo Dev Client's first-launch "This is the developer menu" onboarding sheet
+# Dismiss Expo Dev Client's first-launch onboarding sheet if running --dev
 - runFlow:
     when:
       visible: "This is the developer menu"
@@ -28,8 +30,13 @@ appId: com.dmatik.school
           timeout: 10000
       - waitForAnimationToEnd
 
-- extendedWaitUntil:
-    visible:
-      id: "server-url-input"
-    timeout: 15000
-- waitForAnimationToEnd
+# In --dev mode, Expo Dev Client's onboarding sheet can animate in right after the initial screen renders.
+- runFlow:
+    when:
+      visible: "This is the developer menu"
+    commands:
+      - tapOn: "Continue"
+      - extendedWaitUntil:
+          notVisible: "This is the developer menu"
+          timeout: 10000
+      - waitForAnimationToEnd

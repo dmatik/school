@@ -11,17 +11,14 @@ const repoRoot = path.resolve(__dirname, '../..');
 
 const args = process.argv.slice(2);
 const isAndroid = args.includes('--android');
-const skipMetro = args.includes('--release') || process.env.MAESTRO_NO_METRO === 'true';
-const flowArgs = args.filter((a) => a !== '--android' && a !== '--ios' && a !== '--release');
+const flowArgs = args.filter((a) => !['--android', '--ios', '--release', '--dev', '--dev-client', '--skip-build'].includes(a));
 
 const TEST_PORT = Number(process.env.MAESTRO_SERVER_PORT || 3002);
-const METRO_PORT = Number(process.env.MAESTRO_METRO_PORT || 8081);
 const DEFAULT_SERVER_URL = isAndroid
   ? `http://10.0.2.2:${TEST_PORT}`
   : `http://localhost:${TEST_PORT}`;
 const SERVER_URL = process.env.MAESTRO_SERVER_URL || DEFAULT_SERVER_URL;
 const HEALTH_URL = `http://127.0.0.1:${TEST_PORT}/api/health`;
-const METRO_STATUS_URL = `http://127.0.0.1:${METRO_PORT}/status`;
 
 function resolveMaestroBin() {
   const candidates = [
@@ -54,26 +51,6 @@ async function waitForHealth(url, timeoutMs = 15_000) {
   throw new Error(`Isolated test server did not become healthy at ${url} within ${timeoutMs}ms`);
 }
 
-async function isMetroRunning(url) {
-  try {
-    const res = await fetch(url);
-    if (!res.ok) return false;
-    const text = await res.text();
-    return text.includes('packager-status:running');
-  } catch {
-    return false;
-  }
-}
-
-async function waitForMetro(url, timeoutMs = 45_000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (await isMetroRunning(url)) return;
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  throw new Error(`Metro bundler did not become ready at ${url} within ${timeoutMs}ms`);
-}
-
 const maestroBin = resolveMaestroBin();
 if (!maestroBin) {
   console.error(
@@ -100,14 +77,72 @@ function resolveFlowTarget(arg) {
   return arg;
 }
 
+function resolveAllFlows() {
+  if (flowArgs.length > 0) {
+    const resolved = [];
+    for (const arg of flowArgs) {
+      const target = resolveFlowTarget(arg);
+      if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+        const yamls = fs
+          .readdirSync(target)
+          .filter((f) => f.endsWith('.yaml') && f !== 'config.yaml')
+          .sort()
+          .map((f) => path.join(target, f));
+        resolved.push(...yamls);
+      } else {
+        resolved.push(target);
+      }
+    }
+    return resolved;
+  }
+
+  const maestroDir = path.join(repoRoot, 'mobile/.maestro');
+  const configPath = path.join(maestroDir, 'config.yaml');
+  if (fs.existsSync(configPath)) {
+    const configText = fs.readFileSync(configPath, 'utf8');
+    const orderMatch = configText.match(/flowsOrder:\s*\n((?:\s+-\s+.+\n?)+)/);
+    if (orderMatch) {
+      const ordered = orderMatch[1]
+        .split('\n')
+        .map((line) => line.replace(/^\s*-\s*/, '').trim())
+        .filter(Boolean)
+        .map((name) => path.join(maestroDir, name.endsWith('.yaml') ? name : `${name}.yaml`))
+        .filter((p) => fs.existsSync(p));
+      if (ordered.length > 0) return ordered;
+    }
+  }
+
+  return fs
+    .readdirSync(maestroDir)
+    .filter((f) => f.endsWith('.yaml') && f !== 'config.yaml')
+    .sort()
+    .map((f) => path.join(maestroDir, f));
+}
+
+function formatDuration(ms) {
+  const totalSeconds = Math.max(0, Math.round(ms / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return minutes > 0 ? `${minutes}m ${seconds}s` : `${seconds}s`;
+}
+
+function extractFailureSummary(output) {
+  const lines = output.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
+  const assertionLine = lines.find((l) => l.startsWith('Assertion is false:') || l.startsWith('Unable to ') || l.startsWith('Element not found'));
+  const debugIdx = lines.findIndex((l) => l.includes('Debug output'));
+  const debugPath = debugIdx >= 0 ? lines.slice(debugIdx + 1).find((l) => l.startsWith('/')) : null;
+  return { assertionLine, debugPath };
+}
+
 let serverProc = null;
-let metroProc = null;
+let activeMaestroProc = null;
+let currentRunningFlow = null;
 let cleanedUp = false;
 
 function cleanup() {
   if (cleanedUp) return;
   cleanedUp = true;
-  for (const proc of [serverProc, metroProc]) {
+  for (const proc of [activeMaestroProc, serverProc]) {
     if (proc && !proc.killed) {
       try {
         proc.kill('SIGTERM');
@@ -117,6 +152,32 @@ function cleanup() {
     }
   }
   removeEphemeralDb(tempDbPath);
+}
+
+function runMaestroFlow(flowPath, envArgs) {
+  return new Promise((resolve) => {
+    const start = Date.now();
+    let output = '';
+    const proc = spawn(maestroBin, ['test', flowPath, ...envArgs], {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    activeMaestroProc = proc;
+    proc.stdout.on('data', (chunk) => {
+      output += chunk.toString();
+    });
+    proc.stderr.on('data', (chunk) => {
+      output += chunk.toString();
+    });
+    proc.on('close', (code) => {
+      if (activeMaestroProc === proc) activeMaestroProc = null;
+      resolve({
+        status: code ?? 1,
+        output,
+        durationMs: Date.now() - start,
+      });
+    });
+  });
 }
 
 process.on('SIGINT', () => {
@@ -147,38 +208,19 @@ try {
 
   serverProc.stderr.on('data', (chunk) => {
     const text = chunk.toString().trim();
-    if (text) console.error(`[test-server] ${text}`);
+    if (!text) return;
+    if (process.stdout.isTTY && currentRunningFlow) {
+      process.stdout.write(`\r\x1b[K[test-server] ${text}\n[Running...] ${currentRunningFlow}`);
+    } else {
+      console.error(`[test-server] ${text}`);
+    }
   });
 
   await waitForHealth(HEALTH_URL);
   console.log(`[maestro] Isolated test server ready at ${SERVER_URL} (Webtop external calls disabled)`);
 
-  if (!skipMetro) {
-    if (await isMetroRunning(METRO_STATUS_URL)) {
-      console.log(`[maestro] Reusing running Metro bundler on port ${METRO_PORT}`);
-    } else {
-      console.log(`[maestro] Starting Metro bundler on port ${METRO_PORT}...`);
-      metroProc = spawn('npx', ['expo', 'start', '--dev-client', '--port', String(METRO_PORT)], {
-        cwd: path.join(repoRoot, 'mobile'),
-        stdio: ['ignore', 'pipe', 'pipe'],
-        env: {
-          ...process.env,
-          NODE_USE_SYSTEM_CA: '1',
-        },
-      });
-      metroProc.stderr.on('data', (chunk) => {
-        const text = chunk.toString().trim();
-        if (text) console.error(`[metro] ${text}`);
-      });
-      await waitForMetro(METRO_STATUS_URL);
-      console.log(`[maestro] Metro bundler ready on port ${METRO_PORT}`);
-    }
-  }
-
-  const targets = flowArgs.length > 0 ? flowArgs.map(resolveFlowTarget) : ['mobile/.maestro'];
-  const maestroArgs = [
-    'test',
-    ...targets,
+  const flows = resolveAllFlows();
+  const envArgs = [
     '-e', `SERVER_URL=${SERVER_URL}`,
     '-e', `ADMIN_USERNAME=${fixtures.admin.username}`,
     '-e', `ADMIN_PASSWORD=${fixtures.admin.password}`,
@@ -190,12 +232,49 @@ try {
     '-e', `CHILD2_NAME=${fixtures.children[1].firstName}`,
   ];
 
-  const result = spawnSync(maestroBin, maestroArgs, {
-    cwd: repoRoot,
-    stdio: 'inherit',
-  });
+  const isTTY = Boolean(process.stdout.isTTY);
+  const suiteStart = Date.now();
+  let passedCount = 0;
 
-  process.exitCode = result.status ?? 1;
+  console.log('');
+  for (const flowPath of flows) {
+    const flowName = path.basename(flowPath, '.yaml');
+    currentRunningFlow = flowName;
+    if (isTTY) {
+      process.stdout.write(`\r\x1b[K[Running...] ${flowName}`);
+    } else {
+      console.log(`[Running...] ${flowName}`);
+    }
+
+    const { status, output, durationMs } = await runMaestroFlow(flowPath, envArgs);
+    currentRunningFlow = null;
+    const elapsed = formatDuration(durationMs);
+
+    if (status === 0) {
+      passedCount += 1;
+      const line = `[Passed] ${flowName} (${elapsed})`;
+      if (isTTY) {
+        process.stdout.write(`\r\x1b[K${line}\n`);
+      } else {
+        console.log(line);
+      }
+    } else {
+      const { assertionLine, debugPath } = extractFailureSummary(output);
+      const reason = assertionLine ? ` (${assertionLine})` : '';
+      const line = `[Failed] ${flowName} (${elapsed})${reason}`;
+      if (isTTY) {
+        process.stdout.write(`\r\x1b[K${line}\n`);
+      } else {
+        console.log(line);
+      }
+      if (debugPath) {
+        console.log(`  Debug output: ${debugPath}`);
+      }
+    }
+  }
+
+  console.log(`\n${passedCount}/${flows.length} Flows Passed in ${formatDuration(Date.now() - suiteStart)}\n`);
+  process.exitCode = passedCount === flows.length ? 0 : 1;
 } finally {
   cleanup();
   console.log('[maestro] Cleaned up test server and ephemeral DB');
