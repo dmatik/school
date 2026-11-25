@@ -421,7 +421,6 @@ export function ExamsScreen({
         <View style={{ gap: 6 }}>
           <FieldLabel label={t('exams.grade_label')} />
           <FilledInput
-            forceLtr
             value={formGrade}
             onChangeText={setFormGrade}
             placeholder={t('exams.grade_placeholder')}

@@ -38,7 +38,7 @@ interface ExamsPageProps {
 type PeriodFilter = "future" | "past"
 
 export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
-  const { t } = useTranslation()
+  const { t, i18n } = useTranslation()
   const isChild = currentUser?.familyRole === "child"
   const isParent = !isChild
 
@@ -578,6 +578,8 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
           <Label htmlFor="exam-add-grade">{t("exams.grade_label")}</Label>
           <FilledInput
             id="exam-add-grade"
+            dir={i18n.dir()}
+            className="text-start"
             value={formGrade}
             onChange={(e) => setFormGrade(e.target.value)}
             placeholder={t("exams.grade_placeholder")}
@@ -686,6 +688,8 @@ export function ExamsPage({ token, syncTrigger, currentUser }: ExamsPageProps) {
           <Label htmlFor="exam-edit-grade">{t("exams.grade_label")}</Label>
           <FilledInput
             id="exam-edit-grade"
+            dir={i18n.dir()}
+            className="text-start"
             value={formGrade}
             onChange={(e) => setFormGrade(e.target.value)}
             placeholder={t("exams.grade_placeholder")}

@@ -63,7 +63,7 @@ export function FilledInput({
   variant?: 'filled' | 'card';
 }) {
   const { palette } = useTheme();
-  const { textAlign } = useDirection();
+  const { textAlign, writingDirection } = useDirection();
   const bg = variant === 'card' ? palette.card : palette.inputBg;
   const isMultiline = Boolean(multiline);
 
@@ -79,7 +79,7 @@ export function FilledInput({
           backgroundColor: bg,
           color: palette.foreground,
           textAlign: forceLtr ? 'left' : textAlign,
-          writingDirection: forceLtr ? 'ltr' : undefined,
+          writingDirection: forceLtr ? 'ltr' : writingDirection,
           opacity: editable === false ? 0.5 : 1,
         },
         style,
