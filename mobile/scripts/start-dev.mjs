@@ -20,9 +20,16 @@ function isIosAppInstalled() {
   const res = spawnSync(
     'xcrun',
     ['simctl', 'get_app_container', 'booted', iosBundleId],
-    { stdio: 'ignore' }
+    { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] }
   );
-  return res.status === 0;
+  if (res.status !== 0) return false;
+  const appContainer = (res.stdout || '').trim();
+  // Release builds (e.g. from Maestro E2E) embed main.jsbundle and don't connect to Metro.
+  // Treat them as not-dev-installed so `expo run:ios` restores the Debug dev-client build.
+  if (appContainer && fs.existsSync(path.join(appContainer, 'main.jsbundle'))) {
+    return false;
+  }
+  return true;
 }
 
 function isAndroidAppInstalled() {

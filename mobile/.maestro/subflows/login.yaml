@@ -4,14 +4,6 @@ appId: com.dmatik.school
     id: "server-url-input"
 - waitForAnimationToEnd
 - inputText: "${SERVER_URL}"
-- runFlow:
-    when:
-      visible: "https://school.example.com"
-    commands:
-      - tapOn:
-          id: "server-url-input"
-      - waitForAnimationToEnd
-      - inputText: "${SERVER_URL}"
 - tapOn:
     id: "username-input"
 - waitForAnimationToEnd
