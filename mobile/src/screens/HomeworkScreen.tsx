@@ -157,7 +157,7 @@ export function HomeworkScreen({
         placeholder={t('homework.search_placeholder')}
       />
 
-      <StickyFilterBar>
+      <StickyFilterBar relativeToHeader>
         <View
           style={[
             styles.filterRow,
