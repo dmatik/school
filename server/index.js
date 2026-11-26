@@ -455,7 +455,7 @@ app.post('/api/auth/passkey/login-verify', rateLimitAuth(20, 60000), async (req,
       expectedChallenge: stored.challenge,
       expectedOrigin,
       expectedRPID: rpID,
-      requireUserVerification: true,
+      requireUserVerification: false,
       credential: {
         id: authenticator.id,
         publicKey: new Uint8Array(authenticator.public_key),
