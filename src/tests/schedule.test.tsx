@@ -735,6 +735,10 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
       expect(shareBtn.parentElement?.className).toContain('ms-auto')
       expect(stickyFilters).toContainElement(shareBtn)
 
+      await waitFor(() => {
+        expect(shareBtn).not.toBeDisabled()
+      })
+
       fireEvent.click(shareBtn)
       await waitFor(() => {
         expect(shareMock).toHaveBeenCalledTimes(1)
