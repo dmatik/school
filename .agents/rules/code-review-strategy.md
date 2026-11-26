@@ -1,29 +1,29 @@
-# Three-Agent Code Review Strategy (2 Blue Team + 1 Red Team)
+# Four-Agent Code Review Strategy (3 Blue Team + 1 Red Team)
 
-When a code review is requested for changes, branches, or PRs in `school`, always execute this tri-agent review protocol using 3 parallel subagents: **2 Blue Team reviewers** and **1 Red Team reviewer**.
+When a code review is requested for changes, branches, or PRs in `school`, always execute this four-agent review protocol using 4 parallel subagents: **3 Blue Team reviewers** and **1 Red Team reviewer**.
 
 ---
 
-## 1. Tri-Agent Subagent Workflow
+## 1. Four-Agent Subagent Workflow
 
-Whenever the user asks to "do code review", "review this PR/branch", or "review feature", dispatch three subagents in parallel:
+Whenever the user asks to "do code review", "review this PR/branch", or "review feature", dispatch four subagents in parallel:
 
 ```
                                User: "perform code review"
                                             │
-        ┌───────────────────────────────────┼───────────────────────────────────┐
-        ▼                                   ▼                                   ▼
-[Blue Team: Architecture]          [Blue Team: UI & Testing]         [Red Team: Adversarial]
-`code-reviewer-architecture`       `code-reviewer-ui-testing`        `red-team-reviewer`
-• Architecture & Design Patterns   • Shared Components & Storybook   • Injection & DDE Attacks
-• Zero Code / UI Duplication       • Bilingual i18n Completeness     • Auth, Session & Data Integrity
-• React 19 & TypeScript Types      • Bi-directional RTL Compliance   • Crash Probing & Fuzzing
-• Backend & DB Synchronous Rules   • Accessibility & Visual UX       • DoS & Edge Case Failures
-• Performance & Memory Discipline  • Vitest & Playwright Isolation   • Boundary Conditions
-        │                                   │                                   │
-        └───────────────────────────────────┼───────────────────────────────────┘
+    ┌───────────────────────────┬───────────┴───────────┬───────────────────────────┐
+    ▼                           ▼                       ▼                           ▼
+[Blue Team: Architecture]  [Blue Team: UI & Testing] [Blue Team: Mobile]       [Red Team: Adversarial]
+`code-reviewer-architecture` `code-reviewer-ui-testing` `code-reviewer-mobile` `red-team-reviewer`
+• Architecture & Patterns  • Shared UI & Storybook   • Expo / RN Stack Rules   • Injection & DDE Attacks
+• Zero Code/UI Duplication • Bilingual i18n (he/en)  • RN Shared UI & Stories  • Auth, Session & Data
+• React 19 & TS Types      • RTL Compliance          • Safe Area, Gestures     • Crash Probing & Fuzzing
+• Backend & DB Sync Rules  • Accessibility & UX      • Mobile i18n & RTL       • DoS & Edge Case Failures
+• Performance & Memory     • Vitest & Playwright     • Maestro E2E & Offline   • Boundary Conditions
+    │                           │                       │                           │
+    └───────────────────────────┴───────────┬───────────┴───────────────────────────┘
                                             ▼
-                         Unified Tri-Agent Review Synthesis & Verdict
+                         Unified Four-Agent Review Synthesis & Verdict
 ```
 
 ### A. Blue Team 1: Architecture & Code Quality Reviewer (`code-reviewer-architecture`)
@@ -44,7 +44,16 @@ Whenever the user asks to "do code review", "review this PR/branch", or "review 
   4. **Vitest Unit & Component Coverage**: Validates pure functions, calculation logic, edge inputs, and component state transitions inside `src/`.
   5. **Playwright E2E Isolation**: Tests located strictly in `e2e/`, using isolated temporary users (`createTestUser` and `deleteTestUser`) in `beforeEach`/`afterEach`. Zero pollution of CI workflows or production admin records.
 
-### C. Red Team: Adversarial Security & Reliability Reviewer (`red-team-reviewer`)
+### C. Blue Team 3: Mobile (Expo / React Native) Reviewer (`code-reviewer-mobile`)
+- **Focus**: Expo / React Native architecture, cross-platform iOS/Android behavior, mobile shared components & RN Storybook, RTL/i18n, secure storage, and Maestro E2E coverage.
+- **Checklist**:
+  1. **Expo & React Native Stack Compliance**: Adherence to `mobile/package.json` versions (Expo SDK 58, React Native 0.88, React 19, TypeScript 6), `mobile/AGENTS.md` rules (using `npx expo install`, configuring native behavior in `app.json`/config plugins rather than hand-editing generated native code unnecessarily), and `expo lint` / `tsc --noEmit` cleanliness.
+  2. **Mobile Shared Components & RN Storybook**: UI elements in `mobile/src/screens/` reuse shared primitives from `mobile/src/components/` and theme tokens from `mobile/src/theme/`; new or updated shared mobile components have stories in `mobile/src/stories/` (and `.rnstorybook/` kept in sync).
+  3. **Cross-Platform UX, Safe Areas & Performance**: Proper `react-native-safe-area-context` insets, keyboard avoidance, `react-native-gesture-handler` / `@gorhom/bottom-sheet` / `react-native-reanimated` usage without UI-thread stalls, and smooth scrolling/list virtualization.
+  4. **Mobile Bilingual i18n & RTL**: Zero hardcoded user-facing strings; translations in `mobile/src/i18n/`; logical/RTL-safe layout (`I18nManager` / `flexDirection` / `writingDirection` / `start`/`end` properties) for Hebrew (RTL) and English (LTR).
+  5. **Secure Storage, API Parity & Maestro E2E**: Sensitive tokens/credentials stored in `expo-secure-store` (not plain `AsyncStorage`), offline/network error handling, API contract parity with `server/index.js`, and Maestro E2E flow coverage in `mobile/.maestro/` when user-facing mobile flows change.
+
+### D. Red Team: Adversarial Security & Reliability Reviewer (`red-team-reviewer`)
 - **Focus**: Exploitation vectors, stress testing, data integrity, and failure modes.
 - **Checklist**:
   1. **Injection Vectors**: SQL injection, XSS, CSV formula injection (CWE-1236 / DDE triggers: `=`, `+`, `-`, `@`, `\t`, `\r`).
@@ -56,9 +65,10 @@ Whenever the user asks to "do code review", "review this PR/branch", or "review 
 
 ## 2. Review Output Format
 
-The parent agent aggregates all 3 reviews into a consolidated, actionable report:
+The parent agent aggregates all 4 reviews into a consolidated, actionable report:
 1. **Executive Verdict**: `APPROVED`, `APPROVED WITH MINOR SUGGESTIONS`, or `CHANGES REQUESTED`.
 2. **Blue Team 1 (Architecture & Code Quality)**: Structural findings, stack compliance, maintainability.
 3. **Blue Team 2 (UI, i18n, RTL & Testing)**: Bilingual dictionary checks, RTL layout verification, test coverage & isolation.
-4. **Red Team (Adversarial Security & Edge Cases)**: Vulnerability probing, injection defense, reliability risks.
-5. **Actionable Recommendations & Remediation Plan**: Prioritized list of concrete fixes.
+4. **Blue Team 3 (Mobile — Expo / React Native)**: Cross-platform iOS/Android compliance, RN Storybook, safe areas/gestures, mobile i18n/RTL, secure storage & Maestro coverage.
+5. **Red Team (Adversarial Security & Edge Cases)**: Vulnerability probing, injection defense, reliability risks.
+6. **Actionable Recommendations & Remediation Plan**: Prioritized list of concrete fixes.

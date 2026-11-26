@@ -142,6 +142,18 @@ describe('WebAuthn Config Resolver', () => {
       expect(config.expectedOrigin).toContain('https://custom.domain.com')
       expect(config.expectedOrigin).toContain('https://another.domain.com')
     })
+
+    it('does not reflect untrusted Origin headers when EXPECTED_ORIGIN is configured', () => {
+      process.env.EXPECTED_ORIGIN = 'https://school.trosman.co.il'
+      const req = {
+        headers: { origin: 'https://evil-attacker.example' },
+        get: (h: string) => (h.toLowerCase() === 'origin' ? 'https://evil-attacker.example' : undefined),
+      }
+
+      const config = getWebAuthnConfig(req)
+      expect(config.expectedOrigin).toContain('https://school.trosman.co.il')
+      expect(config.expectedOrigin).not.toContain('https://evil-attacker.example')
+    })
   })
 
   describe('resolveTrustProxy & express-rate-limit behind reverse proxy', () => {

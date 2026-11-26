@@ -91,12 +91,34 @@ async function savePrivateKeyToKeychain(
         cancelErr.name = 'NotAllowedError';
         throw cancelErr;
       }
-      // Fall back to standard SecureStore if simulator/device has no enrolled biometrics
+      throw new Error('Biometric authentication failed while saving passkey');
     }
   }
 
   await SecureStore.setItemAsync(key, privateKeyHex);
   return false;
+}
+
+function validateServerRpId(serverRpId: string | undefined, serverUrl: string): string {
+  const hostname = new URL(serverUrl).hostname.toLowerCase();
+  const isLocal =
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '::1' ||
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+  const fallbackRpId = isLocal ? 'localhost' : hostname;
+  if (!serverRpId) return fallbackRpId;
+  const normalizedRpId = serverRpId.toLowerCase();
+  if (isLocal) {
+    if (normalizedRpId !== 'localhost' && normalizedRpId !== hostname) {
+      throw new Error('Server returned an invalid passkey RP ID');
+    }
+    return normalizedRpId;
+  }
+  if (hostname !== normalizedRpId && !hostname.endsWith(`.${normalizedRpId}`)) {
+    throw new Error('Server returned an untrusted passkey RP ID');
+  }
+  return normalizedRpId;
 }
 
 async function loadPrivateKeyFromKeychain(
@@ -181,8 +203,9 @@ export async function registerPasskey(
     throw new Error(optsData?.error || 'Failed to start passkey registration');
   }
 
-  const rpId: string = optsData.options.rp?.id || new URL(serverUrl).hostname || 'localhost';
+  const rpId = validateServerRpId(optsData.options.rp?.id, serverUrl);
   const challenge: string = optsData.options.challenge;
+  const willUseBio = Platform.OS !== 'web' && SecureStore.canUseBiometricAuthentication();
 
   // 2. Build WebAuthn FIDO2 P-256 credential and store private key in Keychain/Keystore
   const { credentialId, privateKeyHex, registrationResponse } =
@@ -190,6 +213,7 @@ export async function registerPasskey(
       challenge,
       rpId,
       origin,
+      userVerified: willUseBio,
     });
 
   const usedBio = await savePrivateKeyToKeychain(
@@ -301,7 +325,7 @@ export async function loginWithPasskey(
   }
 
   const nextCounter = (matchedEntry.counter || 0) + 1;
-  const rpId: string = optsData.options.rpId || new URL(serverUrl).hostname || 'localhost';
+  const rpId = validateServerRpId(optsData.options.rpId, serverUrl);
   const assertion = buildWebAuthnAssertion({
     credentialId: matchedEntry.credentialId,
     privateKeyHex,
@@ -312,6 +336,7 @@ export async function loginWithPasskey(
     rpId,
     origin,
     counter: nextCounter,
+    userVerified: matchedEntry.useBiometrics,
   });
 
   // 4. Verify signed assertion on server

@@ -564,8 +564,9 @@ export function ModeToggleButton() {
 }
 
 export function LanguageToggleButton() {
+  const { i18n: activeI18n } = useTranslation();
   const { palette } = useTheme();
-  const isEn = (i18n.language || 'he').startsWith('en');
+  const isEn = (activeI18n.language || 'he').startsWith('en');
   return (
     <Pressable
       accessibilityLabel="Toggle language"

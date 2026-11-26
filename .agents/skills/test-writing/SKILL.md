@@ -1,11 +1,11 @@
 ---
 name: test-writing
-description: Guide and recipes for writing unit, component, and end-to-end tests in class_attend. Use when adding tests for new features, fixing regressions, or setting up test fixtures.
+description: Guide and recipes for writing unit, component, and end-to-end tests in school. Use when adding tests for new features, fixing regressions, or setting up test fixtures.
 ---
 
 # Test Writing Runbook & Recipes
 
-Follow these recipes when creating tests in `class_attend`:
+Follow these recipes when creating tests in `school`:
 
 ---
 

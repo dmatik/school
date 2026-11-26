@@ -85,16 +85,18 @@ Whenever delegating specialized tasks, use these exact role names:
 * **`red-team-expert`** (or `red-team-reviewer`): Adversarial security researcher that stress-tests architectures, probes for exploit vectors (DoS, XSS, auth bypasses, timing attacks, data loss), and audits edge-case resilience.
 * **`code-reviewer-architecture`**: Blue Team reviewer focused on architecture, stack compliance (React 19, Radix UI, Express 5, Better-SQLite3), shared component reuse (zero code duplication), type safety, lifecycle performance, and clean code.
 * **`code-reviewer-ui-testing`**: Blue Team reviewer focused on UI/UX, shared Storybook component compliance (`src/components/ui/` & `src/stories/`), bilingual i18n completeness (`he.json` + `en.json`), RTL Tailwind compliance, and Vitest/Playwright test discipline and isolation.
+* **`code-reviewer-mobile`**: Blue Team reviewer focused on the Expo/React Native mobile app (`mobile/`): Expo SDK & RN stack compliance, `mobile/src/components/` & RN Storybook (`mobile/src/stories/`), safe areas/gestures/reanimated performance, mobile RTL/i18n (`mobile/src/i18n/`), `expo-secure-store` usage, API parity, and Maestro E2E flows (`mobile/.maestro/`).
 * **`test-engineer`**: Writes and maintains Vitest component tests and Playwright E2E test suites with strict temporary user isolation and cleanup.
 * **`fullstack-engineer`**: Builds end-to-end features adhering to the project's exact stack (React 19, shared `src/components/ui/` & Storybook, Express 5, Better-SQLite3) with zero code duplication.
 
-### Tri-Agent Code Review Protocol (2 Blue Team + 1 Red Team)
-Whenever the user requests a code review ("perform code review", "review this PR/branch"), **always** dispatch all three subagents in parallel as defined in [`.agents/rules/code-review-strategy.md`](.agents/rules/code-review-strategy.md):
+### Four-Agent Code Review Protocol (3 Blue Team + 1 Red Team)
+Whenever the user requests a code review ("perform code review", "review this PR/branch"), **always** dispatch all four subagents in parallel as defined in [`.agents/rules/code-review-strategy.md`](.agents/rules/code-review-strategy.md):
 1. **`code-reviewer-architecture`** (Blue Team: Architecture, Shared Components / Zero Duplication, Backend, Types & Performance)
 2. **`code-reviewer-ui-testing`** (Blue Team: UI/UX, Storybook Catalog Sync, Bilingual i18n, RTL & Test Discipline)
-3. **`red-team-reviewer`** (Red Team: Adversarial Security, Penetration Testing & Edge Cases)
+3. **`code-reviewer-mobile`** (Blue Team: Mobile App — Expo/RN Stack, RN Storybook, Safe Areas/Gestures, Mobile i18n/RTL, Secure Store & Maestro)
+4. **`red-team-reviewer`** (Red Team: Adversarial Security, Penetration Testing & Edge Cases)
 
-Synthesize the three evaluations into a unified, actionable report covering architecture, UI/i18n/test compliance, security, and edge-case resilience.
+Synthesize the four evaluations into a unified, actionable report covering architecture, UI/i18n/test compliance, mobile app compliance, security, and edge-case resilience.
 
 ---
 

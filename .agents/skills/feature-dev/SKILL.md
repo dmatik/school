@@ -1,25 +1,25 @@
 ---
 name: feature-dev
-description: Guided workflow for designing and implementing full-stack or frontend features in the class_attend repository. Use whenever developing new user-facing functionality or backend endpoints.
+description: Guided workflow for designing and implementing full-stack or frontend features in the school repository. Use whenever developing new user-facing functionality or backend endpoints.
 ---
 
 # Feature Development Runbook
 
-Follow this step-by-step checklist when building new features in `class_attend`:
+Follow this step-by-step checklist when building new features in `school`:
 
 ## Phase 1: Planning & Schema Verification
 1. **Analyze Requirements**: Check if the feature impacts the database, API, UI, or i18n.
 2. **Database Update (if needed)**:
    - Check schema in `server/db.js`.
    - Add new columns using `ALTER TABLE ... ADD COLUMN` inside `initDb()` with default fallback values.
-   - Verify `user_id` foreign key is present if creating a new table.
+   - Verify `user_id` / `parent_id` foreign key is present if creating a new table.
 3. **Type Definitions**:
    - Update `src/types.ts` to add any new interfaces, statuses, or fields.
 
 ## Phase 2: Backend API Implementation
 1. In `server/index.js`, add the necessary route(s).
-2. Ensure `authenticate` middleware is attached to protect user data.
-3. Use parameterized queries (`?`) scoped by `req.user.id`.
+2. Ensure `authenticate` middleware (and `requireParent` / `requireAdmin` if restricted) is attached to protect user data.
+3. Use parameterized queries (`?`) scoped by `req.user`.
 4. Validate incoming payload and return clear error statuses (`400`, `404`, `500`).
 
 ## Phase 3: Internationalization (i18n)

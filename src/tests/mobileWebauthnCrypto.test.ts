@@ -8,6 +8,8 @@ import {
 import {
   buildWebAuthnRegistration,
   buildWebAuthnAssertion,
+  p256SignDer,
+  randomBytes,
 } from '../lib/webauthn-crypto-p256';
 import {
   filterSavedPasskeyAccounts,
@@ -141,5 +143,21 @@ describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
     const filtered = filterSavedPasskeyAccounts(entries, 'https://school.example.com/api');
     expect(filtered).toHaveLength(2);
     expect(filtered.map((e) => e.credentialId)).toEqual(['cred-1', 'cred-3']);
+  });
+
+  it('uses deterministic RFC 6979 nonces in p256SignDer and fails closed if CSPRNG is absent', () => {
+    const privHex = '0000000000000000000000000000000000000000000000000000000000000001';
+    const msgHash = new Uint8Array(32).fill(0xab);
+    const sig1 = p256SignDer(privHex, msgHash);
+    const sig2 = p256SignDer(privHex, msgHash);
+    expect(sig1).toEqual(sig2);
+
+    const originalCrypto = globalThis.crypto;
+    try {
+      Object.defineProperty(globalThis, 'crypto', { value: undefined, configurable: true });
+      expect(() => randomBytes(16)).toThrow(/unavailable/i);
+    } finally {
+      Object.defineProperty(globalThis, 'crypto', { value: originalCrypto, configurable: true });
+    }
   });
 });

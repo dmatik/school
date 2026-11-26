@@ -5,7 +5,7 @@ description: Adversarial security and reliability inspection guide. Use when str
 
 # Red Team Adversarial Security & Reliability Runbook
 
-Use this runbook to conduct adversarial evaluations on features, APIs, and proposed fixes in `class_attend`:
+Use this runbook to conduct adversarial evaluations on features, APIs, and proposed fixes in `school`:
 
 ## 1. Attack Vectors Checklist
 
@@ -26,11 +26,11 @@ Use this runbook to conduct adversarial evaluations on features, APIs, and propo
 - [ ] **Database Concurrency**: Is `busy_timeout` configured in SQLite to prevent lock exceptions under concurrent writes?
 
 ### D. Data Destruction & Integrity
-- [ ] **Destructive Sync Guards**: Do bulk save endpoints (`POST /api/data`) protect against accidental data wiping if an empty array is submitted?
-- [ ] **Schema Coverage**: Do all client-persisted properties (`attendance.details`, `replacementForSessionId`) have corresponding database columns?
+- [ ] **Destructive Sync Guards**: Do bulk/sync endpoints (e.g., `PUT /api/schedule/batch`, `POST /api/webtop/sync`) protect against accidental data wiping or partial overwrites if an empty or malformed payload is submitted?
+- [ ] **Schema Coverage**: Do all client-persisted properties (incidents, homework, exams, schedule lessons, children) have corresponding database columns?
 - [ ] **Cross-Tenant References**: Does foreign-key validation verify ownership within the authenticated tenant?
 
 ### E. Frontend & Browser Resilience
-- [ ] **Reliable Flush on Exit**: Does auto-save use `fetch(..., { keepalive: true, headers: { Authorization: ... } })` rather than `sendBeacon` (which cannot send auth headers)?
-- [ ] **Mount Race Conditions**: Does auto-save avoid redundant writes on initial component mount?
+- [ ] **Reliable Flush on Exit**: Do background/exit requests use `fetch(..., { keepalive: true, headers: { Authorization: ... } })` rather than `sendBeacon` (which cannot send auth headers)?
+- [ ] **Mount Race Conditions**: Do sync hooks (`useServerSync`, `/api/webtop/sync-if-stale`) avoid redundant writes or sync loops on initial component mount?
 
