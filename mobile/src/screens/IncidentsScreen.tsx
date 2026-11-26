@@ -121,17 +121,13 @@ export function IncidentsScreen({
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
   const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
+  const sections = useMemo(
+    () => groupedByDate.map(([date, data]) => ({ title: date, data })),
+    [groupedByDate]
+  );
 
-  return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...pullToRefreshProps}
-    >
+  const listHeader = (
+    <View style={styles.listHeader}>
       {isChild && !currentUser.linkedChildId ? (
         <NoticeBanner variant="warning" description={t('incidents.child_unlinked_desc')} />
       ) : null}
@@ -171,40 +167,55 @@ export function IncidentsScreen({
           />
         </View>
       </StickyFilterBar>
+    </View>
+  );
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
+  const listEmpty = loading ? (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={palette.primary} />
+    </View>
+  ) : (
+    <EmptyStateCard
+      centered
+      icon={AlertCircle}
+      title={t('incidents.empty_title')}
+      description={
+        items.length > 0 ? t('incidents.no_incidents_match') : t('incidents.empty_desc')
+      }
+    />
+  );
+
+  return (
+    <Animated.SectionList
+      ref={scrollRef as any}
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      showsVerticalScrollIndicator={false}
+      stickySectionHeadersEnabled={false}
+      sections={loading ? [] : sections}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={listEmpty}
+      renderSectionHeader={({ section }) => (
+        <View style={styles.sectionHeaderWrap}>
+          <SectionDateHeader
+            title={formatDateSectionHeader(section.title, i18n.language, t)}
+          />
         </View>
-      ) : groupedByDate.length === 0 ? (
-        <EmptyStateCard
-          centered
-          icon={AlertCircle}
-          title={t('incidents.empty_title')}
-          description={
-            items.length > 0 ? t('incidents.no_incidents_match') : t('incidents.empty_desc')
-          }
-        />
-      ) : (
-        groupedByDate.map(([date, list]) => (
-          <View key={date} style={{ gap: 4 }}>
-            <SectionDateHeader
-              title={formatDateSectionHeader(date, i18n.language, t)}
-            />
-            <View style={{ gap: 10 }}>
-              {list.map((inc) => (
-                <IncidentCard
-                  key={inc.id}
-                  item={inc}
-                  childColor={getChildColor(inc.childId || inc.studentId)}
-                  showChildBadge={!isChild}
-                />
-              ))}
-            </View>
-          </View>
-        ))
       )}
-    </Animated.ScrollView>
+      renderItem={({ item: inc }) => (
+        <View style={styles.cardWrap}>
+          <IncidentCard
+            item={inc}
+            childColor={getChildColor(inc.childId || inc.studentId)}
+            showChildBadge={!isChild}
+          />
+        </View>
+      )}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      {...pullToRefreshProps}
+    />
   );
 }
 
@@ -216,7 +227,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     paddingBottom: 110,
+  },
+  listHeader: {
     gap: 12,
+    marginBottom: 12,
+  },
+  sectionHeaderWrap: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  cardWrap: {
+    marginBottom: 10,
   },
   center: {
     flex: 1,

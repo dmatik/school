@@ -62,6 +62,8 @@ export function SettingsScreen({
   const [webtopUsername, setWebtopUsername] = useState('');
   const [webtopPassword, setWebtopPassword] = useState('');
   const [isEditingWebtop, setIsEditingWebtop] = useState(false);
+  const isEditingWebtopRef = useRef(false);
+  isEditingWebtopRef.current = isEditingWebtop;
   const [testingWebtop, setTestingWebtop] = useState(false);
   const [savingWebtop, setSavingWebtop] = useState(false);
   const [syncingWebtop, setSyncingWebtop] = useState(false);
@@ -95,7 +97,7 @@ export function SettingsScreen({
         const data: WebtopConfig = await res.json();
         hasLoadedWebtopRef.current = true;
         setConfig(data);
-        if (data.username && !isEditingWebtop) {
+        if (data.username && !isEditingWebtopRef.current) {
           setWebtopUsername(data.username);
         }
       }
@@ -104,7 +106,7 @@ export function SettingsScreen({
     } finally {
       setLoadingWebtop(false);
     }
-  }, [isChild, isEditingWebtop]);
+  }, [isChild]);
 
   useEffect(() => {
     loadConfig();
@@ -140,7 +142,7 @@ export function SettingsScreen({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          data?.error || t('account.webtop_test_failed', { error: 'Unknown error' })
+          data?.error || t('account.webtop_test_failed', { error: t('account.unknown_error') })
         );
       }
       setFeedback({
@@ -201,7 +203,7 @@ export function SettingsScreen({
       const data = await res.json().catch(() => null);
       if (!res.ok) {
         throw new Error(
-          data?.error || t('account.webtop_sync_failed', { error: 'Unknown' })
+          data?.error || t('account.webtop_sync_failed', { error: t('account.unknown_error') })
         );
       }
       await loadConfig();

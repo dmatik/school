@@ -77,8 +77,8 @@ export function ExamsScreen({
       if (cfgRes.ok) {
         const cfg: WebtopConfig = await cfgRes.json();
         setConfig(cfg);
-        if (!formChildId && cfg.linkedChildren?.length) {
-          setFormChildId(cfg.linkedChildren[0].id);
+        if (cfg.linkedChildren?.length) {
+          setFormChildId((prev) => prev || cfg.linkedChildren[0].id);
         }
       }
       if (exRes.ok) {
@@ -92,7 +92,7 @@ export function ExamsScreen({
       setLoading(false);
       setRefreshing(false);
     }
-  }, [formChildId]);
+  }, []);
 
   useEffect(() => {
     loadData();
@@ -186,6 +186,8 @@ export function ExamsScreen({
         setModalOpen(false);
         await loadData();
       }
+    } catch (err) {
+      console.error('Save exam error:', err);
     } finally {
       setSaving(false);
     }
@@ -202,6 +204,8 @@ export function ExamsScreen({
         setDeleteTarget(null);
         await loadData();
       }
+    } catch (err) {
+      console.error('Delete exam error:', err);
     } finally {
       setDeleting(false);
     }
@@ -212,112 +216,123 @@ export function ExamsScreen({
 
   const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
   const bottomPadding = useFabScrollPadding(isParent);
+  const sections = useMemo(
+    () => groupedByDate.map(([date, data]) => ({ title: date, data })),
+    [groupedByDate]
+  );
+
+  const listHeader = (
+    <View style={{ gap: 12, marginBottom: 12 }}>
+      {isChild && !currentUser.linkedChildId ? (
+        <NoticeBanner variant="warning" description={t('exams.child_unlinked_desc')} />
+      ) : null}
+
+      <SearchInput
+        testID="exams-search-input"
+        value={search}
+        onChangeText={setSearch}
+        placeholder={t('exams.search_placeholder')}
+      />
+
+      <StickyFilterBar>
+        <View
+          style={[
+            styles.filterRow,
+            {
+              flexDirection: flexRow,
+              justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+            },
+          ]}
+        >
+          {hasChildFilter && (
+            <View style={{ flex: 1, minWidth: 0 }}>
+              <LiquidTabs
+                tabs={[
+                  { label: t('exams.all_short'), value: 'all' },
+                  ...(config?.linkedChildren || []).map((c) => ({
+                    label: c.firstName,
+                    value: c.id,
+                  })),
+                ]}
+                value={selectedChildId}
+                onChange={setSelectedChildId}
+              />
+            </View>
+          )}
+
+          <LiquidTabs
+            tabs={[
+              { label: t('exams.period_future'), value: 'future' },
+              { label: t('exams.period_past'), value: 'past' },
+            ]}
+            value={period}
+            onChange={(v) => setPeriod(v as 'future' | 'past')}
+          />
+        </View>
+      </StickyFilterBar>
+    </View>
+  );
+
+  const listEmpty = loading ? (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={palette.primary} />
+    </View>
+  ) : (
+    <EmptyStateCard
+      centered
+      icon={FileCheck}
+      title={
+        period === 'future'
+          ? t('exams.empty_future_title')
+          : t('exams.empty_past_title')
+      }
+      description={
+        exams.length > 0
+          ? t('exams.no_exams_match')
+          : period === 'future'
+          ? t('exams.empty_future_desc')
+          : t('exams.empty_past_desc')
+      }
+    />
+  );
 
   return (
     <View style={{ flex: 1 }}>
-      <Animated.ScrollView
-        ref={scrollRef}
+      <Animated.SectionList
+        ref={scrollRef as any}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        sections={loading ? [] : sections}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        renderSectionHeader={({ section }) =>
+          section.title !== 'no-date' ? (
+            <View style={{ marginTop: 8, marginBottom: 4 }}>
+              <SectionDateHeader
+                title={formatDateSectionHeader(section.title, i18n.language, t)}
+              />
+            </View>
+          ) : null
+        }
+        renderItem={({ item: ex }) => (
+          <View style={{ marginBottom: 10 }}>
+            <ExamCard
+              exam={ex}
+              childColor={getChildColor(ex.childId)}
+              showChildBadge={!isChild}
+              canEdit={isParent}
+              onEdit={() => openEditModal(ex)}
+              onDelete={() => setDeleteTarget(ex)}
+            />
+          </View>
+        )}
         onScroll={onScroll}
         scrollEventThrottle={16}
         {...pullToRefreshProps}
-      >
-        {isChild && !currentUser.linkedChildId ? (
-          <NoticeBanner variant="warning" description={t('exams.child_unlinked_desc')} />
-        ) : null}
-
-        <SearchInput
-          testID="exams-search-input"
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('exams.search_placeholder')}
-        />
-
-        <StickyFilterBar>
-          <View
-            style={[
-              styles.filterRow,
-              {
-                flexDirection: flexRow,
-                justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
-              },
-            ]}
-          >
-            {hasChildFilter && (
-              <View style={{ flex: 1, minWidth: 0 }}>
-                <LiquidTabs
-                  tabs={[
-                    { label: t('exams.all_short'), value: 'all' },
-                    ...(config?.linkedChildren || []).map((c) => ({
-                      label: c.firstName,
-                      value: c.id,
-                    })),
-                  ]}
-                  value={selectedChildId}
-                  onChange={setSelectedChildId}
-                />
-              </View>
-            )}
-
-            <LiquidTabs
-              tabs={[
-                { label: t('exams.period_future'), value: 'future' },
-                { label: t('exams.period_past'), value: 'past' },
-              ]}
-              value={period}
-              onChange={(v) => setPeriod(v as 'future' | 'past')}
-            />
-          </View>
-        </StickyFilterBar>
-
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={palette.primary} />
-          </View>
-        ) : filtered.length === 0 ? (
-          <EmptyStateCard
-            centered
-            icon={FileCheck}
-            title={
-              period === 'future'
-                ? t('exams.empty_future_title')
-                : t('exams.empty_past_title')
-            }
-            description={
-              exams.length > 0
-                ? t('exams.no_exams_match')
-                : period === 'future'
-                ? t('exams.empty_future_desc')
-                : t('exams.empty_past_desc')
-            }
-          />
-        ) : (
-          groupedByDate.map(([date, list]) => (
-            <View key={date} style={{ gap: 4 }}>
-              {date !== 'no-date' && (
-                <SectionDateHeader
-                  title={formatDateSectionHeader(date, i18n.language, t)}
-                />
-              )}
-              <View style={{ gap: 10 }}>
-                {list.map((ex) => (
-                  <ExamCard
-                    key={ex.id}
-                    exam={ex}
-                    childColor={getChildColor(ex.childId)}
-                    showChildBadge={!isChild}
-                    canEdit={isParent}
-                    onEdit={() => openEditModal(ex)}
-                    onDelete={() => setDeleteTarget(ex)}
-                  />
-                ))}
-              </View>
-            </View>
-          ))
-        )}
-      </Animated.ScrollView>
+      />
 
       {isParent && (
         <FloatingActionButton

@@ -79,6 +79,8 @@ export function AdminScreen({
         setChildren(cfg.linkedChildren || []);
       }
       hasLoadedRef.current = true;
+    } catch (err) {
+      console.error('Admin load error:', err);
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -174,6 +176,8 @@ export function AdminScreen({
 
       setUserModalOpen(false);
       await loadData();
+    } catch (err) {
+      setModalError(err instanceof Error ? err.message : t('admin.create_failed'));
     } finally {
       setSaving(false);
     }
@@ -194,6 +198,8 @@ export function AdminScreen({
         setResetTarget(null);
         setResetPassword('');
       }
+    } catch (err) {
+      console.error('Reset password error:', err);
     } finally {
       setResetting(false);
     }
@@ -211,6 +217,8 @@ export function AdminScreen({
         setDeleteTarget(null);
         await loadData();
       }
+    } catch (err) {
+      console.error('Delete user error:', err);
     } finally {
       setDeleting(false);
     }
@@ -218,61 +226,66 @@ export function AdminScreen({
 
   const bottomPadding = useFabScrollPadding();
 
+  const listHeader = (
+    <SearchInput
+      testID="admin-search-input"
+      value={search}
+      onChangeText={setSearch}
+      placeholder={t('admin.search_placeholder')}
+      style={styles.searchBar}
+    />
+  );
+
+  const listEmpty = loading ? (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={palette.primary} />
+    </View>
+  ) : (
+    <EmptyStateCard
+      centered
+      icon={Shield}
+      title={users.length ? t('admin.no_users_found') : t('admin.no_users')}
+    />
+  );
+
   return (
     <View style={{ flex: 1 }}>
-      <Animated.ScrollView
-        ref={scrollRef}
+      <Animated.FlatList
+        ref={scrollRef as any}
         style={styles.container}
         contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
+        data={loading ? [] : filtered}
+        keyExtractor={(u) => u.id}
+        ListHeaderComponent={listHeader}
+        ListEmptyComponent={listEmpty}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        renderItem={({ item: u }) => {
+          const linked = children.find(
+            (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
+          );
+          const linkedName = linked
+            ? `${linked.firstName} ${linked.lastName}`.trim()
+            : null;
+
+          return (
+            <AdminUserRow
+              user={u}
+              isSelf={u.id === currentUser.id}
+              linkedChildName={linkedName}
+              onEdit={() => openEditModal(u)}
+              onResetPassword={() => {
+                setResetTarget(u);
+                setResetPassword('');
+              }}
+              onDelete={() => setDeleteTarget(u)}
+            />
+          );
+        }}
         onScroll={onScroll}
         scrollEventThrottle={16}
         {...pullToRefreshProps}
-      >
-        <SearchInput
-          testID="admin-search-input"
-          value={search}
-          onChangeText={setSearch}
-          placeholder={t('admin.search_placeholder')}
-          style={styles.searchBar}
-        />
-
-        {loading ? (
-          <View style={styles.center}>
-            <ActivityIndicator size="large" color={palette.primary} />
-          </View>
-        ) : filtered.length === 0 ? (
-          <EmptyStateCard
-            centered
-            icon={Shield}
-            title={users.length ? t('admin.no_users_found') : t('admin.no_users')}
-          />
-        ) : (
-          filtered.map((u) => {
-            const linked = children.find(
-              (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
-            );
-            const linkedName = linked
-              ? `${linked.firstName} ${linked.lastName}`.trim()
-              : null;
-
-            return (
-              <AdminUserRow
-                key={u.id}
-                user={u}
-                isSelf={u.id === currentUser.id}
-                linkedChildName={linkedName}
-                onEdit={() => openEditModal(u)}
-                onResetPassword={() => {
-                  setResetTarget(u);
-                  setResetPassword('');
-                }}
-                onDelete={() => setDeleteTarget(u)}
-              />
-            );
-          })
-        )}
-      </Animated.ScrollView>
+      />
 
       <FloatingActionButton
         testID="add-user-fab"
@@ -296,7 +309,7 @@ export function AdminScreen({
             : t('admin.create_user_modal_desc')
         }
         footer={
-          <View style={styles.modalFooterRow}>
+          <View style={[styles.modalFooterRow, { flexDirection: flexRow }]}>
             <Button
               testID="create-user-cancel"
               label={t('common.cancel')}
@@ -415,7 +428,7 @@ export function AdminScreen({
             : undefined
         }
         footer={
-          <View style={styles.modalFooterRow}>
+          <View style={[styles.modalFooterRow, { flexDirection: flexRow }]}>
             <Button
               label={t('common.cancel')}
               variant="outline"

@@ -44,13 +44,12 @@
       "infoPlist": {
         "NSFaceIDUsageDescription": "אפליקציית בית הספר משתמשת ב-Face ID להתחברות מהירה ומאובטחת באמצעות מפתח גישה (Passkey).",
         "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true
+          "NSAllowsLocalNetworking": true
         }
       }
     },
     "android": {
       "package": "com.dmatik.school",
-      "usesCleartextTraffic": true,
       "splash": {
         "image": "./assets/splash-icon.png",
         "resizeMode": "contain",
@@ -76,7 +75,13 @@
       "expo-secure-store",
       "expo-localization",
       "expo-sharing",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow $(PRODUCT_NAME) to access your photos to update your profile picture."
+        }
+      ]
     ],
     "owner": "dmatik",
     "runtimeVersion": {

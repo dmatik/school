@@ -57,12 +57,16 @@ export function LoginScreen({
   const [showPasskeyPicker, setShowPasskeyPicker] = useState(false);
 
   useEffect(() => {
-    if (!serverUrl) {
-      mobileStorage.getServerUrl().then((saved) => {
-        if (saved) setServerUrl(saved);
-      });
-    }
-  }, [serverUrl]);
+    let active = true;
+    mobileStorage.getServerUrl().then((saved) => {
+      if (active && saved) {
+        setServerUrl((prev) => prev || saved);
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -84,6 +88,8 @@ export function LoginScreen({
       const code = err instanceof Error ? err.message : '';
       if (code === 'SERVER_URL_REQUIRED') {
         setError(t('auth.server_url_required'));
+      } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
+        setError(t('auth.server_url_https_required'));
       } else {
         setError(t('auth.server_url_invalid'));
       }
@@ -169,6 +175,8 @@ export function LoginScreen({
       const code = err instanceof Error ? err.message : '';
       if (code === 'SERVER_URL_REQUIRED') {
         setError(t('auth.server_url_required'));
+      } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
+        setError(t('auth.server_url_https_required'));
       } else {
         setError(t('auth.server_url_invalid'));
       }
