@@ -660,6 +660,47 @@ describe('Weekly Schedule Feature — Component and Backend Tests', () => {
     }
   })
 
+  it('updates today column marker and auto-scroll when the day changes on foreground/resume', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] })
+    vi.setSystemTime(new Date('2026-11-09T10:00:00Z')) // Monday (day 1)
+
+    try {
+      render(<SchedulePage token="test-token" currentUser={parentUser} />)
+
+      await waitFor(() => {
+        expect(screen.getByText('מתמטיקה')).toBeInTheDocument()
+      })
+
+      const mondayHeader = document.querySelector('[data-schedule-day="1"]')
+      const tuesdayHeader = document.querySelector('[data-schedule-day="2"]')
+      expect(mondayHeader?.textContent).toContain('schedule.today_badge')
+      expect(tuesdayHeader?.textContent).not.toContain('schedule.today_badge')
+
+      vi.mocked(window.HTMLElement.prototype.scrollIntoView).mockClear()
+
+      // Advance to Tuesday and simulate returning to the app
+      vi.setSystemTime(new Date('2026-11-10T08:00:00Z'))
+      fireEvent(window, new Event('focus'))
+
+      await waitFor(() => {
+        expect(tuesdayHeader?.textContent).toContain('schedule.today_badge')
+        expect(mondayHeader?.textContent).not.toContain('schedule.today_badge')
+      })
+
+      await waitFor(() => {
+        expect(tuesdayHeader?.scrollIntoView).toHaveBeenCalledWith(
+          expect.objectContaining({
+            behavior: 'smooth',
+            inline: 'start',
+            block: 'nearest'
+          })
+        )
+      })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
   it('renders liquid share button in filter row, shares PDF on mobile, and opens PDF in new tab on desktop', async () => {
     const originalShare = navigator.share
     const originalCanShare = navigator.canShare

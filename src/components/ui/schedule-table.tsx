@@ -55,8 +55,7 @@ export function ScheduleTable({
   const scrollContainerRef = externalScrollRef ?? internalScrollRef
   const dayColRefs = externalDayColRefs ?? internalDayColRefs
 
-  const todayDayOfWeek = useMemo(() => new Date().getDay(), [])
-  const currentDayOfWeek = currentDayOfWeekProp ?? todayDayOfWeek
+  const currentDayOfWeek = currentDayOfWeekProp ?? new Date().getDay()
 
   const childColor = useMemo(() => getChildColor(childColorId), [childColorId])
 
