@@ -93,7 +93,9 @@ async function savePrivateKeyToKeychain(
         cancelErr.name = 'NotAllowedError';
         throw cancelErr;
       }
-      throw new Error(i18n.t('account.passkey_biometric_failed'));
+      // Fall back to standard hardware Keychain (WHEN_UNLOCKED_THIS_DEVICE_ONLY)
+      // when biometric-gated SecureStore is unavailable (e.g. Expo Go without NSFaceIDUsageDescription
+      // or simulators without enrolled biometrics).
     }
   }
 
