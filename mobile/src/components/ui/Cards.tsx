@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
-import { Pencil, KeyRound, Trash2, Calendar, Fingerprint } from 'lucide-react-native';
+import { Pencil, KeyRound, Trash2, Calendar, Fingerprint, Smartphone, Laptop } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
@@ -273,6 +273,7 @@ export function ExamCard({
             <Pressable
               onPress={onEdit}
               hitSlop={10}
+              accessibilityRole="button"
               accessibilityLabel={t('exams.edit_exam_button')}
               style={styles.examEditBtn}
             >
@@ -354,14 +355,32 @@ export function AdminUserRow({
         </View>
 
         <View style={[styles.actionIcons, { flexDirection: flexRow }]}>
-          <Pressable onPress={onEdit} hitSlop={8} style={styles.iconBtn}>
+          <Pressable
+            onPress={onEdit}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('common.edit')}
+            style={styles.iconBtn}
+          >
             <Pencil size={15} color={palette.mutedForeground} />
           </Pressable>
-          <Pressable onPress={onResetPassword} hitSlop={8} style={styles.iconBtn}>
+          <Pressable
+            onPress={onResetPassword}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel={t('admin.reset_password_modal_title')}
+            style={styles.iconBtn}
+          >
             <KeyRound size={15} color={palette.mutedForeground} />
           </Pressable>
           {!isSelf && (
-            <Pressable onPress={onDelete} hitSlop={8} style={styles.iconBtn}>
+            <Pressable
+              onPress={onDelete}
+              hitSlop={10}
+              accessibilityRole="button"
+              accessibilityLabel={t('common.delete')}
+              style={styles.iconBtn}
+            >
               <Trash2 size={15} color={palette.destructive} />
             </Pressable>
           )}
@@ -394,6 +413,8 @@ export function PasskeyAccountRow({
   return (
     <Pressable
       testID={testID}
+      accessibilityRole="button"
+      accessibilityLabel={`${displayName} ${metaText}`}
       onPress={onPress}
       style={({ pressed }) => [pressed && { opacity: 0.78 }]}
     >
@@ -433,6 +454,109 @@ export function PasskeyAccountRow({
         </View>
       </CardSurface>
     </Pressable>
+  );
+}
+
+export function RegisteredPasskeyRow({
+  deviceName,
+  backedUp,
+  createdAtLabel,
+  lastUsedLabel,
+  showDivider = false,
+  onDelete,
+  deleteAccessibilityLabel,
+}: {
+  deviceName: string;
+  backedUp?: boolean;
+  createdAtLabel: string;
+  lastUsedLabel?: string | null;
+  showDivider?: boolean;
+  onDelete: () => void;
+  deleteAccessibilityLabel: string;
+}) {
+  const { t } = useTranslation();
+  const { palette, isDark } = useTheme();
+  const { flexRow, textAlign } = useDirection();
+
+  const lowerName = (deviceName || '').toLowerCase();
+  const isPhone =
+    lowerName.includes('iphone') ||
+    lowerName.includes('android') ||
+    lowerName.includes('ipad');
+  const isDesktop =
+    lowerName.includes('mac') || lowerName.includes('windows');
+  const DeviceIcon = isPhone ? Smartphone : isDesktop ? Laptop : Fingerprint;
+
+  return (
+    <View
+      style={[
+        styles.registeredPasskeyRow,
+        {
+          flexDirection: flexRow,
+          borderTopWidth: showDivider ? 1 : 0,
+          borderTopColor: palette.borderSubtle,
+        },
+      ]}
+    >
+      <View style={[styles.registeredPasskeyInfo, { flexDirection: flexRow }]}>
+        <View
+          style={[
+            styles.registeredPasskeyIconBox,
+            {
+              backgroundColor: isDark
+                ? 'rgba(87, 158, 224, 0.14)'
+                : 'rgba(59, 130, 196, 0.10)',
+            },
+          ]}
+        >
+          <DeviceIcon size={18} color={palette.primary} />
+        </View>
+        <View style={styles.registeredPasskeyTextGroup}>
+          <View style={[styles.registeredPasskeyNameRow, { flexDirection: flexRow }]}>
+            <Text
+              numberOfLines={1}
+              style={[
+                styles.registeredPasskeyName,
+                { color: palette.foreground, textAlign },
+              ]}
+            >
+              {deviceName}
+            </Text>
+            {backedUp ? (
+              <StatusBadge label={t('account.synced')} variant="neutral" />
+            ) : null}
+          </View>
+          <Text
+            style={[
+              styles.registeredPasskeyMeta,
+              { color: palette.mutedForeground, textAlign },
+            ]}
+          >
+            {createdAtLabel}
+          </Text>
+          {lastUsedLabel ? (
+            <Text
+              style={[
+                styles.registeredPasskeyMeta,
+                { color: palette.mutedForeground, textAlign },
+              ]}
+            >
+              {lastUsedLabel}
+            </Text>
+          ) : null}
+        </View>
+      </View>
+
+      <Pressable
+        accessibilityRole="button"
+        accessibilityLabel={deleteAccessibilityLabel}
+        onPress={onDelete}
+        hitSlop={8}
+        style={[styles.iconBtn, { padding: 8 }]}
+      >
+        <Trash2 size={17} color={palette.destructive} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -542,5 +666,41 @@ const styles = StyleSheet.create({
     borderRadius: 17,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  registeredPasskeyRow: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    gap: 10,
+  },
+  registeredPasskeyInfo: {
+    flex: 1,
+    minWidth: 0,
+    alignItems: 'center',
+    gap: 12,
+  },
+  registeredPasskeyIconBox: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  registeredPasskeyTextGroup: {
+    flex: 1,
+    minWidth: 0,
+    gap: 2,
+  },
+  registeredPasskeyNameRow: {
+    alignItems: 'center',
+    gap: 6,
+  },
+  registeredPasskeyName: {
+    fontSize: 14,
+    ...heeboFont('600'),
+  },
+  registeredPasskeyMeta: {
+    fontSize: 12,
+    ...heeboFont('400'),
   },
 });

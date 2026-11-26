@@ -258,6 +258,7 @@ export function AdminScreen({
         data={loading ? [] : filtered}
         keyExtractor={(u) => u.id}
         ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
         ListEmptyComponent={listEmpty}
         ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
         renderItem={({ item: u }) => {

@@ -3,6 +3,7 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
 import { BookOpen, GraduationCap, Palette, Trash2 } from 'lucide-react-native';
 import {
+  CardSurface,
   SectionCard,
   InfoBox,
   InfoItem,
@@ -25,6 +26,7 @@ import {
   ExamCard,
   AdminUserRow,
   PasskeyAccountRow,
+  RegisteredPasskeyRow,
 } from '../../components/ui/Cards';
 import { ScheduleTable } from '../../components/ui/ScheduleTable';
 import { useTheme } from '../../theme/ThemeContext';
@@ -229,6 +231,17 @@ export const CardsAndSurfaces: StoryObj = {
           onPressCell={() => {}}
           onPressFinishTime={() => {}}
         />
+
+        <CardSurface style={{ padding: 14 }}>
+          <RegisteredPasskeyRow
+            deviceName="iPhone 16 Pro"
+            backedUp
+            createdAtLabel="נוצר ב-20/11/2026"
+            lastUsedLabel="שימוש אחרון: 26/11/2026"
+            deleteAccessibilityLabel="מחק"
+            onDelete={() => {}}
+          />
+        </CardSurface>
       </ScrollView>
     );
   },

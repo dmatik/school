@@ -7,6 +7,7 @@ flows:
   - 06-schedule-parent.yaml
   - 07-schedule-child-readonly.yaml
   - 08-modals-exams-and-admin.yaml
+  - 09-settings-i18n-and-crud.yaml
 executionOrder:
   continueOnFailure: true
   flowsOrder:
@@ -18,3 +19,4 @@ executionOrder:
     - 06-schedule-parent
     - 07-schedule-child-readonly
     - 08-modals-exams-and-admin
+    - 09-settings-i18n-and-crud

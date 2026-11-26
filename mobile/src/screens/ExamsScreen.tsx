@@ -59,7 +59,7 @@ export function ExamsScreen({
   const [formChildId, setFormChildId] = useState('');
   const [formName, setFormName] = useState('');
   const [formDesc, setFormDesc] = useState('');
-  const [formDate, setFormDate] = useState(new Date().toISOString().slice(0, 10));
+  const [formDate, setFormDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
   const [formGrade, setFormGrade] = useState('');
   const [saving, setSaving] = useState(false);
 
@@ -99,7 +99,7 @@ export function ExamsScreen({
   }, [loadData, syncTrigger]);
 
   const filtered = useMemo(() => {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = format(new Date(), 'yyyy-MM-dd');
     const q = search.trim().toLowerCase();
     const selectedChild =
       selectedChildId !== 'all'
@@ -110,26 +110,29 @@ export function ExamsScreen({
 
     return exams
       .filter((ex) => {
+        const examDate = ex.date || '';
         if (selectedChild) {
           const matchesId =
             ex.childId === selectedChild.id ||
             (selectedChild.externalId && ex.childId === selectedChild.externalId);
           const matchesName =
-            ex.studentName.trim() ===
+            (ex.studentName || '').trim() ===
             `${selectedChild.firstName} ${selectedChild.lastName}`.trim();
           if (!matchesId && !matchesName) return false;
         }
-        if (period === 'future' && ex.date < today) return false;
-        if (period === 'past' && ex.date >= today) return false;
+        if (period === 'future' && examDate < today) return false;
+        if (period === 'past' && examDate >= today) return false;
         if (q) {
-          const hay = `${ex.name} ${ex.description || ''} ${ex.studentName}`.toLowerCase();
+          const hay = `${ex.name || ''} ${ex.description || ''} ${ex.studentName || ''}`.toLowerCase();
           if (!hay.includes(q)) return false;
         }
         return true;
       })
-      .sort((a, b) =>
-        period === 'future' ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date)
-      );
+      .sort((a, b) => {
+        const dateA = a.date || '';
+        const dateB = b.date || '';
+        return period === 'future' ? dateA.localeCompare(dateB) : dateB.localeCompare(dateA);
+      });
   }, [exams, selectedChildId, config, period, search]);
 
   const groupedByDate = useMemo(() => {
@@ -147,7 +150,7 @@ export function ExamsScreen({
     setFormChildId(config?.linkedChildren?.[0]?.id || '');
     setFormName('');
     setFormDesc('');
-    setFormDate(new Date().toISOString().slice(0, 10));
+    setFormDate(format(new Date(), 'yyyy-MM-dd'));
     setFormGrade('');
     setModalOpen(true);
   };
@@ -307,6 +310,7 @@ export function ExamsScreen({
         sections={loading ? [] : sections}
         keyExtractor={(item) => item.id}
         ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
         ListEmptyComponent={listEmpty}
         renderSectionHeader={({ section }) =>
           section.title !== 'no-date' ? (
@@ -325,7 +329,6 @@ export function ExamsScreen({
               showChildBadge={!isChild}
               canEdit={isParent}
               onEdit={() => openEditModal(ex)}
-              onDelete={() => setDeleteTarget(ex)}
             />
           </View>
         )}
