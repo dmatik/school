@@ -55,7 +55,7 @@ export function LiquidDockItem({
       whileTap={{ scale: 0.92 }}
       onClick={onClick}
       className={cn(
-        "shrink-0 relative flex flex-col items-center justify-center py-2 px-0.5 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
+        "shrink-0 relative flex flex-col items-center justify-center py-[7px] px-0.5 rounded-full transition-colors select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-primary/40",
         isFiveOrMore ? "w-[60px]" : "w-[77px]",
         active ? "text-primary" : "text-foreground",
         className
@@ -76,7 +76,7 @@ export function LiquidDockItem({
         <div className="relative">
           <IconComponent
             className={cn(
-              "stroke-[2px] w-[22px] h-[22px] transition-all",
+              "stroke-[2px] w-[24px] h-[24px] transition-all",
               active ? "dock-icon-full text-primary" : "fill-none"
             )}
           />

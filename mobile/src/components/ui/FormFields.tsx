@@ -368,6 +368,7 @@ export function SearchInput({
   testID?: string;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
   const searchBg = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.05)';
@@ -394,6 +395,8 @@ export function SearchInput({
       />
       {value.length > 0 && (
         <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={t('common.clear_search')}
           onPress={() => onChangeText('')}
           hitSlop={8}
           style={styles.searchClearBtn}
@@ -511,9 +514,13 @@ export function SelectField({
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
-        <Pressable style={styles.selectBackdrop} onPress={() => setOpen(false)}>
+        <View style={styles.selectBackdrop}>
           <Pressable
-            onPress={() => {}}
+            accessible={false}
+            style={StyleSheet.absoluteFill}
+            onPress={() => setOpen(false)}
+          />
+          <View
             style={[
               styles.selectSheet,
               {
@@ -528,6 +535,9 @@ export function SelectField({
                 return (
                   <Pressable
                     key={opt.value}
+                    accessibilityRole="button"
+                    accessibilityLabel={opt.label}
+                    accessibilityState={{ selected: isSelected }}
                     onPress={() => {
                       onValueChange(opt.value);
                       setOpen(false);
@@ -563,8 +573,8 @@ export function SelectField({
                 );
               })}
             </ScrollView>
-          </Pressable>
-        </Pressable>
+          </View>
+        </View>
       </ModalLayer>
     </View>
   );
@@ -776,6 +786,7 @@ export function LiquidTabs({
   onChange: (val: string) => void;
   testID?: string;
 }) {
+  const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { isRTL, flexRow } = useDirection();
 
@@ -896,6 +907,9 @@ export function LiquidTabs({
             return (
               <Pressable
                 key={tab.value}
+                accessibilityRole="tab"
+                accessibilityLabel={tab.label}
+                accessibilityState={{ selected: active }}
                 onPress={() => handlePress(tab.value)}
                 onLayout={(e) => {
                   const { x, width, height } = e.nativeEvent.layout;

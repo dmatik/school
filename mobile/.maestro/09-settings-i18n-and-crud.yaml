@@ -1,0 +1,34 @@
+appId: com.dmatik.school
+name: Settings Language & Theme Toggle
+tags:
+  - settings
+  - i18n
+---
+- runFlow: subflows/launch-clean.yaml
+- runFlow:
+    file: subflows/login.yaml
+    env:
+      USERNAME: "${PARENT_USERNAME}"
+      PASSWORD: "${PARENT_PASSWORD}"
+
+# Navigate to Settings tab
+- tapOn:
+    id: "dock-tab-settings"
+- assertVisible:
+    id: "settings-language-selector"
+
+# Switch language to English via SelectField and verify UI updates
+- tapOn:
+    id: "settings-language-selector"
+- tapOn:
+    text: "English"
+- assertVisible:
+    text: "Settings|Language"
+
+# Switch back to Hebrew
+- tapOn:
+    id: "settings-language-selector"
+- tapOn:
+    text: "עברית"
+- assertVisible:
+    text: "הגדרות|שפה"

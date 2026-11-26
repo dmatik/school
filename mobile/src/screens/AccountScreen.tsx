@@ -2,7 +2,6 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
   Animated,
   View,
-  Text,
   Platform,
   ActivityIndicator,
   StyleSheet,
@@ -13,8 +12,6 @@ import {
   LogOut,
   Fingerprint,
   Plus,
-  Smartphone,
-  Laptop,
   Key,
   Trash2,
   Shield,
@@ -41,13 +38,14 @@ import {
   SectionCard,
   EmptyStateCard,
 } from '../components/ui/Surfaces';
+import { RegisteredPasskeyRow } from '../components/ui/Cards';
 import {
   FieldLabel,
   FilledInput,
   ReadOnlyPillField,
 } from '../components/ui/FormFields';
-import { StatusBadge, UserAvatar } from '../components/ui/Badges';
-import { Button, DestructiveButton } from '../components/ui/Buttons';
+import { UserAvatar } from '../components/ui/Badges';
+import { Button } from '../components/ui/Buttons';
 import { Modal, ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User } from '../../../src/types';
@@ -485,105 +483,26 @@ export function AccountScreen({
               />
             ) : (
               <View style={styles.passkeysList}>
-                {passkeys.map((p, index) => {
-                  const lowerName = (p.deviceName || '').toLowerCase();
-                  const isPhone =
-                    lowerName.includes('iphone') ||
-                    lowerName.includes('android') ||
-                    lowerName.includes('ipad');
-                  const isDesktop =
-                    lowerName.includes('mac') || lowerName.includes('windows');
-                  const DeviceIcon = isPhone
-                    ? Smartphone
-                    : isDesktop
-                      ? Laptop
-                      : Fingerprint;
-
-                  return (
-                    <View
-                      key={p.id}
-                      style={[
-                        styles.passkeyRow,
-                        {
-                          flexDirection: flexRow,
-                          borderTopWidth: index > 0 ? 1 : 0,
-                          borderTopColor: palette.borderSubtle,
-                        },
-                      ]}
-                    >
-                      <View
-                        style={[
-                          styles.passkeyRowInfo,
-                          { flexDirection: flexRow },
-                        ]}
-                      >
-                        <View
-                          style={[
-                            styles.passkeyIconBox,
-                            {
-                              backgroundColor: isDark
-                                ? 'rgba(87, 158, 224, 0.14)'
-                                : 'rgba(59, 130, 196, 0.10)',
-                            },
-                          ]}
-                        >
-                          <DeviceIcon size={18} color={palette.primary} />
-                        </View>
-                        <View style={styles.passkeyTextGroup}>
-                          <View
-                            style={[
-                              styles.passkeyNameRow,
-                              { flexDirection: flexRow },
-                            ]}
-                          >
-                            <Text
-                              numberOfLines={1}
-                              style={[
-                                styles.passkeyName,
-                                { color: palette.foreground, textAlign },
-                              ]}
-                            >
-                              {p.deviceName}
-                            </Text>
-                            {p.backedUp ? (
-                              <StatusBadge
-                                label={t('account.synced')}
-                                variant="neutral"
-                              />
-                            ) : null}
-                          </View>
-                          <Text
-                            style={[
-                              styles.passkeyMeta,
-                              { color: palette.mutedForeground, textAlign },
-                            ]}
-                          >
-                            {t('account.created_on', {
-                              date: formatShortDate(p.createdAt),
-                            })}
-                          </Text>
-                          {p.lastUsedAt ? (
-                            <Text
-                              style={[
-                                styles.passkeyMeta,
-                                { color: palette.mutedForeground, textAlign },
-                              ]}
-                            >
-                              {t('account.last_used', {
-                                date: formatShortDate(p.lastUsedAt),
-                              })}
-                            </Text>
-                          ) : null}
-                        </View>
-                      </View>
-                      <DestructiveButton
-                        icon={Trash2}
-                        accessibilityLabel={t('common.delete')}
-                        onPress={() => setPasskeyToDelete(p)}
-                      />
-                    </View>
-                  );
-                })}
+                {passkeys.map((p, index) => (
+                  <RegisteredPasskeyRow
+                    key={p.id}
+                    deviceName={p.deviceName}
+                    backedUp={Boolean(p.backedUp)}
+                    createdAtLabel={t('account.created_on', {
+                      date: formatShortDate(p.createdAt),
+                    })}
+                    lastUsedLabel={
+                      p.lastUsedAt
+                        ? t('account.last_used', {
+                            date: formatShortDate(p.lastUsedAt),
+                          })
+                        : null
+                    }
+                    showDivider={index > 0}
+                    deleteAccessibilityLabel={t('common.delete')}
+                    onDelete={() => setPasskeyToDelete(p)}
+                  />
+                ))}
               </View>
             )}
             {!loadingPasskeys && passkeys.length > 0 ? (

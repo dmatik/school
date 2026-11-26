@@ -237,6 +237,7 @@ export function HomeworkScreen({
       sections={loading ? [] : sections}
       keyExtractor={(item) => item.ids.join('-')}
       ListHeaderComponent={listHeader}
+      ListHeaderComponentStyle={styles.listHeaderContainer}
       ListEmptyComponent={listEmpty}
       renderSectionHeader={({ section }) => (
         <View style={styles.sectionHeaderWrap}>
@@ -273,6 +274,10 @@ const styles = StyleSheet.create({
   listHeader: {
     gap: 12,
     marginBottom: 12,
+  },
+  listHeaderContainer: {
+    zIndex: 20,
+    elevation: 20,
   },
   sectionHeaderWrap: {
     marginTop: 8,

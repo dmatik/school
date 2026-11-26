@@ -12,6 +12,7 @@ import {
   Share2,
 } from 'lucide-react-native';
 import {
+  ActionButton,
   Button,
   DestructiveButton,
   EditButton,
@@ -21,7 +22,7 @@ import {
   ModeToggleButton,
   LanguageToggleButton,
 } from '../../components/ui/Buttons';
-import { LiquidTabs } from '../../components/ui/FormFields';
+import { LiquidTabs, StickyFilterBar } from '../../components/ui/FormFields';
 import { LiquidDatePicker } from '../../components/ui/LiquidDatePicker';
 import { LiquidDock } from '../../components/ui/LiquidDock';
 import { MobileHeader } from '../../components/ui/MobileHeader';
@@ -57,6 +58,25 @@ export const Buttons: StoryObj = {
         <ModeToggleButton />
         <LanguageToggleButton />
       </View>
+
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <ActionButton label="Default" variant="default" onPress={() => {}} />
+        <ActionButton label="Outline" variant="outline" onPress={() => {}} />
+        <ActionButton label="Muted" variant="muted" onPress={() => {}} />
+        <ActionButton label="Ghost" variant="ghost" onPress={() => {}} />
+        <ActionButton label="Destructive" variant="destructive" onPress={() => {}} />
+      </View>
+
+      <StickyFilterBar>
+        <LiquidTabs
+          tabs={[
+            { label: 'הכל', value: 'all' },
+            { label: 'כפיר', value: '1' },
+          ]}
+          value="all"
+          onChange={() => {}}
+        />
+      </StickyFilterBar>
     </View>
   ),
 };

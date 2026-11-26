@@ -10,6 +10,7 @@ import {
 import Svg, { Circle, Defs, Mask, Path, Rect } from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { LucideIcon } from 'lucide-react-native';
+import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
@@ -76,6 +77,7 @@ export function LiquidDock({
   activeId: string;
   onSelect: (id: string) => void;
 }) {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
@@ -188,7 +190,7 @@ export function LiquidDock({
       >
         <View
           testID="mobile-dock"
-          accessibilityLabel="Mobile Navigation"
+          accessibilityLabel={t('common.mobile_navigation')}
           style={styles.dock}
         >
           <GlassBackdrop />
@@ -241,13 +243,13 @@ export function LiquidDock({
                   <View style={styles.tab}>
                     {active && item.id === 'settings' ? (
                       <SettingsActiveIcon
-                        size={22}
+                        size={24}
                         color={palette.primary}
                         fill={activeIconFill}
                       />
                     ) : (
                       <Icon
-                        size={22}
+                        size={24}
                         color={active ? palette.primary : inactiveColor}
                         fill={active ? activeIconFill : 'none'}
                       />
@@ -309,7 +311,7 @@ const styles = StyleSheet.create({
   tab: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
+    paddingVertical: 7,
     paddingHorizontal: 2,
     borderRadius: 999,
     gap: 2,

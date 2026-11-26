@@ -38,11 +38,22 @@ export async function shareSchedulePdfMobile(options: SchedulePdfInput): Promise
     shareUri = uri;
   }
 
-  if (await Sharing.isAvailableAsync()) {
-    await Sharing.shareAsync(shareUri, {
-      mimeType: 'application/pdf',
-      UTI: 'com.adobe.pdf',
-      dialogTitle: options.t('schedule.title'),
-    });
+  try {
+    if (await Sharing.isAvailableAsync()) {
+      await Sharing.shareAsync(shareUri, {
+        mimeType: 'application/pdf',
+        UTI: 'com.adobe.pdf',
+        dialogTitle: options.t('schedule.title'),
+      });
+    }
+  } finally {
+    try {
+      const f = new File(shareUri);
+      if (f.exists) {
+        f.delete();
+      }
+    } catch {
+      // ignore cache cleanup failures
+    }
   }
 }

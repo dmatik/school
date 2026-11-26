@@ -1,5 +1,6 @@
 import type { ScheduleFinishTime, ScheduleLesson } from "../types"
 import { getChildSolidHex } from "./child-colors"
+import { HEEBO_500_TTF_BASE64, HEEBO_700_TTF_BASE64 } from "./heebo-font-data"
 import { getSubjectColorSpec } from "./subject-palette"
 
 export const SCHEDULE_PDF_FILENAME = "schedule.pdf"
@@ -130,7 +131,7 @@ export function buildSchedulePdfModel({
     }
     return max
   }, 0)
-  const rowCount = Math.max(minRows, maxPopulatedHour)
+  const rowCount = Math.min(12, Math.max(minRows, maxPopulatedHour))
   const lessonRowH = (tableH - headerH - dismissalH) / rowCount
 
   const lessonMap = new Map<string, Pick<ScheduleLesson, "dayOfWeek" | "hourNum" | "subject">>()
@@ -281,8 +282,19 @@ export function buildSchedulePdfHtml(model: SchedulePdfModel): string {
 <html dir="${dir}">
   <head>
     <meta charset="utf-8" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Heebo:wght@500;700&display=swap" />
     <style>
+      @font-face {
+        font-family: 'Heebo';
+        font-style: normal;
+        font-weight: 500;
+        src: url(data:font/ttf;base64,${HEEBO_500_TTF_BASE64}) format('truetype');
+      }
+      @font-face {
+        font-family: 'Heebo';
+        font-style: normal;
+        font-weight: 700;
+        src: url(data:font/ttf;base64,${HEEBO_700_TTF_BASE64}) format('truetype');
+      }
       @page {
         size: ${pageWidthPt}pt ${pageHeightPt}pt;
         margin: 0;

@@ -30,7 +30,6 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
-import i18n from '../../i18n';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { getDockBottomMargin } from './LiquidDock';
 
@@ -360,6 +359,7 @@ export function FloatingActionButton({
   onPress,
   accessibilityLabel,
   testID,
+  variant = 'primary',
 }: {
   icon: LucideIcon;
   onPress: () => void;
@@ -371,6 +371,7 @@ export function FloatingActionButton({
   const { palette, isDark } = useTheme();
   const { isRTL } = useDirection();
   const bottomOffset = getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
+  const isSuccess = variant === 'success';
 
   return (
     <Pressable
@@ -385,12 +386,18 @@ export function FloatingActionButton({
           bottom: bottomOffset,
           left: isRTL ? 16 : undefined,
           right: isRTL ? undefined : 16,
+          backgroundColor: isSuccess ? palette.tealSoft : undefined,
+          borderColor: isSuccess ? palette.teal : undefined,
           transform: [{ scale: pressed ? 0.92 : 1 }],
         },
       ]}
     >
       <GlassBackdrop />
-      <Icon size={22} strokeWidth={2.2} color={palette.foreground} />
+      <Icon
+        size={22}
+        strokeWidth={2.2}
+        color={isSuccess ? palette.teal : palette.foreground}
+      />
     </Pressable>
   );
 }
@@ -544,10 +551,12 @@ export function SyncButton({
 }
 
 export function ModeToggleButton() {
+  const { t } = useTranslation();
   const { isDark, palette, setThemeMode } = useTheme();
   return (
     <Pressable
-      accessibilityLabel="Toggle theme"
+      accessibilityRole="button"
+      accessibilityLabel={t('common.toggle_theme')}
       onPress={() => setThemeMode(isDark ? 'light' : 'dark')}
       style={[
         styles.squareBtn,
@@ -564,12 +573,13 @@ export function ModeToggleButton() {
 }
 
 export function LanguageToggleButton() {
-  const { i18n: activeI18n } = useTranslation();
+  const { t, i18n: activeI18n } = useTranslation();
   const { palette } = useTheme();
   const isEn = (activeI18n.language || 'he').startsWith('en');
   return (
     <Pressable
-      accessibilityLabel="Toggle language"
+      accessibilityRole="button"
+      accessibilityLabel={t('common.toggle_language')}
       onPress={() => setAppLanguage(isEn ? 'he' : 'en')}
       style={[
         styles.langBtn,

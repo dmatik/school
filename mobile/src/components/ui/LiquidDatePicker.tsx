@@ -93,9 +93,9 @@ function CalendarModal({
       animationType="fade"
       onRequestClose={onClose}
     >
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable
-          onPress={(e) => e.stopPropagation()}
+      <View style={styles.backdrop}>
+        <Pressable accessible={false} style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View
           style={[
             styles.calendarCard,
             { backgroundColor: palette.card, borderColor: palette.border },
@@ -104,6 +104,8 @@ function CalendarModal({
           {/* Month Navigation */}
           <View style={[styles.monthHeader, { flexDirection: flexRow }]}>
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.previous_month')}
               onPress={() => setViewMonth((m) => subMonths(m, 1))}
               hitSlop={8}
               style={[styles.navBtn, { backgroundColor: palette.muted }]}
@@ -120,6 +122,8 @@ function CalendarModal({
             </Text>
 
             <Pressable
+              accessibilityRole="button"
+              accessibilityLabel={t('common.next_month')}
               onPress={() => setViewMonth((m) => addMonths(m, 1))}
               hitSlop={8}
               style={[styles.navBtn, { backgroundColor: palette.muted }]}
@@ -220,8 +224,8 @@ function CalendarModal({
               />
             ) : null}
           </View>
-        </Pressable>
-      </Pressable>
+        </View>
+      </View>
     </ModalLayer>
   );
 }
