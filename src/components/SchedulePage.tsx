@@ -45,7 +45,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   // Mobile horizontal scroll ref and column refs
   const scrollContainerRef = useRef<HTMLDivElement | null>(null)
   const dayColRefs = useRef<(HTMLDivElement | null)[]>([])
-  const lastScrolledChildId = useRef<string | null>(null)
+  const lastScrolledTarget = useRef<{ childId: string; day: number } | null>(null)
 
   // Lesson Edit Modal state
   const [editingLesson, setEditingLesson] = useState<{
@@ -64,7 +64,62 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
   const [confirmClearFinishTime, setConfirmClearFinishTime] = useState(false)
 
   // Determine current day of week (0 = Sunday, ..., 5 = Friday, 6 = Saturday)
-  const currentDayOfWeek = useMemo(() => new Date().getDay(), [])
+  const [currentDayOfWeek, setCurrentDayOfWeek] = useState(() => new Date().getDay())
+
+  // Keep currentDayOfWeek in sync when returning from background, syncing, or crossing midnight
+  useEffect(() => {
+    let midnightTimer: ReturnType<typeof setTimeout> | null = null
+
+    const syncDayOfWeek = () => {
+      const nextDay = new Date().getDay()
+      setCurrentDayOfWeek((prev) => (prev === nextDay ? prev : nextDay))
+    }
+
+    const scheduleMidnightUpdate = () => {
+      if (midnightTimer) clearTimeout(midnightTimer)
+      const now = new Date()
+      const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        0,
+        50
+      )
+      const msUntilMidnight = Math.max(1_000, nextMidnight.getTime() - now.getTime())
+      midnightTimer = setTimeout(() => {
+        syncDayOfWeek()
+        scheduleMidnightUpdate()
+      }, msUntilMidnight)
+    }
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        syncDayOfWeek()
+        scheduleMidnightUpdate()
+      }
+    }
+
+    const handleResume = () => {
+      syncDayOfWeek()
+      scheduleMidnightUpdate()
+    }
+
+    syncDayOfWeek()
+    scheduleMidnightUpdate()
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    window.addEventListener("focus", handleResume)
+    window.addEventListener("pageshow", handleResume)
+
+    return () => {
+      if (midnightTimer) clearTimeout(midnightTimer)
+      document.removeEventListener("visibilitychange", handleVisibilityChange)
+      window.removeEventListener("focus", handleResume)
+      window.removeEventListener("pageshow", handleResume)
+    }
+  }, [syncTrigger])
 
   // Calculate the target initial day to show on mobile (showing 3 days at a time):
   // If Wednesday (3), Thursday (4) or Friday (5): start at 3 (Wednesday), so [Wednesday, Thursday, Friday] are visible.
@@ -190,10 +245,15 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
     }
   }, [configLoaded, selectedChildId, loadSchedule, syncTrigger])
 
-  // Scroll mobile container to the initial target day on initial load and when switching children
+  // Scroll mobile container to the initial target day on initial load, day change, and when switching children
   useEffect(() => {
     if (loading || !selectedChildId) return
-    if (lastScrolledChildId.current === selectedChildId) return
+    if (
+      lastScrolledTarget.current?.childId === selectedChildId &&
+      lastScrolledTarget.current?.day === currentDayOfWeek
+    ) {
+      return
+    }
 
     let cancelled = false
 
@@ -203,7 +263,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       if (!container) return
 
       if (initialTargetDay === 0) {
-        lastScrolledChildId.current = selectedChildId
+        lastScrolledTarget.current = { childId: selectedChildId, day: currentDayOfWeek }
         container.scrollTo({ left: 0, behavior: "instant" })
         return
       }
@@ -211,14 +271,14 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       const targetEl = dayColRefs.current[initialTargetDay]
       if (targetEl) {
         targetEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-        lastScrolledChildId.current = selectedChildId
+        lastScrolledTarget.current = { childId: selectedChildId, day: currentDayOfWeek }
       } else {
         requestAnimationFrame(() => {
           if (cancelled) return
           const retryEl = dayColRefs.current[initialTargetDay]
           if (retryEl) {
             retryEl.scrollIntoView({ behavior: "smooth", inline: "start", block: "nearest" })
-            lastScrolledChildId.current = selectedChildId
+            lastScrolledTarget.current = { childId: selectedChildId, day: currentDayOfWeek }
           }
         })
       }
@@ -232,7 +292,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       cancelled = true
       cancelAnimationFrame(rafId)
     }
-  }, [loading, selectedChildId, initialTargetDay])
+  }, [loading, selectedChildId, currentDayOfWeek, initialTargetDay])
 
   // Map lessons by [dayOfWeek][hourNum]
   const lessonMap = useMemo(() => {
@@ -266,7 +326,7 @@ export function SchedulePage({ token, syncTrigger, currentUser }: SchedulePagePr
       setIsEditMode(false)
     }
     if (childId !== selectedChildId) {
-      lastScrolledChildId.current = null
+      lastScrolledTarget.current = null
       setLoading(true)
       setSelectedChildId(childId)
     }
