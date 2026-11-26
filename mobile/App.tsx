@@ -29,6 +29,7 @@ import {
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
 import { LiquidDock, type DockTabItem } from './src/components/ui/LiquidDock';
+import { ModalPortalProvider } from './src/components/ui/ModalPortal';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeworkScreen } from './src/screens/HomeworkScreen';
 import { IncidentsScreen } from './src/screens/IncidentsScreen';
@@ -381,7 +382,9 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ScrollHeaderProvider>
-          <AppShell />
+          <ModalPortalProvider>
+            <AppShell />
+          </ModalPortalProvider>
         </ScrollHeaderProvider>
       </ThemeProvider>
     </SafeAreaProvider>

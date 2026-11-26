@@ -19,6 +19,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+import { ModalLayer } from './ModalPortal';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
 import { useScrollHeader } from './MobileHeader';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
@@ -505,9 +506,8 @@ export function SelectField({
         {triggerNode}
       </View>
 
-      <Modal
+      <ModalLayer
         visible={open}
-        transparent
         animationType="fade"
         onRequestClose={() => setOpen(false)}
       >
@@ -565,7 +565,7 @@ export function SelectField({
             </ScrollView>
           </Pressable>
         </Pressable>
-      </Modal>
+      </ModalLayer>
     </View>
   );
 }

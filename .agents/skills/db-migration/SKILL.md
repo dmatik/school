@@ -1,17 +1,17 @@
 ---
 name: db-migration
-description: Safe procedure for modifying and evolving the SQLite database schema in class_attend. Use when adding tables, columns, indexes, or running database migrations.
+description: Safe procedure for modifying and evolving the SQLite database schema in school. Use when adding tables, columns, indexes, or running database migrations.
 ---
 
 # SQLite Database Migration Runbook
 
-Follow these steps whenever modifying the SQLite database schema in `class_attend`:
+Follow these steps whenever modifying the SQLite database schema in `school`:
 
 ---
 
-## 1. Golden Rules of Database Evolution in `class_attend`
+## 1. Golden Rules of Database Evolution in `school`
 
-1. **Database Path**: The database file is strictly [`data/class_attend.db`](../../data/class_attend.db). Never create or use any other database file (e.g. `attendance.db`).
+1. **Database Path**: The database file is strictly [`data/school.db`](../../data/school.db). Never create or use any other database file.
 2. **Synchronous Execution**: All schema statements must be executed synchronously using `db.exec(...)` or `db.prepare(...).run()`.
 3. **Foreign Keys**: Always ensure `PRAGMA foreign_keys = ON;` is enabled.
 4. **WAL Mode**: Always maintain `PRAGMA journal_mode = WAL;`.
@@ -25,13 +25,13 @@ SQLite supports `ALTER TABLE <table_name> ADD COLUMN <col_name> <type> DEFAULT <
 
 In [`server/db.js`](../../server/db.js), append a safe idempotent migration check inside `initDb()`:
 ```javascript
-// Example: Add status column if it doesn't exist
+// Example: Add notes column if it doesn't exist
 try {
-  const tableInfo = db.prepare("PRAGMA table_info(courses)").all();
-  const hasColumn = tableInfo.some(col => col.name === 'color');
+  const tableInfo = db.prepare("PRAGMA table_info(exams)").all();
+  const hasColumn = tableInfo.some(col => col.name === 'notes');
   if (!hasColumn) {
-    db.exec("ALTER TABLE courses ADD COLUMN color TEXT DEFAULT '#3b82f6'");
-    console.log("Added 'color' column to courses table");
+    db.exec("ALTER TABLE exams ADD COLUMN notes TEXT DEFAULT ''");
+    console.log("Added 'notes' column to exams table");
   }
 } catch (err) {
   console.error("Migration error:", err);
@@ -47,7 +47,7 @@ In [`server/db.js`](../../server/db.js), add the `CREATE TABLE IF NOT EXISTS` bl
 CREATE TABLE IF NOT EXISTS notes (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
-  session_id TEXT REFERENCES sessions(id) ON DELETE CASCADE,
+  child_id TEXT REFERENCES children(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   created_at TEXT NOT NULL
 );
@@ -62,7 +62,7 @@ CREATE INDEX IF NOT EXISTS idx_notes_user ON notes(user_id);
 After updating `server/db.js`:
 1. Verify database schema via CLI:
    ```bash
-   sqlite3 data/class_attend.db ".schema <table_name>"
+   sqlite3 data/school.db ".schema <table_name>"
    ```
 2. Run database auth tests:
    ```bash

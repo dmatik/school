@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+import { ModalLayer } from './ModalPortal';
 import { Button } from './Buttons';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { FieldLabel } from './FormFields';
@@ -87,9 +88,8 @@ function CalendarModal({
   }, []);
 
   return (
-    <Modal
+    <ModalLayer
       visible={open}
-      transparent
       animationType="fade"
       onRequestClose={onClose}
     >
@@ -222,7 +222,7 @@ function CalendarModal({
           </View>
         </Pressable>
       </Pressable>
-    </Modal>
+    </ModalLayer>
   );
 }
 

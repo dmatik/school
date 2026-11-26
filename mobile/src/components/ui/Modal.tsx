@@ -21,6 +21,7 @@ import { X, type LucideIcon } from 'lucide-react-native';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+import { ModalLayer } from './ModalPortal';
 import { Button } from './Buttons';
 
 let NativeBlurView: React.ComponentType<any> | null = null;
@@ -207,9 +208,8 @@ export function Modal({
     : Math.max(insets.bottom, 16);
 
   return (
-    <RNModal
+    <ModalLayer
       visible={visible}
-      transparent
       animationType={isTablet ? 'fade' : 'slide'}
       statusBarTranslucent
       onRequestClose={handleDismiss}
@@ -364,7 +364,7 @@ export function Modal({
           )}
         </Animated.View>
       </View>
-    </RNModal>
+    </ModalLayer>
   );
 }
 
@@ -401,9 +401,8 @@ export function ConfirmModal({
   const isDestructive = variant === 'destructive';
 
   return (
-    <RNModal
+    <ModalLayer
       visible={visible}
-      transparent
       animationType="fade"
       statusBarTranslucent
       onRequestClose={() => {
@@ -484,7 +483,7 @@ export function ConfirmModal({
           </View>
         </View>
       </View>
-    </RNModal>
+    </ModalLayer>
   );
 }
 

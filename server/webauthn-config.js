@@ -36,20 +36,23 @@ export function getWebAuthnConfig(req) {
     'http://127.0.0.1:8080',
   ]);
 
-  if (process.env.EXPECTED_ORIGIN) {
+  const hasExplicitExpectedOrigin = Boolean(process.env.EXPECTED_ORIGIN?.trim());
+  if (hasExplicitExpectedOrigin) {
     process.env.EXPECTED_ORIGIN.split(',').forEach(o => {
       const trimmed = o.trim();
       if (trimmed) allowedOrigins.add(trimmed);
     });
   }
 
-  // Extract origin from request headers (Origin or Referer)
+  // Extract origin from request headers (Origin or Referer) only when EXPECTED_ORIGIN is not explicitly locked down
   const originHeader = req?.get ? (req.get('origin') || req.get('referer')) : (req?.headers?.origin || req?.headers?.referer);
   let parsedOrigin = null;
   if (originHeader) {
     try {
       parsedOrigin = new URL(originHeader);
-      allowedOrigins.add(parsedOrigin.origin);
+      if (!hasExplicitExpectedOrigin) {
+        allowedOrigins.add(parsedOrigin.origin);
+      }
     } catch {
       // ignore invalid URL
     }
@@ -64,11 +67,13 @@ export function getWebAuthnConfig(req) {
 
   const proto = (req?.get ? req.get('x-forwarded-proto') : req?.headers?.['x-forwarded-proto']) || req?.protocol || 'http';
 
-  if (forwardedHostRaw) {
-    allowedOrigins.add(`${proto}://${forwardedHostRaw}`);
-  }
-  if (hostRaw) {
-    allowedOrigins.add(`${proto}://${hostRaw}`);
+  if (!hasExplicitExpectedOrigin) {
+    if (forwardedHostRaw) {
+      allowedOrigins.add(`${proto}://${forwardedHostRaw}`);
+    }
+    if (hostRaw) {
+      allowedOrigins.add(`${proto}://${hostRaw}`);
+    }
   }
 
   // Determine RP ID (WebAuthn requires RP ID to be a valid domain, not an IP or localhost for non-local domains)

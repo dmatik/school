@@ -1,15 +1,15 @@
 ---
 name: code-review
-description: Comprehensive inspection and code review checklist for class_attend. Use when reviewing code changes, validating pull requests, or performing architectural and security inspections.
+description: Comprehensive inspection and code review checklist for school. Use when reviewing code changes, validating pull requests, or performing architectural and security inspections.
 ---
 
 # Code Review & Inspection Checklist
 
-Use this checklist to perform rigorous reviews of any code changes in `class_attend`:
+Use this checklist to perform rigorous reviews of any code changes in `school`:
 
 ## 1. Security & Authentication Audit
 - [ ] **No SQL Injection**: Are all database queries using Better-SQLite3 parameterized queries (`?`)? Zero string interpolation.
-- [ ] **Multi-Tenant Isolation**: Does every query for courses/sessions filter strictly by `user_id = ?` matching `req.user.id`?
+- [ ] **Tenant & Role Isolation**: Does every query for incidents, homework, exams, schedule, or children filter strictly by the authenticated user/family scope (`req.user`) and enforce `requireParent` / `requireAdmin` where required?
 - [ ] **Authentication Middleware**: Are all new `/api/` endpoints protected by `authenticate` (unless deliberately public)?
 - [ ] **Password Security**: Are passwords hashed with `bcrypt.hashSync(password, 10)`?
 - [ ] **Secret Leakage**: Are JWT secrets or private keys stored in environment variables, not hardcoded?
@@ -29,7 +29,7 @@ Use this checklist to perform rigorous reviews of any code changes in `class_att
 ## 4. Database & State Integrity
 - [ ] **Synchronous SQLite**: Does the code avoid writing `await db...` or async wrappers around Better-SQLite3?
 - [ ] **Foreign Keys**: Do newly created tables have `REFERENCES users(id) ON DELETE CASCADE`?
-- [ ] **State Synchronization**: Does modifying courses or sessions trigger the debounced `/api/data` auto-save?
+- [ ] **State Synchronization**: Do mutations (e.g., toggling homework, editing exams/schedule, syncing Webtop) properly persist via their REST endpoints and update UI state?
 
 ## 5. Test Strategy & Cleanliness
 - [ ] **Test Separation**: Did any Playwright tests leak into `src/`? (Vitest must only see `src/`).
@@ -37,12 +37,22 @@ Use this checklist to perform rigorous reviews of any code changes in `class_att
 - [ ] **Playwright Isolation**: Does every E2E test create and clean up a dedicated test user (`createTestUser` / `deleteTestUser`)?
 - [ ] **No Dirty Database State**: Did any test create records with `admin-default`?
 
-## 6. Verification Commands
+## 6. Mobile App (Expo / React Native) Audit
+- [ ] **Expo & RN Stack Compliance**: Do changes in `mobile/` follow `mobile/AGENTS.md` (Expo SDK 58, React Native 0.88, TypeScript 6, `npx expo install` for dependencies)?
+- [ ] **Mobile Shared UI & RN Storybook**: Do screens in `mobile/src/screens/` reuse `mobile/src/components/` and `mobile/src/theme/`, with new/updated shared components cataloged in `mobile/src/stories/`?
+- [ ] **Safe Areas, Gestures & Performance**: Are `react-native-safe-area-context`, keyboard handling, `@gorhom/bottom-sheet`, and `react-native-reanimated` handled cleanly across iOS & Android?
+- [ ] **Mobile i18n & RTL**: Are all strings translated in `mobile/src/i18n/` and layouts RTL-safe?
+- [ ] **Secure Storage & Maestro E2E**: Are tokens stored in `expo-secure-store` (not `AsyncStorage`), and are changed mobile flows covered in `mobile/.maestro/`?
+
+## 7. Verification Commands
 Execute the following verification suite:
 ```bash
 npm run lint
 npm run build
 npm test
 npm run test:e2e
+
+# Mobile app verification (when mobile/ is touched)
+cd mobile && npm run lint && npm run typecheck
 ```
 

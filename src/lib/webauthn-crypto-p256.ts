@@ -173,8 +173,6 @@ export function sha256(message: Uint8Array): Uint8Array {
   return out;
 }
 
-let entropyCounter = 1;
-
 export function randomBytes(length: number): Uint8Array {
   const out = new Uint8Array(length);
   const cryptoObj = (globalThis as unknown as { crypto?: { getRandomValues?: (arr: Uint8Array) => Uint8Array } }).crypto;
@@ -182,20 +180,36 @@ export function randomBytes(length: number): Uint8Array {
     cryptoObj.getRandomValues(out);
     return out;
   }
+  throw new Error(
+    'Secure random number generator (crypto.getRandomValues) is unavailable'
+  );
+}
 
-  // Fallback hash-DRBG mixing high-resolution clocks and Math.random
-  let filled = 0;
-  while (filled < length) {
-    entropyCounter = (entropyCounter + 1) >>> 0;
-    const seedStr = `${Date.now()}:${entropyCounter}:${Math.random()}:${Math.random()}:${
-      typeof performance !== 'undefined' ? performance.now() : 0
-    }`;
-    const block = sha256(utf8ToBytes(seedStr));
-    const take = Math.min(block.length, length - filled);
-    out.set(block.subarray(0, take), filled);
-    filled += take;
+function hmacSha256(key: Uint8Array, data: Uint8Array): Uint8Array {
+  const blockSize = 64;
+  let k = key;
+  if (k.length > blockSize) {
+    k = sha256(k);
   }
-  return out;
+  const paddedKey = new Uint8Array(blockSize);
+  paddedKey.set(k);
+
+  const oKeyPad = new Uint8Array(blockSize);
+  const iKeyPad = new Uint8Array(blockSize);
+  for (let i = 0; i < blockSize; i++) {
+    oKeyPad[i] = paddedKey[i] ^ 0x5c;
+    iKeyPad[i] = paddedKey[i] ^ 0x36;
+  }
+
+  const innerInput = new Uint8Array(blockSize + data.length);
+  innerInput.set(iKeyPad, 0);
+  innerInput.set(data, blockSize);
+  const innerHash = sha256(innerInput);
+
+  const outerInput = new Uint8Array(blockSize + innerHash.length);
+  outerInput.set(oKeyPad, 0);
+  outerInput.set(innerHash, blockSize);
+  return sha256(outerInput);
 }
 
 export function utf8ToBytes(str: string): Uint8Array {
@@ -295,27 +309,46 @@ export function p256SignDer(privateKeyHex: string, messageHash32: Uint8Array): U
   const d = BigInt(`0x${privateKeyHex}`);
   const z = bytesToBigInt(messageHash32);
 
-  while (true) {
-    const k = mod(bytesToBigInt(randomBytes(32)), P256_N - 1n) + 1n;
-    const R = pointMultiply(k, BASE_POINT);
-    if (R.infinity) continue;
-    const r = mod(R.x, P256_N);
-    if (r === 0n) continue;
-    let s = mod(modInv(k, P256_N) * mod(z + r * d, P256_N), P256_N);
-    if (s === 0n) continue;
-    if (s > P256_N >> 1n) {
-      s = P256_N - s;
-    }
+  // RFC 6979 Section 3.2 deterministic nonce generation (HMAC-SHA256, P-256)
+  const xOctets = bigIntTo32Bytes(d);
+  const h1Octets = bigIntTo32Bytes(z >= P256_N ? z - P256_N : z);
 
-    const rDer = encodeDerInteger(r);
-    const sDer = encodeDerInteger(s);
-    const seqLen = rDer.length + sDer.length;
-    const der = new Uint8Array(2 + seqLen);
-    der[0] = 0x30;
-    der[1] = seqLen;
-    der.set(rDer, 2);
-    der.set(sDer, 2 + rDer.length);
-    return der;
+  let V: Uint8Array = new Uint8Array(32).fill(0x01);
+  let K: Uint8Array = new Uint8Array(32).fill(0x00);
+
+  K = hmacSha256(K, concatBytes(V, new Uint8Array([0x00]), xOctets, h1Octets));
+  V = hmacSha256(K, V);
+  K = hmacSha256(K, concatBytes(V, new Uint8Array([0x01]), xOctets, h1Octets));
+  V = hmacSha256(K, V);
+
+  while (true) {
+    V = hmacSha256(K, V);
+    const k = bytesToBigInt(V);
+    if (k >= 1n && k < P256_N) {
+      const R = pointMultiply(k, BASE_POINT);
+      if (!R.infinity) {
+        const r = mod(R.x, P256_N);
+        if (r !== 0n) {
+          let s = mod(modInv(k, P256_N) * mod(z + r * d, P256_N), P256_N);
+          if (s !== 0n) {
+            if (s > P256_N >> 1n) {
+              s = P256_N - s;
+            }
+            const rDer = encodeDerInteger(r);
+            const sDer = encodeDerInteger(s);
+            const seqLen = rDer.length + sDer.length;
+            const der = new Uint8Array(2 + seqLen);
+            der[0] = 0x30;
+            der[1] = seqLen;
+            der.set(rDer, 2);
+            der.set(sDer, 2 + rDer.length);
+            return der;
+          }
+        }
+      }
+    }
+    K = hmacSha256(K, concatBytes(V, new Uint8Array([0x00])));
+    V = hmacSha256(K, V);
   }
 }
 
@@ -334,6 +367,7 @@ export function buildWebAuthnRegistration(params: {
   challenge: string;
   rpId: string;
   origin: string;
+  userVerified?: boolean;
 }) {
   const credentialIdBytes = randomBytes(16);
   const credentialId = bytesToBase64Url(credentialIdBytes);
@@ -356,7 +390,8 @@ export function buildWebAuthnRegistration(params: {
   );
 
   const rpIdHash = sha256(utf8ToBytes(params.rpId));
-  const flags = new Uint8Array([0x45]); // UP (0x01) | UV (0x04) | AT (0x40)
+  const uvBit = params.userVerified !== false ? 0x04 : 0x00;
+  const flags = new Uint8Array([0x41 | uvBit]); // UP (0x01) | optional UV (0x04) | AT (0x40)
   const signCount = new Uint8Array([0x00, 0x00, 0x00, 0x00]);
   const aaguid = new Uint8Array(16);
   const credIdLen = new Uint8Array([0x00, credentialIdBytes.length]);
@@ -411,6 +446,7 @@ export function buildWebAuthnAssertion(params: {
   rpId: string;
   origin: string;
   counter: number;
+  userVerified?: boolean;
 }) {
   const clientDataObj = {
     type: 'webauthn.get',
@@ -422,7 +458,8 @@ export function buildWebAuthnAssertion(params: {
   const clientDataHash = sha256(clientDataBytes);
 
   const rpIdHash = sha256(utf8ToBytes(params.rpId));
-  const flags = new Uint8Array([0x05]); // UP (0x01) | UV (0x04)
+  const uvBit = params.userVerified !== false ? 0x04 : 0x00;
+  const flags = new Uint8Array([0x01 | uvBit]); // UP (0x01) | optional UV (0x04)
   const countBuf = new Uint8Array(4);
   new DataView(countBuf.buffer).setUint32(0, params.counter >>> 0, false);
 

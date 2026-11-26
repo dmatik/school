@@ -1,8 +1,19 @@
+import { I18nManager } from 'react-native';
 import i18n from 'i18next';
-import { initReactI18next } from 'react-i18next';
+import { initReactI18next, useTranslation } from 'react-i18next';
 import heTranslations from '../../../src/locales/he.json';
 import enTranslations from '../../../src/locales/en.json';
 import { mobileStorage } from '../lib/storage';
+
+// Disable native Yoga RTL mirroring so manual useDirection() (flexRow, textAlign,
+// writingDirection) is the single source of truth and doesn't double-flip on
+// Hebrew-locale devices.
+if (I18nManager.isRTL) {
+  I18nManager.allowRTL(false);
+  I18nManager.forceRTL(false);
+} else {
+  I18nManager.allowRTL(false);
+}
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -29,7 +40,8 @@ export async function setAppLanguage(lang: 'he' | 'en'): Promise<void> {
 }
 
 export function useDirection() {
-  const isRTL = !(i18n.language || 'he').startsWith('en');
+  const { i18n: activeI18n } = useTranslation();
+  const isRTL = !(activeI18n.language || 'he').startsWith('en');
   return {
     isRTL,
     flexRow: isRTL ? ('row-reverse' as const) : ('row' as const),
