@@ -139,7 +139,7 @@ export function IncidentsScreen({
         placeholder={t('incidents.search_placeholder')}
       />
 
-      <StickyFilterBar>
+      <StickyFilterBar relativeToHeader>
         <View
           style={[
             styles.filterRow,

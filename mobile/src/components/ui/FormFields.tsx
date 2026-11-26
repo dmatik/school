@@ -730,15 +730,21 @@ export function ColorSwatchPicker({
 export function StickyFilterBar({
   children,
   style,
+  relativeToHeader = false,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
+  /** Set true when rendered inside a FlatList/SectionList ListHeaderComponent whose top already sits at headerHeight + 8. */
+  relativeToHeader?: boolean;
 }) {
   const { headerHeight, scrollY } = useScrollHeader();
   const [naturalY, setNaturalY] = useState<number | null>(null);
 
   const stickyTop = headerHeight + 8;
-  const threshold = naturalY !== null ? Math.max(0, naturalY - stickyTop) : 52;
+  const threshold =
+    naturalY !== null
+      ? Math.max(0, relativeToHeader ? naturalY : naturalY - stickyTop)
+      : 52;
 
   const translateY =
     threshold > 0

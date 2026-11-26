@@ -237,7 +237,7 @@ export function ExamsScreen({
         placeholder={t('exams.search_placeholder')}
       />
 
-      <StickyFilterBar>
+      <StickyFilterBar relativeToHeader>
         <View
           style={[
             styles.filterRow,
