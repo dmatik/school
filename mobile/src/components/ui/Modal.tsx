@@ -200,7 +200,7 @@ export function Modal({
     : Math.max(240, height - topReserve);
 
   const tabletMaxWidth = maxWidth === 'sm' ? 384 : maxWidth === 'lg' ? 512 : 448;
-  const keyboardOpen = keyboardHeight > 0;
+  const keyboardOpen = Platform.OS === 'ios' && keyboardHeight > 0;
   const footerBottomPad = isTablet
     ? 16
     : keyboardOpen

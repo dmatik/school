@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { View, Image, StyleSheet, useColorScheme } from 'react-native';
+import { BackHandler, View, Image, StyleSheet, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -21,6 +21,7 @@ import {
   clearAuthOnly,
   hydrateSession,
   setActiveSession,
+  setOnUnauthorizedHandler,
 } from './src/lib/api';
 import { useServerSync } from './src/hooks/useServerSync';
 import {
@@ -109,13 +110,19 @@ function AppShell() {
 
       try {
         const res = await apiFetch('/api/auth/me');
-        if (!res.ok) throw new Error('Invalid session');
+        if (res.status === 401 || res.status === 403) {
+          await clearAuthOnly();
+          return;
+        }
+        if (!res.ok) {
+          return;
+        }
         const data = await res.json();
         if (!cancelled && data?.user) {
           setCurrentUser(data.user);
         }
       } catch {
-        await clearAuthOnly();
+        // Transient network/offline error: keep stored token for retry.
       } finally {
         if (!cancelled) setBooting(false);
       }
@@ -126,8 +133,10 @@ function AppShell() {
     };
   }, []);
 
+  const tabHistoryRef = useRef<AppTab[]>([]);
+
   const selectTab = useCallback(
-    (nextTab: AppTab) => {
+    (nextTab: AppTab, recordHistory = true) => {
       switchTabScroll(nextTab);
       const alreadyVisited = visitedTabs.has(nextTab);
       if (!alreadyVisited) {
@@ -135,6 +144,9 @@ function AppShell() {
       } else if (nextTab !== activeTab) {
         // Case 3 (Dock tab switch): silently refresh only the newly selected tab
         setTabSyncTriggers((prev) => ({ ...prev, [nextTab]: prev[nextTab] + 1 }));
+      }
+      if (recordHistory && nextTab !== activeTab) {
+        tabHistoryRef.current = [...tabHistoryRef.current.slice(-15), activeTab];
       }
       setActiveTab(nextTab);
       void refreshConfig(false);
@@ -146,17 +158,43 @@ function AppShell() {
     resetScroll();
     setActiveSession(serverUrl, token);
     setCurrentUser(user);
+    tabHistoryRef.current = [];
     setVisitedTabs(new Set(['homework']));
     setActiveTab('homework');
   };
 
-  const handleLogout = async () => {
+  const handleLogout = useCallback(async () => {
     resetScroll();
     await clearAuthOnly();
     setCurrentUser(null);
+    tabHistoryRef.current = [];
     setVisitedTabs(new Set(['homework']));
     setActiveTab('homework');
-  };
+  }, [resetScroll]);
+
+  useEffect(() => {
+    setOnUnauthorizedHandler(() => {
+      void handleLogout();
+    });
+    return () => setOnUnauthorizedHandler(null);
+  }, [handleLogout]);
+
+  useEffect(() => {
+    if (!currentUser) return;
+    const sub = BackHandler.addEventListener('hardwareBackPress', () => {
+      const prev = tabHistoryRef.current.pop();
+      if (prev) {
+        selectTab(prev, false);
+        return true;
+      }
+      if (activeTabRef.current !== 'homework') {
+        selectTab('homework', false);
+        return true;
+      }
+      return false;
+    });
+    return () => sub.remove();
+  }, [currentUser, selectTab]);
 
   const handleGlobalSync = async () => {
     if (syncing) return;
@@ -170,18 +208,27 @@ function AppShell() {
       const isConfigured = latestCfg?.configured ?? webtopState.configured;
 
       // 2. If Webtop is configured, also sync with Webtop and refresh again
+      let syncOk = true;
       if (isConfigured) {
-        const res = await apiFetch('/api/webtop/sync', { method: 'POST' });
+        const res = await apiFetch('/api/webtop/sync', {
+          method: 'POST',
+          timeoutMs: 60000,
+        });
+        syncOk = res.ok;
         if (res.ok) {
           setSyncTrigger((prev) => prev + 1);
           await refreshConfig(false);
         }
       }
 
-      setSyncSuccess(true);
-      syncSuccessTimerRef.current = setTimeout(() => {
-        setSyncSuccess(false);
-      }, 2000);
+      if (syncOk) {
+        setSyncSuccess(true);
+        syncSuccessTimerRef.current = setTimeout(() => {
+          setSyncSuccess(false);
+        }, 2000);
+      }
+    } catch (err) {
+      if (__DEV__) console.error('Global sync failed:', err);
     } finally {
       setSyncing(false);
     }

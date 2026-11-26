@@ -63,12 +63,16 @@ export function ScheduleScreen({
   const [editingFinishDay, setEditingFinishDay] = useState<number | null>(null);
   const [formFinishTime, setFormFinishTime] = useState('');
   const [savingFinish, setSavingFinish] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const configLoadedRef = useRef(false);
+  const scheduleRequestIdRef = useRef(0);
 
   const loadConfig = useCallback(async () => {
     try {
       const res = await apiFetch('/api/webtop/config');
       if (res.ok) {
         const cfg: WebtopConfig = await res.json();
+        configLoadedRef.current = true;
         setConfig(cfg);
         if (isChild) {
           setSelectedChildId(currentUser.linkedChildId || '');
@@ -98,21 +102,26 @@ export function ScheduleScreen({
       setLoading(false);
       return;
     }
+    const requestId = ++scheduleRequestIdRef.current;
     if (showSpinner) {
       setLoading(true);
     }
 
     try {
       const res = await apiFetch(`/api/schedule?childId=${encodeURIComponent(childId)}`);
+      if (requestId !== scheduleRequestIdRef.current) return;
       if (res.ok) {
         const data = await res.json();
+        if (requestId !== scheduleRequestIdRef.current) return;
         setLessons(data.lessons || []);
         setFinishTimes(data.finishTimes || []);
       }
     } catch (err) {
       console.error('Schedule load error:', err);
     } finally {
-      setLoading(false);
+      if (requestId === scheduleRequestIdRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
@@ -125,10 +134,10 @@ export function ScheduleScreen({
       const isChildSwitch = lastLoadedChildIdRef.current !== selectedChildId;
       lastLoadedChildIdRef.current = selectedChildId;
       loadSchedule(selectedChildId, isChildSwitch);
-    } else if (config !== null) {
+    } else if (configLoadedRef.current) {
       setLoading(false);
     }
-  }, [selectedChildId, config, loadSchedule, syncTrigger]);
+  }, [selectedChildId, loadSchedule, syncTrigger]);
 
   const currentChild = useMemo(() => {
     if (!config?.linkedChildren?.length) return null;
@@ -166,6 +175,7 @@ export function ScheduleScreen({
   const handleSaveLesson = async (subjectOverride?: string) => {
     if (!editingLesson || !selectedChildId) return;
     setSavingLesson(true);
+    setActionError(null);
     try {
       const res = await apiFetch('/api/schedule/lesson', {
         method: 'PUT',
@@ -179,7 +189,12 @@ export function ScheduleScreen({
       if (res.ok) {
         setEditingLesson(null);
         await loadSchedule(selectedChildId);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || t('account.unknown_error'));
       }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('account.unknown_error'));
     } finally {
       setSavingLesson(false);
     }
@@ -188,6 +203,7 @@ export function ScheduleScreen({
   const handleSaveFinishTime = async (timeOverride?: string) => {
     if (editingFinishDay === null || !selectedChildId) return;
     setSavingFinish(true);
+    setActionError(null);
     try {
       const res = await apiFetch('/api/schedule/finish-time', {
         method: 'PUT',
@@ -200,7 +216,12 @@ export function ScheduleScreen({
       if (res.ok) {
         setEditingFinishDay(null);
         await loadSchedule(selectedChildId);
+      } else {
+        const data = await res.json().catch(() => null);
+        setActionError(data?.error || t('account.unknown_error'));
       }
+    } catch (err) {
+      setActionError(err instanceof Error ? err.message : t('account.unknown_error'));
     } finally {
       setSavingFinish(false);
     }

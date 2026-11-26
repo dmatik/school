@@ -22,6 +22,7 @@ import {
   Baby,
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as ImageManipulator from 'expo-image-manipulator';
 import { useTranslation } from 'react-i18next';
 import { apiFetch } from '../lib/api';
 import {
@@ -206,20 +207,38 @@ export function AccountScreen({
   };
 
   const handlePickAvatar = async () => {
-    const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (!perm.granted) return;
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) return;
 
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.7,
-      base64: true,
-    });
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
 
-    if (!result.canceled && result.assets?.[0]?.base64) {
-      const mime = result.assets[0].mimeType || 'image/jpeg';
-      setAvatar(`data:${mime};base64,${result.assets[0].base64}`);
+      const asset = result.assets?.[0];
+      if (result.canceled || !asset?.uri) return;
+
+      const manipulated = await ImageManipulator.manipulateAsync(
+        asset.uri,
+        [{ resize: { width: 256, height: 256 } }],
+        {
+          compress: 0.75,
+          format: ImageManipulator.SaveFormat.JPEG,
+          base64: true,
+        }
+      );
+
+      if (manipulated.base64) {
+        setAvatar(`data:image/jpeg;base64,${manipulated.base64}`);
+      }
+    } catch (err) {
+      setFeedback({
+        variant: 'destructive',
+        message: err instanceof Error ? err.message : t('account.update_failed'),
+      });
     }
   };
 
@@ -281,7 +300,8 @@ export function AccountScreen({
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setFeedback({ variant: 'info', message: t('account.password_changed_desc') });
+      // Server increments token_version on password change, invalidating the current JWT.
+      onLogout();
     } catch (err) {
       setFeedback({
         variant: 'destructive',

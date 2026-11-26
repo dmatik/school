@@ -139,17 +139,13 @@ export function HomeworkScreen({
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
   const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
+  const sections = useMemo(
+    () => groupedByDate.map(([date, data]) => ({ title: date, data })),
+    [groupedByDate]
+  );
 
-  return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...pullToRefreshProps}
-    >
+  const listHeader = (
+    <View style={styles.listHeader}>
       {isChild && !currentUser.linkedChildId ? (
         <NoticeBanner variant="warning" description={t('homework.child_unlinked_desc')} />
       ) : null}
@@ -189,64 +185,79 @@ export function HomeworkScreen({
           />
         </View>
       </StickyFilterBar>
+    </View>
+  );
 
-      {loading ? (
-        <View style={styles.center}>
-          <ActivityIndicator size="large" color={palette.primary} />
-        </View>
-      ) : groupedByDate.length === 0 ? (
-        <EmptyStateCard
-          centered
-          icon={BookOpen}
-          title={
-            selectedDate && !search
-              ? t('homework.no_homework_for_date')
-              : search || selectedDate
-              ? t('homework.no_homework_match')
-              : t('homework.empty_title')
-          }
-          description={
-            search || selectedDate ? undefined : t('homework.empty_desc')
-          }
-          action={
-            selectedDate ? (
-              <View style={[styles.emptyActions, { flexDirection: flexRow }]}>
-                <Button
-                  label={t('homework.back_to_today')}
-                  variant="outline"
-                  size="sm"
-                  onPress={() => setSelectedDate(new Date())}
-                />
-                <Button
-                  label={t('common.all_dates')}
-                  variant="ghost"
-                  size="sm"
-                  onPress={() => setSelectedDate(undefined)}
-                />
-              </View>
-            ) : undefined
-          }
-        />
-      ) : (
-        groupedByDate.map(([date, list]) => (
-          <View key={date} style={{ gap: 4 }}>
-            <SectionDateHeader
-              title={formatDateSectionHeader(date, i18n.language, t)}
+  const listEmpty = loading ? (
+    <View style={styles.center}>
+      <ActivityIndicator size="large" color={palette.primary} />
+    </View>
+  ) : (
+    <EmptyStateCard
+      centered
+      icon={BookOpen}
+      title={
+        selectedDate && !search
+          ? t('homework.no_homework_for_date')
+          : search || selectedDate
+          ? t('homework.no_homework_match')
+          : t('homework.empty_title')
+      }
+      description={
+        search || selectedDate ? undefined : t('homework.empty_desc')
+      }
+      action={
+        selectedDate ? (
+          <View style={[styles.emptyActions, { flexDirection: flexRow }]}>
+            <Button
+              label={t('homework.back_to_today')}
+              variant="outline"
+              size="sm"
+              onPress={() => setSelectedDate(new Date())}
             />
-            <View style={{ gap: 10 }}>
-              {list.map((hw) => (
-                <HomeworkCard
-                  key={hw.ids.join('-')}
-                  item={hw}
-                  childColor={getChildColor(hw.childId || hw.studentId)}
-                  showChildBadge={!isChild}
-                />
-              ))}
-            </View>
+            <Button
+              label={t('common.all_dates')}
+              variant="ghost"
+              size="sm"
+              onPress={() => setSelectedDate(undefined)}
+            />
           </View>
-        ))
+        ) : undefined
+      }
+    />
+  );
+
+  return (
+    <Animated.SectionList
+      ref={scrollRef as any}
+      style={styles.container}
+      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+      showsVerticalScrollIndicator={false}
+      stickySectionHeadersEnabled={false}
+      sections={loading ? [] : sections}
+      keyExtractor={(item) => item.ids.join('-')}
+      ListHeaderComponent={listHeader}
+      ListEmptyComponent={listEmpty}
+      renderSectionHeader={({ section }) => (
+        <View style={styles.sectionHeaderWrap}>
+          <SectionDateHeader
+            title={formatDateSectionHeader(section.title, i18n.language, t)}
+          />
+        </View>
       )}
-    </Animated.ScrollView>
+      renderItem={({ item: hw }) => (
+        <View style={styles.cardWrap}>
+          <HomeworkCard
+            item={hw}
+            childColor={getChildColor(hw.childId || hw.studentId)}
+            showChildBadge={!isChild}
+          />
+        </View>
+      )}
+      onScroll={onScroll}
+      scrollEventThrottle={16}
+      {...pullToRefreshProps}
+    />
   );
 }
 
@@ -258,7 +269,17 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     paddingBottom: 110,
+  },
+  listHeader: {
     gap: 12,
+    marginBottom: 12,
+  },
+  sectionHeaderWrap: {
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  cardWrap: {
+    marginBottom: 10,
   },
   center: {
     flex: 1,

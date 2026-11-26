@@ -1,6 +1,8 @@
-import React, { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useCallback, useState } from 'react';
 import {
   Animated,
+  Platform,
+  RefreshControl,
   View,
   Text,
   Pressable,
@@ -36,6 +38,7 @@ interface PullToRefreshScrollProps {
   onScrollEndDrag: () => void;
   alwaysBounceVertical: boolean;
   bounces: boolean;
+  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
 }
 
 interface ScrollHeaderContextValue {
@@ -54,8 +57,15 @@ interface ScrollHeaderContextValue {
 
 function scrollNodeToTop(node: any) {
   if (!node) return;
-  const target = typeof node.scrollTo === 'function' ? node : node.getNode?.();
-  target?.scrollTo?.({ y: 0, animated: false });
+  const target =
+    typeof node.scrollTo === 'function' || typeof node.scrollToOffset === 'function'
+      ? node
+      : node.getNode?.();
+  if (typeof target?.scrollTo === 'function') {
+    target.scrollTo({ y: 0, animated: false });
+  } else if (typeof target?.scrollToOffset === 'function') {
+    target.scrollToOffset({ offset: 0, animated: false });
+  }
 }
 
 const ScrollHeaderContext = createContext<ScrollHeaderContextValue | null>(null);
@@ -75,8 +85,13 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   const pullDistance = useSharedValue(0);
   const isPulling = useSharedValue(false);
 
+  const [androidSyncing, setAndroidSyncing] = useState(false);
+
   const registerSync = useCallback((onRefresh: () => void, syncing: boolean) => {
     syncConfigRef.current = { onRefresh, syncing };
+    if (Platform.OS === 'android') {
+      setAndroidSyncing(syncing);
+    }
   }, []);
 
   const registerScrollView = useCallback((tab: string, node: any) => {
@@ -149,12 +164,24 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
     clearPullState();
   }, [scrollY, clearPullState]);
 
-  const pullToRefreshProps = useRef<PullToRefreshScrollProps>({
-    onScrollBeginDrag,
-    onScrollEndDrag,
-    alwaysBounceVertical: true,
-    bounces: true,
-  }).current;
+  const pullToRefreshProps = useMemo<PullToRefreshScrollProps>(() => {
+    const base: PullToRefreshScrollProps = {
+      onScrollBeginDrag,
+      onScrollEndDrag,
+      alwaysBounceVertical: true,
+      bounces: true,
+    };
+    if (Platform.OS === 'android') {
+      base.refreshControl = (
+        <RefreshControl
+          refreshing={androidSyncing}
+          onRefresh={() => syncConfigRef.current.onRefresh?.()}
+          progressViewOffset={headerHeight}
+        />
+      );
+    }
+    return base;
+  }, [onScrollBeginDrag, onScrollEndDrag, androidSyncing, headerHeight]);
 
   return (
     <ScrollHeaderContext.Provider

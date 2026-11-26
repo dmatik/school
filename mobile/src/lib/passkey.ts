@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import i18n from '../i18n';
 import { apiFetch, getActiveServerUrl } from './api';
 import {
   buildWebAuthnAssertion,
@@ -83,19 +84,22 @@ async function savePrivateKeyToKeychain(
         requireAuthentication: true,
         authenticationPrompt: promptMessage,
         keychainService: BIO_KEYCHAIN_SERVICE,
+        keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
       });
       return true;
     } catch (err) {
       if (isUserCanceledError(err)) {
-        const cancelErr = new Error('Passkey authentication canceled');
+        const cancelErr = new Error(i18n.t('account.passkey_failed'));
         cancelErr.name = 'NotAllowedError';
         throw cancelErr;
       }
-      throw new Error('Biometric authentication failed while saving passkey');
+      throw new Error(i18n.t('account.passkey_biometric_failed'));
     }
   }
 
-  await SecureStore.setItemAsync(key, privateKeyHex);
+  await SecureStore.setItemAsync(key, privateKeyHex, {
+    keychainAccessible: SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+  });
   return false;
 }
 
@@ -111,12 +115,12 @@ function validateServerRpId(serverRpId: string | undefined, serverUrl: string): 
   const normalizedRpId = serverRpId.toLowerCase();
   if (isLocal) {
     if (normalizedRpId !== 'localhost' && normalizedRpId !== hostname) {
-      throw new Error('Server returned an invalid passkey RP ID');
+      throw new Error(i18n.t('account.passkey_rp_id_mismatch'));
     }
     return normalizedRpId;
   }
   if (hostname !== normalizedRpId && !hostname.endsWith(`.${normalizedRpId}`)) {
-    throw new Error('Server returned an untrusted passkey RP ID');
+    throw new Error(i18n.t('account.passkey_rp_id_mismatch'));
   }
   return normalizedRpId;
 }
@@ -188,7 +192,7 @@ export async function registerPasskey(
 ): Promise<PasskeyInfo> {
   const serverUrl = getActiveServerUrl();
   if (!serverUrl) {
-    throw new Error('Server URL not configured');
+    throw new Error(i18n.t('auth.server_url_required'));
   }
 
   const origin = new URL(serverUrl).origin;
@@ -200,7 +204,7 @@ export async function registerPasskey(
   });
   const optsData = await optsRes.json().catch(() => null);
   if (!optsRes.ok || !optsData?.options || !optsData?.challengeId) {
-    throw new Error(optsData?.error || 'Failed to start passkey registration');
+    throw new Error(optsData?.error || i18n.t('account.passkey_register_failed'));
   }
 
   const rpId = validateServerRpId(optsData.options.rp?.id, serverUrl);
@@ -236,7 +240,7 @@ export async function registerPasskey(
   const verifyData = await verifyRes.json().catch(() => null);
   if (!verifyRes.ok || !verifyData?.passkey) {
     await removePrivateKeyFromKeychain(credentialId, usedBio);
-    throw new Error(verifyData?.error || 'Failed to verify passkey');
+    throw new Error(verifyData?.error || i18n.t('account.passkey_verify_failed'));
   }
 
   // 4. Record local metadata index for this server
@@ -295,7 +299,7 @@ export async function loginWithPasskey(
 
   const optsData = await optsRes.json().catch(() => null);
   if (!optsRes.ok || !optsData?.options || !optsData?.challengeId) {
-    throw new Error(optsData?.error || 'Failed to start passkey authentication');
+    throw new Error(optsData?.error || i18n.t('account.passkey_auth_failed'));
   }
 
   const allowCredentials: Array<{ id: string }> =
@@ -310,7 +314,7 @@ export async function loginWithPasskey(
   }
 
   if (!matchedEntry) {
-    throw new Error('No passkey registered on this device for this account');
+    throw new Error(i18n.t('account.passkey_no_device_key'));
   }
 
   // 3. Unlock private key from device Keychain/Keystore (triggers Face ID / Touch ID / Biometrics)
@@ -321,7 +325,7 @@ export async function loginWithPasskey(
   );
 
   if (!privateKeyHex) {
-    throw new Error('Passkey key not found on this device');
+    throw new Error(i18n.t('account.passkey_key_missing'));
   }
 
   const nextCounter = (matchedEntry.counter || 0) + 1;
@@ -354,7 +358,7 @@ export async function loginWithPasskey(
 
   const verifyData = await verifyRes.json().catch(() => null);
   if (!verifyRes.ok || !verifyData?.token || !verifyData?.user) {
-    throw new Error(verifyData?.error || 'Passkey authentication failed');
+    throw new Error(verifyData?.error || i18n.t('account.passkey_auth_failed'));
   }
 
   // 5. Update local counter and backfill user profile metadata
@@ -383,7 +387,7 @@ export async function fetchUserPasskeys(): Promise<PasskeyInfo[]> {
   const res = await apiFetch('/api/auth/passkeys');
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    throw new Error(data?.error || 'Failed to fetch passkeys');
+    throw new Error(data?.error || i18n.t('account.passkey_fetch_failed'));
   }
   return data?.passkeys || [];
 }
@@ -397,7 +401,7 @@ export async function deletePasskey(id: string): Promise<void> {
   });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
-    throw new Error(data?.error || 'Failed to delete passkey');
+    throw new Error(data?.error || i18n.t('account.passkey_delete_failed'));
   }
 
   const index = await readLocalIndex();
