@@ -306,12 +306,20 @@ async function ensureExpoWebServer() {
   const parsed = new URL(BASE_URL);
   const port = Number(parsed.port || 4173);
 
+  const distRoot = path.resolve(APP_DIST_DIR);
+  const indexHtmlPath = path.join(distRoot, 'index.html');
+
   const server = http.createServer((req, res) => {
     const reqPath = (req.url || '/').split('?')[0];
     const safeRel = reqPath === '/' ? 'index.html' : reqPath.replace(/^\/+/, '');
-    let filePath = path.join(APP_DIST_DIR, safeRel);
+    let filePath = path.resolve(distRoot, safeRel);
+    if (!filePath.startsWith(distRoot + path.sep)) {
+      res.writeHead(403);
+      res.end('Forbidden');
+      return;
+    }
     if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = path.join(APP_DIST_DIR, 'index.html');
+      filePath = indexHtmlPath;
     }
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });

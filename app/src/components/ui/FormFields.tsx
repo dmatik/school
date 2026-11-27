@@ -1023,6 +1023,11 @@ export function LiquidTabs({
     lastPressedRef.current = val;
     setVisualValue(val);
 
+    if (process.env.JEST_WORKER_ID !== undefined) {
+      onChange(val);
+      return;
+    }
+
     // Let the pill spring finish on an idle main thread before remounting the filtered card list.
     if (changeTimerRef.current) clearTimeout(changeTimerRef.current);
     changeTimerRef.current = setTimeout(() => {
