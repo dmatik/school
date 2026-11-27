@@ -7,6 +7,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  type ComponentRef,
 } from 'react';
 import {
   BackHandler,
@@ -15,6 +16,7 @@ import {
   View,
   type ModalProps,
 } from 'react-native';
+import { AndroidBlurTarget, AndroidBlurTargetProvider } from './GlassBackdrop';
 
 interface PortalLayer {
   id: string;
@@ -38,6 +40,7 @@ export function ModalPortalProvider({ children }: { children: React.ReactNode })
   const [layers, setLayers] = useState<PortalLayer[]>([]);
   const layersRef = useRef<PortalLayer[]>([]);
   layersRef.current = layers;
+  const portalBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
   const upsertLayer = useCallback(
     (id: string, node: React.ReactNode, onRequestClose?: () => void) => {
@@ -80,21 +83,27 @@ export function ModalPortalProvider({ children }: { children: React.ReactNode })
   return (
     <ModalPortalContext.Provider value={value}>
       <View style={styles.root}>
-        <View style={styles.childrenRoot} pointerEvents="box-none">
+        <AndroidBlurTarget
+          targetRef={portalBlurTargetRef}
+          style={styles.childrenRoot}
+          pointerEvents="box-none"
+        >
           {children}
-        </View>
+        </AndroidBlurTarget>
         {layers.length > 0 ? (
-          <View style={[StyleSheet.absoluteFill, styles.portalHost]} pointerEvents="box-none">
-            {layers.map((layer, idx) => (
-              <View
-                key={layer.id}
-                style={[StyleSheet.absoluteFill, { zIndex: 9999 + idx, elevation: 9999 + idx }]}
-                pointerEvents="box-none"
-              >
-                {layer.node}
-              </View>
-            ))}
-          </View>
+          <AndroidBlurTargetProvider value={portalBlurTargetRef}>
+            <View style={[StyleSheet.absoluteFill, styles.portalHost]} pointerEvents="box-none">
+              {layers.map((layer, idx) => (
+                <View
+                  key={layer.id}
+                  style={[StyleSheet.absoluteFill, { zIndex: 9999 + idx, elevation: 9999 + idx }]}
+                  pointerEvents="box-none"
+                >
+                  {layer.node}
+                </View>
+              ))}
+            </View>
+          </AndroidBlurTargetProvider>
         ) : null}
       </View>
     </ModalPortalContext.Provider>

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
   View,
@@ -13,6 +13,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import {
+  AndroidStickyBlurHost,
   CounterField,
   FieldLabel,
   FilledInput,
@@ -27,6 +28,7 @@ import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/u
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { ExamCard } from '../components/ui/Cards';
 import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
+import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { ExamItem, WebtopConfig, User } from '../../../src/types';
@@ -42,6 +44,7 @@ export function ExamsScreen({
   const { palette } = useTheme();
   const { flexRow } = useDirection();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('exams');
+  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -301,49 +304,53 @@ export function ExamsScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <Animated.SectionList
-        ref={scrollRef as any}
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        sections={loading ? [] : sections}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
-        ListEmptyComponent={listEmpty}
-        renderSectionHeader={({ section }) =>
-          section.title !== 'no-date' ? (
-            <View style={{ marginTop: 8, marginBottom: 4 }}>
-              <SectionDateHeader
-                title={formatDateSectionHeader(section.title, i18n.language, t)}
+      <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
+        <Animated.SectionList
+          ref={scrollRef as any}
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
+          showsVerticalScrollIndicator={false}
+          stickySectionHeadersEnabled={false}
+          sections={loading ? [] : sections}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={listHeader}
+          ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
+          ListEmptyComponent={listEmpty}
+          renderSectionHeader={({ section }) =>
+            section.title !== 'no-date' ? (
+              <View style={{ marginTop: 8, marginBottom: 4 }}>
+                <SectionDateHeader
+                  title={formatDateSectionHeader(section.title, i18n.language, t)}
+                />
+              </View>
+            ) : null
+          }
+          renderItem={({ item: ex }) => (
+            <View style={{ marginBottom: 10 }}>
+              <ExamCard
+                exam={ex}
+                childColor={getChildColor(ex.childId)}
+                showChildBadge={!isChild}
+                canEdit={isParent}
+                onEdit={() => openEditModal(ex)}
               />
             </View>
-          ) : null
-        }
-        renderItem={({ item: ex }) => (
-          <View style={{ marginBottom: 10 }}>
-            <ExamCard
-              exam={ex}
-              childColor={getChildColor(ex.childId)}
-              showChildBadge={!isChild}
-              canEdit={isParent}
-              onEdit={() => openEditModal(ex)}
-            />
-          </View>
-        )}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
-      />
+          )}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          {...pullToRefreshProps}
+        />
+      </AndroidStickyBlurHost>
 
       {isParent && (
-        <FloatingActionButton
-          testID="add-exam-fab"
-          icon={Plus}
-          accessibilityLabel={t('exams.add_exam_button')}
-          onPress={openAddModal}
-        />
+        <AndroidBlurTargetProvider value={fabBlurTargetRef}>
+          <FloatingActionButton
+            testID="add-exam-fab"
+            icon={Plus}
+            accessibilityLabel={t('exams.add_exam_button')}
+            onPress={openAddModal}
+          />
+        </AndroidBlurTargetProvider>
       )}
 
       <FullScreenModal

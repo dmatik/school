@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
   AppState,
@@ -14,6 +14,7 @@ import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import { shareSchedulePdfMobile } from '../lib/schedulePdf';
 import {
+  AndroidStickyBlurHost,
   CounterField,
   FilledInput,
   LiquidTabs,
@@ -23,6 +24,7 @@ import {
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
 import { Button, FloatingActionButton, LiquidButton, useFabScrollPadding } from '../components/ui/Buttons';
+import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type {
@@ -42,6 +44,7 @@ export function ScheduleScreen({
   const { t } = useTranslation();
   const { palette } = useTheme();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('schedule');
+  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const { flexRow, isRTL } = useDirection();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
@@ -297,15 +300,16 @@ export function ScheduleScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <Animated.ScrollView
-        ref={scrollRef}
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
-        showsVerticalScrollIndicator={false}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
-      >
+      <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
+        <Animated.ScrollView
+          ref={scrollRef}
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          {...pullToRefreshProps}
+        >
         {isChild && !currentUser.linkedChildId ? (
           <NoticeBanner variant="warning" description={t('schedule.child_unlinked_desc')} />
         ) : null}
@@ -386,17 +390,20 @@ export function ScheduleScreen({
           />
         )}
       </Animated.ScrollView>
+      </AndroidStickyBlurHost>
 
       {isParent && selectedChildId ? (
-        <FloatingActionButton
-          testID="schedule-edit-fab"
-          icon={isEditMode ? Check : Pencil}
-          variant={isEditMode ? 'success' : 'primary'}
-          accessibilityLabel={
-            isEditMode ? t('schedule.edit_mode_disable') : t('schedule.edit_mode_enable')
-          }
-          onPress={() => setIsEditMode((prev) => !prev)}
-        />
+        <AndroidBlurTargetProvider value={fabBlurTargetRef}>
+          <FloatingActionButton
+            testID="schedule-edit-fab"
+            icon={isEditMode ? Check : Pencil}
+            variant={isEditMode ? 'success' : 'primary'}
+            accessibilityLabel={
+              isEditMode ? t('schedule.edit_mode_disable') : t('schedule.edit_mode_enable')
+            }
+            onPress={() => setIsEditMode((prev) => !prev)}
+          />
+        </AndroidBlurTargetProvider>
       ) : null}
 
       <FullScreenModal

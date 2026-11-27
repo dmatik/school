@@ -366,7 +366,13 @@ export function MobileHeader({
               >
                 {formattedSync}
               </Text>
-              <View style={{ transform: [{ translateY: -2.5 }] }}>
+              <View
+                style={
+                  Platform.OS === 'android'
+                    ? undefined
+                    : { transform: [{ translateY: -2.5 }] }
+                }
+              >
                 <RefreshCw size={10} color={palette.mutedForeground} />
               </View>
             </View>
@@ -444,16 +450,17 @@ const styles = StyleSheet.create({
   },
   titleWrap: {
     flex: 1,
-    height: 36,
+    ...(Platform.OS === 'android'
+      ? { minHeight: 36, paddingTop: 0 }
+      : { height: 36, paddingTop: 3 }),
     alignItems: 'center',
     justifyContent: 'center',
     gap: 0,
-    paddingTop: 3,
   },
   title: {
     textAlign: 'center',
     fontSize: 18,
-    lineHeight: 18,
+    lineHeight: Platform.OS === 'android' ? 24 : 18,
     includeFontPadding: false,
     ...heeboFont('700'),
     letterSpacing: -0.3,
@@ -463,11 +470,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 4,
-    marginTop: -1,
+    marginTop: Platform.OS === 'android' ? -2 : -1,
   },
   lastSynced: {
     fontSize: 10,
-    lineHeight: 11,
+    lineHeight: Platform.OS === 'android' ? 14 : 11,
     includeFontPadding: false,
     ...heeboFont('400'),
     textAlign: 'center',

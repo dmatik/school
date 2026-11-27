@@ -37,7 +37,18 @@ function isAndroidAppInstalled() {
     encoding: 'utf8',
     stdio: ['ignore', 'pipe', 'ignore'],
   });
-  return res.status === 0 && (res.stdout || '').includes('package:');
+  if (res.status !== 0 || !(res.stdout || '').includes('package:')) {
+    return false;
+  }
+  // Release builds (e.g. from Maestro E2E) embed the JS bundle and don't connect to Metro.
+  // Debug dev-client APKs always carry the DEBUGGABLE flag; if absent, let `expo run:android`
+  // restore the Debug dev-client build.
+  const dump = spawnSync('adb', ['shell', 'dumpsys', 'package', androidPkg], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  if (dump.status !== 0) return false;
+  return /\b(?:pkgF|f)lags=\[[^\]]*\bDEBUGGABLE\b/.test(dump.stdout || '');
 }
 
 const installed =

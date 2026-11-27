@@ -1,7 +1,54 @@
-import React from 'react';
-import { View, StyleSheet } from 'react-native';
-import { BlurView } from 'expo-blur';
+import React, { createContext, useContext, type ComponentRef, type RefObject } from 'react';
+import {
+  Platform,
+  View,
+  StyleSheet,
+  type StyleProp,
+  type ViewProps,
+  type ViewStyle,
+} from 'react-native';
+import { BlurTargetView, BlurView } from 'expo-blur';
 import { useTheme } from '../../theme/ThemeContext';
+
+export type AndroidBlurTargetRef = RefObject<ComponentRef<typeof View> | null>;
+
+const AndroidBlurTargetContext = createContext<AndroidBlurTargetRef | null>(null);
+
+export const AndroidBlurTargetProvider = AndroidBlurTargetContext.Provider;
+
+export function useAndroidBlurTarget(): AndroidBlurTargetRef | null {
+  return useContext(AndroidBlurTargetContext);
+}
+
+/**
+ * On Android, wraps background content in expo-blur's BlurTargetView so sibling
+ * BlurViews (dock, FABs, modal backdrops) can render real hardware blur.
+ * On iOS and web, renders a plain View with identical layout and zero overhead.
+ */
+export function AndroidBlurTarget({
+  targetRef,
+  style,
+  pointerEvents,
+  children,
+}: {
+  targetRef: AndroidBlurTargetRef;
+  style?: StyleProp<ViewStyle>;
+  pointerEvents?: ViewProps['pointerEvents'];
+  children: React.ReactNode;
+}) {
+  if (Platform.OS === 'android') {
+    return (
+      <BlurTargetView ref={targetRef} style={style} pointerEvents={pointerEvents}>
+        {children}
+      </BlurTargetView>
+    );
+  }
+  return (
+    <View style={style} pointerEvents={pointerEvents}>
+      {children}
+    </View>
+  );
+}
 
 export function getGlassShadow(isDark: boolean) {
   return {
@@ -13,12 +60,20 @@ export function getGlassShadow(isDark: boolean) {
 
 export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number }) {
   const { palette, isDark } = useTheme();
+  const androidBlurTarget = useAndroidBlurTarget();
 
   return (
     <View pointerEvents="none" style={[styles.fill, { borderRadius, overflow: 'hidden' }]}>
       <BlurView
         intensity={35}
         tint={isDark ? 'dark' : 'light'}
+        {...(Platform.OS === 'android' && androidBlurTarget
+          ? {
+              blurTarget: androidBlurTarget,
+              blurMethod: 'dimezisBlurView' as const,
+              blurReductionFactor: 2,
+            }
+          : {})}
         style={[styles.fill, { borderRadius }]}
       />
       <View style={[styles.fill, { backgroundColor: palette.glassBg }]} />

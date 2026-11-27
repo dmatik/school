@@ -19,6 +19,10 @@ appId: com.dmatik.school
     id: "header-account-button"
 - assertVisible:
     text: "הגדרות חשבון|Account Settings"
+# Swipe from below the center TextInput so Android's EditText doesn't swallow scrollUntilVisible's center drag
+- swipe:
+    start: 50%, 75%
+    end: 50%, 20%
 - scrollUntilVisible:
     element:
       id: "logout-button"

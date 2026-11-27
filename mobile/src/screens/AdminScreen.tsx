@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
   View,
@@ -20,6 +20,7 @@ import {
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { AdminUserRow } from '../components/ui/Cards';
 import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
+import { AndroidBlurTarget, AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
 import type { User, WebtopChild } from '../../../src/types';
@@ -35,6 +36,7 @@ export function AdminScreen({
   const { palette } = useTheme();
   const { flexRow } = useDirection();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('admin');
+  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
   const [children, setChildren] = useState<WebtopChild[]>([]);
@@ -250,50 +252,54 @@ export function AdminScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <Animated.FlatList
-        ref={scrollRef as any}
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
-        showsVerticalScrollIndicator={false}
-        data={loading ? [] : filtered}
-        keyExtractor={(u) => u.id}
-        ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
-        ListEmptyComponent={listEmpty}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item: u }) => {
-          const linked = children.find(
-            (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
-          );
-          const linkedName = linked
-            ? `${linked.firstName} ${linked.lastName}`.trim()
-            : null;
+      <AndroidBlurTarget targetRef={fabBlurTargetRef} style={{ flex: 1 }}>
+        <Animated.FlatList
+          ref={scrollRef as any}
+          style={styles.container}
+          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
+          showsVerticalScrollIndicator={false}
+          data={loading ? [] : filtered}
+          keyExtractor={(u) => u.id}
+          ListHeaderComponent={listHeader}
+          ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
+          ListEmptyComponent={listEmpty}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          renderItem={({ item: u }) => {
+            const linked = children.find(
+              (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
+            );
+            const linkedName = linked
+              ? `${linked.firstName} ${linked.lastName}`.trim()
+              : null;
 
-          return (
-            <AdminUserRow
-              user={u}
-              isSelf={u.id === currentUser.id}
-              linkedChildName={linkedName}
-              onEdit={() => openEditModal(u)}
-              onResetPassword={() => {
-                setResetTarget(u);
-                setResetPassword('');
-              }}
-              onDelete={() => setDeleteTarget(u)}
-            />
-          );
-        }}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
-      />
+            return (
+              <AdminUserRow
+                user={u}
+                isSelf={u.id === currentUser.id}
+                linkedChildName={linkedName}
+                onEdit={() => openEditModal(u)}
+                onResetPassword={() => {
+                  setResetTarget(u);
+                  setResetPassword('');
+                }}
+                onDelete={() => setDeleteTarget(u)}
+              />
+            );
+          }}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          {...pullToRefreshProps}
+        />
+      </AndroidBlurTarget>
 
-      <FloatingActionButton
-        testID="add-user-fab"
-        icon={UserPlus}
-        accessibilityLabel={t('admin.add_user_button')}
-        onPress={openCreateModal}
-      />
+      <AndroidBlurTargetProvider value={fabBlurTargetRef}>
+        <FloatingActionButton
+          testID="add-user-fab"
+          icon={UserPlus}
+          accessibilityLabel={t('admin.add_user_button')}
+          onPress={openCreateModal}
+        />
+      </AndroidBlurTargetProvider>
 
       <FullScreenModal
         testID="user-modal"

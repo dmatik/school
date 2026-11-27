@@ -32,7 +32,8 @@
     "mobile:android": "npm --prefix mobile run android",
     "mobile:storybook": "npm --prefix mobile run storybook",
     "mobile:typecheck": "npm --prefix mobile run typecheck",
-    "test:maestro": "node mobile/scripts/run-maestro-e2e.mjs"
+    "test:maestro": "node mobile/scripts/run-maestro-e2e.mjs",
+    "test:maestro:android": "node mobile/scripts/run-maestro-e2e.mjs --android"
   },
   "dependencies": {
     "@radix-ui/react-alert-dialog": "^1.1.15",

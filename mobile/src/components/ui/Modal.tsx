@@ -23,6 +23,7 @@ import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { ModalLayer } from './ModalPortal';
 import { Button } from './Buttons';
+import { useAndroidBlurTarget } from './GlassBackdrop';
 
 let NativeBlurView: React.ComponentType<any> | null = null;
 const hasNativeBlur =
@@ -68,6 +69,7 @@ export function Modal({
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
   const insets = useSafeAreaInsets();
+  const androidBlurTarget = useAndroidBlurTarget();
   const { width, height } = useWindowDimensions();
   const isTablet = width >= 640;
 
@@ -235,6 +237,13 @@ export function Modal({
             <NativeBlurView
               intensity={18}
               tint={isDark ? 'dark' : 'light'}
+              {...(Platform.OS === 'android' && androidBlurTarget
+                ? {
+                    blurTarget: androidBlurTarget,
+                    blurMethod: 'dimezisBlurView' as const,
+                    blurReductionFactor: 2,
+                  }
+                : {})}
               style={StyleSheet.absoluteFill}
             />
           ) : null}
@@ -398,6 +407,7 @@ export function ConfirmModal({
 }) {
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
+  const androidBlurTarget = useAndroidBlurTarget();
   const isDestructive = variant === 'destructive';
 
   return (
@@ -420,6 +430,13 @@ export function ConfirmModal({
             <NativeBlurView
               intensity={18}
               tint={isDark ? 'dark' : 'light'}
+              {...(Platform.OS === 'android' && androidBlurTarget
+                ? {
+                    blurTarget: androidBlurTarget,
+                    blurMethod: 'dimezisBlurView' as const,
+                    blurReductionFactor: 2,
+                  }
+                : {})}
               style={StyleSheet.absoluteFill}
             />
           ) : null}
