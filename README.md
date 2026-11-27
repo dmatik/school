@@ -4,7 +4,7 @@
 ![Build Status](https://img.shields.io/github/actions/workflow/status/dmatik/school/build-and-test.yml?label=build)
 [![Version](https://img.shields.io/github/v/release/dmatik/school?label=version&color=green)](https://github.com/dmatik/school/releases/latest)
 
-**School** (בית הספר) is a self-hosted Progressive Web App (PWA) for parents and students to track homework assignments, school incidents, exams and grades, and weekly schedules—synced directly from the Israeli **Webtop** (SmartSchool) portal.
+**School** (בית הספר) is a self-hosted Progressive Web App (PWA) and native mobile app (iOS & Android) for parents and students to track homework assignments, school incidents, exams and grades, and weekly schedules—synced directly from the Israeli **Webtop** (SmartSchool) portal.
 
 > 🌐 **Bilingual First:** Fully localized in **Hebrew (RTL, default)** and **English (LTR)** with instant language switching.
 
@@ -34,7 +34,8 @@
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend** | **React 19** + **TypeScript 6** + **Vite 7** |
+| **Frontend (Web)** | **React 19** + **TypeScript 6** + **Vite 7** |
+| **Mobile App** | **Expo 58** + **React Native 0.88** + **Reanimated 4** + **Gesture Handler** + **Expo SecureStore** |
 | **UI & Styling** | **Radix UI Primitives** + **Tailwind CSS 3.4** + **Storybook 10** + **Lucide React** |
 | **Localization & Dates** | **i18next** (`he` / `en`) + **`date-fns` v3** |
 | **Backend & Database** | **Express 5** + **Better-SQLite3** (`school.db` in WAL mode) |
@@ -106,6 +107,29 @@ docker compose up -d
 
 ---
 
+### Option C: Mobile App (iOS & Android) 📱
+
+The `mobile/` workspace contains the native **Expo / React Native** app with full feature parity (Homework, Incidents, Exams, Schedule, Settings, Admin, Account, bilingual RTL/LTR, and light/dark themes).
+
+1. **Install mobile dependencies:**
+   ```bash
+   cd mobile && npm install
+   ```
+
+2. **Run on iOS, Android, or Expo Dev Client:**
+   ```bash
+   # From the repository root:
+   npm run mobile:ios       # Build & launch on iOS simulator/device
+   npm run mobile:android   # Build & launch on Android emulator/device
+   npm run mobile:start     # Start Expo dev client bundler
+   npm run mobile:storybook # Start React Native Storybook (port 8082)
+   ```
+
+3. **Connect to your server:**
+   Enter your self-hosted **School** server URL on the mobile login screen (saved securely with `expo-secure-store`).
+
+---
+
 ## ⚙️ Environment Variables
 
 All variables are optional with sensible defaults:
@@ -161,6 +185,11 @@ npm run test:e2e
 
 # 5. Regenerate README mobile screenshots using synthetic mock data (Playwright)
 npm run screenshots
+
+# 6. Mobile Typecheck, Lint & Maestro E2E (local)
+npm run mobile:typecheck
+npm --prefix mobile run lint
+npm run test:maestro
 ```
 
 ---
