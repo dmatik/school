@@ -1,6 +1,17 @@
-import React, { startTransition, useCallback, useEffect, useRef, useState } from 'react';
+import React, {
+  createContext,
+  startTransition,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ComponentRef,
+} from 'react';
 import {
   Animated,
+  Platform,
   View,
   Text,
   TextInput,
@@ -22,7 +33,13 @@ import { useDirection } from '../../i18n';
 import { ModalLayer } from './ModalPortal';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
 import { useScrollHeader } from './MobileHeader';
-import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
+import {
+  AndroidBlurTarget,
+  AndroidBlurTargetProvider,
+  GlassBackdrop,
+  getGlassShadow,
+  type AndroidBlurTargetRef,
+} from './GlassBackdrop';
 import { SlidingPill } from './SlidingPill';
 
 export function FieldLabel({
@@ -727,6 +744,101 @@ export function ColorSwatchPicker({
   );
 }
 
+interface AndroidStickySlot {
+  node: React.ReactNode;
+  naturalY: number | null;
+  relativeToHeader: boolean;
+}
+
+interface AndroidStickyBlurContextValue {
+  setSlot: (slot: AndroidStickySlot | null) => void;
+  barHeight: number;
+}
+
+const AndroidStickyBlurContext = createContext<AndroidStickyBlurContextValue | null>(null);
+
+/**
+ * On Android, wraps a screen's scrollable list in expo-blur's BlurTargetView and
+ * hosts any nested StickyFilterBar as a sibling overlay so LiquidTabs,
+ * LiquidDatePicker, and LiquidButton get real hardware blur as content scrolls
+ * underneath them. On iOS and web, renders children directly with zero overhead.
+ */
+export function AndroidStickyBlurHost({
+  children,
+  blurTargetRef,
+}: {
+  children: React.ReactNode;
+  blurTargetRef?: AndroidBlurTargetRef;
+}) {
+  const internalRef = useRef<ComponentRef<typeof View> | null>(null);
+  const resolvedRef = blurTargetRef ?? internalRef;
+  const { headerHeight, scrollY } = useScrollHeader();
+  const [slot, setSlot] = useState<AndroidStickySlot | null>(null);
+  const [barHeight, setBarHeight] = useState(40);
+
+  const ctxValue = useMemo<AndroidStickyBlurContextValue>(
+    () => ({ setSlot, barHeight }),
+    [barHeight]
+  );
+
+  if (Platform.OS !== 'android') {
+    return <>{children}</>;
+  }
+
+  const stickyTop = headerHeight + 8;
+  const offset =
+    slot?.naturalY !== null && slot?.naturalY !== undefined
+      ? Math.max(0, slot.relativeToHeader ? slot.naturalY : slot.naturalY - stickyTop)
+      : slot?.relativeToHeader
+        ? 52
+        : 0;
+
+  const translateY =
+    offset > 0
+      ? scrollY.interpolate({
+          inputRange: [0, offset],
+          outputRange: [0, -offset],
+          extrapolate: 'clamp',
+        })
+      : 0;
+
+  return (
+    <View style={{ flex: 1 }}>
+      <AndroidStickyBlurContext.Provider value={ctxValue}>
+        <AndroidBlurTarget targetRef={resolvedRef} style={{ flex: 1 }}>
+          {children}
+        </AndroidBlurTarget>
+      </AndroidStickyBlurContext.Provider>
+
+      {slot ? (
+        <AndroidBlurTargetProvider value={resolvedRef}>
+          <Animated.View
+            pointerEvents="box-none"
+            onLayout={(e) => {
+              const h = Math.round(e.nativeEvent.layout.height);
+              if (h > 0 && h !== barHeight) {
+                setBarHeight(h);
+              }
+            }}
+            style={[
+              styles.stickyFilterBar,
+              {
+                position: 'absolute',
+                left: 16,
+                right: 16,
+                top: stickyTop + offset,
+                transform: [{ translateY }],
+              },
+            ]}
+          >
+            {slot.node}
+          </Animated.View>
+        </AndroidBlurTargetProvider>
+      ) : null}
+    </View>
+  );
+}
+
 export function StickyFilterBar({
   children,
   style,
@@ -738,7 +850,39 @@ export function StickyFilterBar({
   relativeToHeader?: boolean;
 }) {
   const { headerHeight, scrollY } = useScrollHeader();
+  const androidHost = useContext(AndroidStickyBlurContext);
   const [naturalY, setNaturalY] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !androidHost) return;
+    androidHost.setSlot({
+      node: children,
+      naturalY,
+      relativeToHeader,
+    });
+  }, [androidHost, children, naturalY, relativeToHeader]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'android' || !androidHost) return;
+    return () => {
+      androidHost.setSlot(null);
+    };
+  }, [androidHost]);
+
+  if (Platform.OS === 'android' && androidHost) {
+    return (
+      <View
+        pointerEvents="none"
+        onLayout={(e) => {
+          const y = e.nativeEvent.layout.y;
+          if (y !== naturalY) {
+            setNaturalY(y);
+          }
+        }}
+        style={[style, { height: androidHost.barHeight }]}
+      />
+    );
+  }
 
   const stickyTop = headerHeight + 8;
   const threshold =

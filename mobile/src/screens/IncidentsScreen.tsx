@@ -13,7 +13,7 @@ import { useTheme } from '../theme/ThemeContext';
 import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import { formatDateSectionHeader } from '../lib/dateUtils';
-import { LiquidTabs, SearchInput, StickyFilterBar } from '../components/ui/FormFields';
+import { AndroidStickyBlurHost, LiquidTabs, SearchInput, StickyFilterBar } from '../components/ui/FormFields';
 import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { IncidentCard } from '../components/ui/Cards';
@@ -186,37 +186,39 @@ export function IncidentsScreen({
   );
 
   return (
-    <Animated.SectionList
-      ref={scrollRef as any}
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-      showsVerticalScrollIndicator={false}
-      stickySectionHeadersEnabled={false}
-      sections={loading ? [] : sections}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={listHeader}
-      ListHeaderComponentStyle={styles.listHeaderContainer}
-      ListEmptyComponent={listEmpty}
-      renderSectionHeader={({ section }) => (
-        <View style={styles.sectionHeaderWrap}>
-          <SectionDateHeader
-            title={formatDateSectionHeader(section.title, i18n.language, t)}
-          />
-        </View>
-      )}
-      renderItem={({ item: inc }) => (
-        <View style={styles.cardWrap}>
-          <IncidentCard
-            item={inc}
-            childColor={getChildColor(inc.childId || inc.studentId)}
-            showChildBadge={!isChild}
-          />
-        </View>
-      )}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...pullToRefreshProps}
-    />
+    <AndroidStickyBlurHost>
+      <Animated.SectionList
+        ref={scrollRef as any}
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        sections={loading ? [] : sections}
+        keyExtractor={(item) => item.id}
+        ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={styles.listHeaderContainer}
+        ListEmptyComponent={listEmpty}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeaderWrap}>
+            <SectionDateHeader
+              title={formatDateSectionHeader(section.title, i18n.language, t)}
+            />
+          </View>
+        )}
+        renderItem={({ item: inc }) => (
+          <View style={styles.cardWrap}>
+            <IncidentCard
+              item={inc}
+              childColor={getChildColor(inc.childId || inc.studentId)}
+              showChildBadge={!isChild}
+            />
+          </View>
+        )}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        {...pullToRefreshProps}
+      />
+    </AndroidStickyBlurHost>
   );
 }
 

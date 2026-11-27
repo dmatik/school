@@ -14,7 +14,7 @@ import { useDirection } from '../i18n';
 import { apiFetch } from '../lib/api';
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { getHomeworkText, consolidateHomework } from '../lib/homeworkUtils';
-import { LiquidTabs, SearchInput, StickyFilterBar } from '../components/ui/FormFields';
+import { AndroidStickyBlurHost, LiquidTabs, SearchInput, StickyFilterBar } from '../components/ui/FormFields';
 import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
 import { Button } from '../components/ui/Buttons';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
@@ -228,37 +228,39 @@ export function HomeworkScreen({
   );
 
   return (
-    <Animated.SectionList
-      ref={scrollRef as any}
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-      showsVerticalScrollIndicator={false}
-      stickySectionHeadersEnabled={false}
-      sections={loading ? [] : sections}
-      keyExtractor={(item) => item.ids.join('-')}
-      ListHeaderComponent={listHeader}
-      ListHeaderComponentStyle={styles.listHeaderContainer}
-      ListEmptyComponent={listEmpty}
-      renderSectionHeader={({ section }) => (
-        <View style={styles.sectionHeaderWrap}>
-          <SectionDateHeader
-            title={formatDateSectionHeader(section.title, i18n.language, t)}
-          />
-        </View>
-      )}
-      renderItem={({ item: hw }) => (
-        <View style={styles.cardWrap}>
-          <HomeworkCard
-            item={hw}
-            childColor={getChildColor(hw.childId || hw.studentId)}
-            showChildBadge={!isChild}
-          />
-        </View>
-      )}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...pullToRefreshProps}
-    />
+    <AndroidStickyBlurHost>
+      <Animated.SectionList
+        ref={scrollRef as any}
+        style={styles.container}
+        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
+        showsVerticalScrollIndicator={false}
+        stickySectionHeadersEnabled={false}
+        sections={loading ? [] : sections}
+        keyExtractor={(item) => item.ids.join('-')}
+        ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={styles.listHeaderContainer}
+        ListEmptyComponent={listEmpty}
+        renderSectionHeader={({ section }) => (
+          <View style={styles.sectionHeaderWrap}>
+            <SectionDateHeader
+              title={formatDateSectionHeader(section.title, i18n.language, t)}
+            />
+          </View>
+        )}
+        renderItem={({ item: hw }) => (
+          <View style={styles.cardWrap}>
+            <HomeworkCard
+              item={hw}
+              childColor={getChildColor(hw.childId || hw.studentId)}
+              showChildBadge={!isChild}
+            />
+          </View>
+        )}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        {...pullToRefreshProps}
+      />
+    </AndroidStickyBlurHost>
   );
 }
 

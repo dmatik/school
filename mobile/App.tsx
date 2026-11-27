@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import { BackHandler, View, Image, StyleSheet, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
@@ -30,6 +30,7 @@ import {
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
 import { LiquidDock, type DockTabItem } from './src/components/ui/LiquidDock';
+import { AndroidBlurTarget, AndroidBlurTargetProvider } from './src/components/ui/GlassBackdrop';
 import { ModalPortalProvider } from './src/components/ui/ModalPortal';
 import { LoginScreen } from './src/screens/LoginScreen';
 import { HomeworkScreen } from './src/screens/HomeworkScreen';
@@ -54,6 +55,7 @@ function AppShell() {
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { resetScroll, switchTabScroll } = useScrollHeader();
+  const contentBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
   const [booting, setBooting] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -302,7 +304,7 @@ function AppShell() {
         syncSuccess={syncSuccess}
       />
 
-      <View style={styles.content}>
+      <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
         {visitedTabs.has('homework') && (
           <View
             pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
@@ -385,13 +387,15 @@ function AppShell() {
             />
           </View>
         )}
-      </View>
+      </AndroidBlurTarget>
 
-      <LiquidDock
-        items={dockItems}
-        activeId={activeTab}
-        onSelect={(id) => selectTab(id as AppTab)}
-      />
+      <AndroidBlurTargetProvider value={contentBlurTargetRef}>
+        <LiquidDock
+          items={dockItems}
+          activeId={activeTab}
+          onSelect={(id) => selectTab(id as AppTab)}
+        />
+      </AndroidBlurTargetProvider>
     </View>
   );
 }

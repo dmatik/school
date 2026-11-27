@@ -10,8 +10,32 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
 const args = process.argv.slice(2);
-const isAndroid = args.includes('--android');
+const hasAndroidFlag = args.includes('--android');
+const hasIosFlag = args.includes('--ios');
 const flowArgs = args.filter((a) => !['--android', '--ios', '--release', '--dev', '--dev-client', '--skip-build'].includes(a));
+
+function hasBootedIosSimulator() {
+  const res = spawnSync('xcrun', ['simctl', 'list', 'devices', 'booted'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  return res.status === 0 && (res.stdout || '').includes('(Booted)');
+}
+
+function hasOnlineAndroidDevice() {
+  const res = spawnSync('adb', ['devices'], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  });
+  if (res.status !== 0) return false;
+  return (res.stdout || '')
+    .split(/\r?\n/)
+    .some((line) => /\tdevice\s*$/.test(line));
+}
+
+const autoDetectedAndroid =
+  !hasAndroidFlag && !hasIosFlag && !hasBootedIosSimulator() && hasOnlineAndroidDevice();
+const isAndroid = hasAndroidFlag || autoDetectedAndroid;
 
 const TEST_PORT = Number(process.env.MAESTRO_SERVER_PORT || 3002);
 const DEFAULT_SERVER_URL = isAndroid
@@ -19,6 +43,10 @@ const DEFAULT_SERVER_URL = isAndroid
   : `http://localhost:${TEST_PORT}`;
 const SERVER_URL = process.env.MAESTRO_SERVER_URL || DEFAULT_SERVER_URL;
 const HEALTH_URL = `http://127.0.0.1:${TEST_PORT}/api/health`;
+
+if (autoDetectedAndroid && !process.env.MAESTRO_SERVER_URL) {
+  console.log(`[maestro] Auto-detected running Android device/emulator — using ${SERVER_URL}`);
+}
 
 function resolveMaestroBin() {
   const candidates = [
