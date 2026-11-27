@@ -64,8 +64,8 @@ export function AccountScreen({
   onLogout: () => void;
 }) {
   const { t } = useTranslation();
-  const { palette, isDark } = useTheme();
-  const { flexRow, textAlign } = useDirection();
+  const { palette } = useTheme();
+  const { flexRow } = useDirection();
   const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, scrollRef } = useScrollHeader('account');
 

@@ -53,16 +53,6 @@ const multiChildConfig: WebtopConfig = {
   ],
 };
 
-const emptyChildrenConfig: WebtopConfig = {
-  configured: false,
-  username: '',
-  selectedChildId: null,
-  lastSyncedAt: null,
-  syncStatus: 'idle',
-  syncError: null,
-  linkedChildren: [],
-};
-
 const sampleScheduleC1 = {
   lessons: [
     {

@@ -17,7 +17,6 @@ import {
   TextInput,
   Pressable,
   Switch,
-  Modal,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -956,7 +955,6 @@ export function LiquidTabs({
   onChange: (val: string) => void;
   testID?: string;
 }) {
-  const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { isRTL, flexRow } = useDirection();
 
