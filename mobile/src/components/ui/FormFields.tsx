@@ -30,6 +30,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { ModalLayer } from './ModalPortal';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
 import { useScrollHeader } from './MobileHeader';
@@ -849,6 +850,7 @@ export function StickyFilterBar({
   /** Set true when rendered inside a FlatList/SectionList ListHeaderComponent whose top already sits at headerHeight + 8. */
   relativeToHeader?: boolean;
 }) {
+  const { isDesktop } = useResponsiveLayout();
   const { headerHeight, scrollY } = useScrollHeader();
   const androidHost = useContext(AndroidStickyBlurContext);
   const [naturalY, setNaturalY] = useState<number | null>(null);
@@ -868,6 +870,24 @@ export function StickyFilterBar({
       androidHost.setSlot(null);
     };
   }, [androidHost]);
+
+  if (Platform.OS === 'web') {
+    return (
+      <View
+        style={[
+          styles.stickyFilterBar,
+          {
+            position: 'sticky' as unknown as 'relative',
+            top: isDesktop ? 2 : headerHeight + 8,
+            zIndex: 20,
+          },
+          style,
+        ]}
+      >
+        {children}
+      </View>
+    );
+  }
 
   if (Platform.OS === 'android' && androidHost) {
     return (

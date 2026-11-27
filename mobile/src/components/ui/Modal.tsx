@@ -168,7 +168,7 @@ export function Modal({
             Animated.timing(dragY, {
               toValue: 400,
               duration: 180,
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
             }).start(() => {
               dragY.setValue(0);
               onClose();
@@ -176,7 +176,7 @@ export function Modal({
           } else {
             Animated.spring(dragY, {
               toValue: 0,
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== 'web',
               bounciness: 6,
             }).start();
           }
@@ -184,7 +184,7 @@ export function Modal({
         onPanResponderTerminate: () => {
           Animated.spring(dragY, {
             toValue: 0,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== 'web',
           }).start();
         },
       }),

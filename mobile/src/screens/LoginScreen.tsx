@@ -14,6 +14,8 @@ import { useTheme } from '../theme/ThemeContext';
 import { heeboFont } from '../theme/typography';
 import { useDirection } from '../i18n';
 import {
+  IS_COHOSTED_WEB,
+  getDefaultWebBaseUrl,
   normalizeServerUrl,
   verifyServerConnection,
   persistSession,
@@ -46,7 +48,9 @@ export function LoginScreen({
   const { palette } = useTheme();
   const { flexRow } = useDirection();
 
-  const [serverUrl, setServerUrl] = useState(getActiveServerUrl() || '');
+  const [serverUrl, setServerUrl] = useState(
+    IS_COHOSTED_WEB ? getDefaultWebBaseUrl() : getActiveServerUrl() || ''
+  );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -57,6 +61,7 @@ export function LoginScreen({
   const [showPasskeyPicker, setShowPasskeyPicker] = useState(false);
 
   useEffect(() => {
+    if (IS_COHOSTED_WEB) return;
     let active = true;
     mobileStorage.getServerUrl().then((saved) => {
       if (active && saved) {
@@ -82,18 +87,22 @@ export function LoginScreen({
     setError(null);
 
     let normalizedUrl: string;
-    try {
-      normalizedUrl = normalizeServerUrl(serverUrl);
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      if (code === 'SERVER_URL_REQUIRED') {
-        setError(t('auth.server_url_required'));
-      } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
-        setError(t('auth.server_url_https_required'));
-      } else {
-        setError(t('auth.server_url_invalid'));
+    if (IS_COHOSTED_WEB) {
+      normalizedUrl = getDefaultWebBaseUrl();
+    } else {
+      try {
+        normalizedUrl = normalizeServerUrl(serverUrl);
+      } catch (err) {
+        const code = err instanceof Error ? err.message : '';
+        if (code === 'SERVER_URL_REQUIRED') {
+          setError(t('auth.server_url_required'));
+        } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
+          setError(t('auth.server_url_https_required'));
+        } else {
+          setError(t('auth.server_url_invalid'));
+        }
+        return;
       }
-      return;
     }
 
     if (!username.trim() || !password) {
@@ -169,30 +178,35 @@ export function LoginScreen({
     setError(null);
 
     let normalizedUrl: string;
-    try {
-      normalizedUrl = normalizeServerUrl(serverUrl);
-    } catch (err) {
-      const code = err instanceof Error ? err.message : '';
-      if (code === 'SERVER_URL_REQUIRED') {
-        setError(t('auth.server_url_required'));
-      } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
-        setError(t('auth.server_url_https_required'));
-      } else {
-        setError(t('auth.server_url_invalid'));
+    if (IS_COHOSTED_WEB) {
+      normalizedUrl = getDefaultWebBaseUrl();
+    } else {
+      try {
+        normalizedUrl = normalizeServerUrl(serverUrl);
+      } catch (err) {
+        const code = err instanceof Error ? err.message : '';
+        if (code === 'SERVER_URL_REQUIRED') {
+          setError(t('auth.server_url_required'));
+        } else if (code === 'SERVER_URL_HTTPS_REQUIRED') {
+          setError(t('auth.server_url_https_required'));
+        } else {
+          setError(t('auth.server_url_invalid'));
+        }
+        return;
       }
-      return;
+
+      const typedUsername = username.trim();
+      if (!typedUsername) {
+        const accounts = await getSavedPasskeyAccounts(normalizedUrl);
+        if (accounts.length > 1) {
+          setPasskeyAccounts(accounts);
+          setShowPasskeyPicker(true);
+          return;
+        }
+      }
     }
 
     const typedUsername = username.trim();
-    if (!typedUsername) {
-      const accounts = await getSavedPasskeyAccounts(normalizedUrl);
-      if (accounts.length > 1) {
-        setPasskeyAccounts(accounts);
-        setShowPasskeyPicker(true);
-        return;
-      }
-    }
-
     await executePasskeyLogin(normalizedUrl, typedUsername || undefined);
   };
 
@@ -254,21 +268,23 @@ export function LoginScreen({
               />
             ) : null}
 
-            <View style={styles.fieldGroup}>
-              <FieldLabel label={t('auth.server_url')} />
-              <IconInput
-                testID="server-url-input"
-                icon={Globe}
-                forceLtr
-                value={serverUrl}
-                onChangeText={setServerUrl}
-                placeholder={t('auth.server_url_placeholder')}
-                autoCapitalize="none"
-                autoCorrect={false}
-                keyboardType="url"
-                editable={!loading && !passkeyLoading}
-              />
-            </View>
+            {!IS_COHOSTED_WEB ? (
+              <View style={styles.fieldGroup}>
+                <FieldLabel label={t('auth.server_url')} />
+                <IconInput
+                  testID="server-url-input"
+                  icon={Globe}
+                  forceLtr
+                  value={serverUrl}
+                  onChangeText={setServerUrl}
+                  placeholder={t('auth.server_url_placeholder')}
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  keyboardType="url"
+                  editable={!loading && !passkeyLoading}
+                />
+              </View>
+            ) : null}
 
             <View style={styles.fieldGroup}>
               <FieldLabel label={t('auth.username')} />
@@ -281,6 +297,7 @@ export function LoginScreen({
                 placeholder={t('auth.username_placeholder')}
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="next"
                 editable={!loading && !passkeyLoading}
               />
             </View>
@@ -296,6 +313,8 @@ export function LoginScreen({
                 placeholder="••••••••"
                 secureTextEntry
                 autoCapitalize="none"
+                returnKeyType="go"
+                onSubmitEditing={handleSubmit}
                 editable={!loading && !passkeyLoading}
               />
             </View>
@@ -406,6 +425,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   card: {
+    width: '100%',
+    maxWidth: 448,
+    alignSelf: 'center',
     borderRadius: 20,
     borderWidth: 1,
     padding: 20,

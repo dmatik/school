@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
 import {
   Animated,
+  Platform,
+  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -31,6 +33,8 @@ import { Button, FloatingActionButton, useFabScrollPadding } from '../components
 import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { ExamItem, WebtopConfig, User } from '../../../src/types';
 
 export function ExamsScreen({
@@ -43,6 +47,7 @@ export function ExamsScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('exams');
   const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const isChild = currentUser.familyRole === 'child';
@@ -302,44 +307,130 @@ export function ExamsScreen({
     />
   );
 
+  const scrollContentStyle = [
+    styles.content,
+    isDesktop
+      ? {
+          maxWidth: pageMaxWidth,
+          width: '100%' as const,
+          alignSelf: 'center' as const,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: bottomPadding,
+        }
+      : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
+  ];
+
+  const renderExamSectionHeader = (title: string) =>
+    title !== 'no-date' ? (
+      <View style={{ marginTop: 8, marginBottom: 4 }}>
+        <SectionDateHeader
+          title={formatDateSectionHeader(title, i18n.language, t)}
+        />
+      </View>
+    ) : null;
+
+  const renderExamItem = (ex: ExamItem) => (
+    <View key={ex.id} style={{ marginBottom: 10 }}>
+      <ExamCard
+        exam={ex}
+        childColor={getChildColor(ex.childId)}
+        showChildBadge={!isChild}
+        canEdit={isParent}
+        onEdit={() => openEditModal(ex)}
+      />
+    </View>
+  );
+
   return (
     <View style={{ flex: 1 }}>
+      <PageHeader title={t('exams.title')} />
       <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
-        <Animated.SectionList
-          ref={scrollRef as any}
-          style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
-          showsVerticalScrollIndicator={false}
-          stickySectionHeadersEnabled={false}
-          sections={loading ? [] : sections}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={listHeader}
-          ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
-          ListEmptyComponent={listEmpty}
-          renderSectionHeader={({ section }) =>
-            section.title !== 'no-date' ? (
-              <View style={{ marginTop: 8, marginBottom: 4 }}>
-                <SectionDateHeader
-                  title={formatDateSectionHeader(section.title, i18n.language, t)}
-                />
-              </View>
-            ) : null
-          }
-          renderItem={({ item: ex }) => (
-            <View style={{ marginBottom: 10 }}>
-              <ExamCard
-                exam={ex}
-                childColor={getChildColor(ex.childId)}
-                showChildBadge={!isChild}
-                canEdit={isParent}
-                onEdit={() => openEditModal(ex)}
+        {Platform.OS === 'web' ? (
+          <ScrollView
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={{ gap: 12, marginBottom: 12 }}>
+              {isChild && !currentUser.linkedChildId ? (
+                <NoticeBanner variant="warning" description={t('exams.child_unlinked_desc')} />
+              ) : null}
+
+              <SearchInput
+                testID="exams-search-input"
+                value={search}
+                onChangeText={setSearch}
+                placeholder={t('exams.search_placeholder')}
               />
             </View>
-          )}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          {...pullToRefreshProps}
-        />
+
+            <StickyFilterBar style={{ marginBottom: 12 }}>
+              <View
+                style={[
+                  styles.filterRow,
+                  {
+                    flexDirection: flexRow,
+                    justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+                  },
+                ]}
+              >
+                {hasChildFilter && (
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <LiquidTabs
+                      tabs={[
+                        { label: t('exams.all_short'), value: 'all' },
+                        ...(config?.linkedChildren || []).map((c) => ({
+                          label: c.firstName,
+                          value: c.id,
+                        })),
+                      ]}
+                      value={selectedChildId}
+                      onChange={setSelectedChildId}
+                    />
+                  </View>
+                )}
+
+                <LiquidTabs
+                  tabs={[
+                    { label: t('exams.period_future'), value: 'future' },
+                    { label: t('exams.period_past'), value: 'past' },
+                  ]}
+                  value={period}
+                  onChange={(v) => setPeriod(v as 'future' | 'past')}
+                />
+              </View>
+            </StickyFilterBar>
+
+            {loading || sections.length === 0
+              ? listEmpty
+              : sections.map((section) => (
+                  <React.Fragment key={section.title}>
+                    {renderExamSectionHeader(section.title)}
+                    {section.data.map(renderExamItem)}
+                  </React.Fragment>
+                ))}
+          </ScrollView>
+        ) : (
+          <Animated.SectionList
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+            sections={loading ? [] : sections}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={listHeader}
+            ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
+            ListEmptyComponent={listEmpty}
+            renderSectionHeader={({ section }) => renderExamSectionHeader(section.title)}
+            renderItem={({ item: ex }) => renderExamItem(ex)}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            {...pullToRefreshProps}
+          />
+        )}
       </AndroidStickyBlurHost>
 
       {isParent && (
@@ -475,7 +566,6 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 16,
     paddingBottom: 110,
-    gap: 12,
   },
   filterRow: {
     alignItems: 'center',

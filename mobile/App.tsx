@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
-import { BackHandler, View, Image, StyleSheet, useColorScheme } from 'react-native';
+import { BackHandler, Platform, View, Image, StyleSheet, useColorScheme } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useFonts } from 'expo-font';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -13,10 +13,12 @@ import {
 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import './src/i18n';
-import { hydrateLanguage } from './src/i18n';
+import { hydrateLanguage, useDirection } from './src/i18n';
 import { ThemeProvider, useTheme } from './src/theme/ThemeContext';
 import { HEEBO_FONTS } from './src/theme/typography';
+import { useResponsiveLayout } from './src/hooks/useResponsiveLayout';
 import {
+  IS_COHOSTED_WEB,
   apiFetch,
   clearAuthOnly,
   hydrateSession,
@@ -29,6 +31,7 @@ import {
   ScrollHeaderProvider,
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
+import { AppSidebar, type SidebarNavItem } from './src/components/ui/AppSidebar';
 import { LiquidDock, type DockTabItem } from './src/components/ui/LiquidDock';
 import { AndroidBlurTarget, AndroidBlurTargetProvider } from './src/components/ui/GlassBackdrop';
 import { ModalPortalProvider } from './src/components/ui/ModalPortal';
@@ -52,8 +55,10 @@ type AppTab =
   | 'account';
 
 function AppShell() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { palette, isDark } = useTheme();
+  const { flexRow } = useDirection();
+  const { isDesktop } = useResponsiveLayout();
   const { resetScroll, switchTabScroll } = useScrollHeader();
   const contentBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
@@ -101,11 +106,17 @@ function AppShell() {
   }, [currentUser?.id, resetScroll]);
 
   useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      document.title = t('common.app_title');
+    }
+  }, [t, i18n.language]);
+
+  useEffect(() => {
     let cancelled = false;
     (async () => {
       await hydrateLanguage();
       const { serverUrl, token } = await hydrateSession();
-      if (!serverUrl || !token) {
+      if ((!IS_COHOSTED_WEB && !serverUrl) || !token) {
         if (!cancelled) setBooting(false);
         return;
       }
@@ -250,6 +261,20 @@ function AppShell() {
     return base;
   }, [t, currentUser?.role]);
 
+  const sidebarItems: SidebarNavItem[] = useMemo(() => {
+    const base: SidebarNavItem[] = [
+      { id: 'homework', label: t('common.homework'), icon: BookOpen },
+      { id: 'incidents', label: t('common.incidents'), icon: AlertCircle },
+      { id: 'exams', label: t('common.exams'), icon: FileCheck },
+      { id: 'schedule', label: t('common.schedule'), icon: CalendarDays },
+      { id: 'settings', label: t('common.settings'), icon: SettingsIcon },
+    ];
+    if (currentUser?.role === 'admin') {
+      base.push({ id: 'admin', label: t('common.admin'), icon: Shield });
+    }
+    return base;
+  }, [t, currentUser?.role]);
+
   const headerTitle = useMemo(() => {
     switch (activeTab) {
       case 'homework':
@@ -291,18 +316,40 @@ function AppShell() {
   }
 
   return (
-    <View style={[styles.shell, { backgroundColor: palette.background }]}>
+    <View
+      style={[
+        styles.shell,
+        {
+          backgroundColor: palette.background,
+          flexDirection: isDesktop ? flexRow : 'column',
+        },
+      ]}
+    >
       <StatusBar style={isDark ? 'light' : 'dark'} />
-      <MobileHeader
-        title={headerTitle}
-        user={currentUser}
-        lastSyncedAt={lastSyncedAt}
-        isAccountActive={activeTab === 'account'}
-        onPressAccount={() => selectTab('account')}
-        onPressSync={handleGlobalSync}
-        syncing={syncing}
-        syncSuccess={syncSuccess}
-      />
+      {isDesktop ? (
+        <AppSidebar
+          currentUser={currentUser}
+          activeTab={activeTab}
+          onSelectTab={(id) => selectTab(id as AppTab)}
+          onPressAccount={() => selectTab('account')}
+          navItems={sidebarItems}
+          onPressSync={handleGlobalSync}
+          syncing={syncing}
+          syncSuccess={syncSuccess}
+          lastSyncedAt={webtopState.configured ? lastSyncedAt : null}
+        />
+      ) : (
+        <MobileHeader
+          title={headerTitle}
+          user={currentUser}
+          lastSyncedAt={lastSyncedAt}
+          isAccountActive={activeTab === 'account'}
+          onPressAccount={() => selectTab('account')}
+          onPressSync={handleGlobalSync}
+          syncing={syncing}
+          syncSuccess={syncSuccess}
+        />
+      )}
 
       <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
         {visitedTabs.has('homework') && (
@@ -389,13 +436,15 @@ function AppShell() {
         )}
       </AndroidBlurTarget>
 
-      <AndroidBlurTargetProvider value={contentBlurTargetRef}>
-        <LiquidDock
-          items={dockItems}
-          activeId={activeTab}
-          onSelect={(id) => selectTab(id as AppTab)}
-        />
-      </AndroidBlurTargetProvider>
+      {!isDesktop ? (
+        <AndroidBlurTargetProvider value={contentBlurTargetRef}>
+          <LiquidDock
+            items={dockItems}
+            activeId={activeTab}
+            onSelect={(id) => selectTab(id as AppTab)}
+          />
+        </AndroidBlurTargetProvider>
+      ) : null}
     </View>
   );
 }

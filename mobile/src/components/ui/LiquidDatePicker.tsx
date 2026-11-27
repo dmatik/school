@@ -479,6 +479,9 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   calendarCard: {
+    width: '100%',
+    maxWidth: 380,
+    alignSelf: 'center',
     borderRadius: 20,
     borderWidth: 1,
     padding: 16,

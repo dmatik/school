@@ -27,6 +27,8 @@ import { Button, FloatingActionButton, LiquidButton, useFabScrollPadding } from 
 import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
   ScheduleLesson,
   ScheduleFinishTime,
@@ -46,6 +48,7 @@ export function ScheduleScreen({
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('schedule');
   const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const { flexRow, isRTL } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -300,11 +303,24 @@ export function ScheduleScreen({
 
   return (
     <View style={{ flex: 1 }}>
+      <PageHeader title={t('schedule.title')} />
       <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
         <Animated.ScrollView
           ref={scrollRef}
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
+          contentContainerStyle={[
+            styles.content,
+            isDesktop
+              ? {
+                  maxWidth: pageMaxWidth,
+                  width: '100%',
+                  alignSelf: 'center',
+                  paddingHorizontal: 24,
+                  paddingTop: 12,
+                  paddingBottom: bottomPadding,
+                }
+              : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
+          ]}
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
           scrollEventThrottle={16}

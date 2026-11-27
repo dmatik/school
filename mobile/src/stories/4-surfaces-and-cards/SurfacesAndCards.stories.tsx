@@ -11,6 +11,7 @@ import {
   NoticeBanner,
   SectionDateHeader,
 } from '../../components/ui/Surfaces';
+import { PageHeader } from '../../components/ui/PageHeader';
 import { StatusBadge } from '../../components/ui/Badges';
 import {
   CounterField,
@@ -315,4 +316,13 @@ export const ModalsShowcase: StoryObj = {
       </View>
     );
   },
+};
+
+export const DesktopPageHeader: StoryObj = {
+  render: () => (
+    <PageHeader
+      title="שיעורי בית"
+      description="מעקב משימות יומיות"
+    />
+  ),
 };

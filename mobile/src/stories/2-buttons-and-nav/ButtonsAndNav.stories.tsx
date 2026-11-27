@@ -26,6 +26,7 @@ import { LiquidTabs, StickyFilterBar } from '../../components/ui/FormFields';
 import { LiquidDatePicker } from '../../components/ui/LiquidDatePicker';
 import { LiquidDock } from '../../components/ui/LiquidDock';
 import { MobileHeader } from '../../components/ui/MobileHeader';
+import { AppSidebar } from '../../components/ui/AppSidebar';
 import { SlidingPill } from '../../components/ui/SlidingPill';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -174,6 +175,40 @@ export const SlidingPillDemo: StoryObj = {
           <Button label="Short (0, 72)" onPress={() => setPos({ x: 0, width: 72 })} />
           <Button label="Wide (80, 140)" onPress={() => setPos({ x: 80, width: 140 })} />
         </View>
+      </View>
+    );
+  },
+};
+
+export const DesktopSidebar: StoryObj = {
+  render: () => {
+    const [active, setActive] = useState('homework');
+    return (
+      <View style={{ height: 520, flexDirection: 'row' }}>
+        <AppSidebar
+          currentUser={{
+            id: 'u-1',
+            username: 'parent1',
+            firstName: 'דוד',
+            lastName: 'כהן',
+            role: 'admin',
+            familyRole: 'parent',
+            linkedChildId: null,
+          }}
+          activeTab={active}
+          onSelectTab={setActive}
+          onPressAccount={() => setActive('account')}
+          onPressSync={() => {}}
+          lastSyncedAt={new Date().toISOString()}
+          navItems={[
+            { id: 'homework', label: 'שיעורי בית', icon: BookOpen },
+            { id: 'incidents', label: 'אירועים', icon: AlertCircle },
+            { id: 'exams', label: 'מבחנים', icon: FileCheck },
+            { id: 'schedule', label: 'מערכת שעות', icon: CalendarDays },
+            { id: 'settings', label: 'הגדרות', icon: Settings },
+            { id: 'admin', label: 'ניהול', icon: Shield },
+          ]}
+        />
       </View>
     );
   },

@@ -67,8 +67,9 @@ export function ScheduleTable({
     return 0;
   }, [currentDay]);
 
+  const isWideTable = tableWidth >= 600;
   const dayViewportWidth = Math.max(tableWidth - 2 - HOUR_COL_WIDTH, 210);
-  const dayColWidth = dayViewportWidth / 3;
+  const dayColWidth = dayViewportWidth / (isWideTable ? 6 : 3);
 
   // Match Web hours calculation:
   // Edit mode: 1 empty row below highest populated lesson (min 1, max 12)
@@ -124,13 +125,18 @@ export function ScheduleTable({
 
   const performAutoScroll = (animated: boolean) => {
     if (!scrollRef.current || dayColWidth <= 0) return;
-    const targetX = getScrollXForDay(initialTargetDay);
+    const targetX = isWideTable ? 0 : getScrollXForDay(initialTargetDay);
     scrollRef.current.scrollTo({ x: targetX, animated });
     scrollOffsetRef.current = targetX;
   };
 
   useEffect(() => {
     if (dayColWidth <= 0) return;
+    if (isWideTable) {
+      scrollRef.current?.scrollTo({ x: 0, animated: false });
+      scrollOffsetRef.current = 0;
+      return;
+    }
     if (lastAutoScrollKeyRef.current === autoScrollKey) return;
 
     const rafId = requestAnimationFrame(() => {
@@ -155,45 +161,47 @@ export function ScheduleTable({
 
   return (
     <View style={styles.wrapper}>
-      {/* Scroll hint bar matching Web mobile controls */}
-      <View style={[styles.scrollHintBar, { flexDirection: flexRow }]}>
-        <Pressable
-          accessibilityLabel={t('schedule.scroll_backward')}
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => handleScrollStep('backward')}
-          style={({ pressed }) => [styles.scrollHintBtn, pressed && { opacity: 0.6 }]}
-        >
-          {isRTL ? (
-            <ChevronRight size={16} color={palette.mutedForeground} />
-          ) : (
-            <ChevronLeft size={16} color={palette.mutedForeground} />
-          )}
-        </Pressable>
+      {/* Scroll hint bar matching Web mobile controls (hidden on wide 6-day desktop view) */}
+      {!isWideTable ? (
+        <View style={[styles.scrollHintBar, { flexDirection: flexRow }]}>
+          <Pressable
+            accessibilityLabel={t('schedule.scroll_backward')}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => handleScrollStep('backward')}
+            style={({ pressed }) => [styles.scrollHintBtn, pressed && { opacity: 0.6 }]}
+          >
+            {isRTL ? (
+              <ChevronRight size={16} color={palette.mutedForeground} />
+            ) : (
+              <ChevronLeft size={16} color={palette.mutedForeground} />
+            )}
+          </Pressable>
 
-        <Text
-          style={[
-            heeboFont('500'),
-            { fontSize: 12, color: palette.mutedForeground, opacity: 0.8 },
-          ]}
-        >
-          {t('schedule.days.day_0')} – {t('schedule.days.day_5')}
-        </Text>
+          <Text
+            style={[
+              heeboFont('500'),
+              { fontSize: 12, color: palette.mutedForeground, opacity: 0.8 },
+            ]}
+          >
+            {t('schedule.days.day_0')} – {t('schedule.days.day_5')}
+          </Text>
 
-        <Pressable
-          accessibilityLabel={t('schedule.scroll_forward')}
-          accessibilityRole="button"
-          hitSlop={8}
-          onPress={() => handleScrollStep('forward')}
-          style={({ pressed }) => [styles.scrollHintBtn, pressed && { opacity: 0.6 }]}
-        >
-          {isRTL ? (
-            <ChevronLeft size={16} color={palette.mutedForeground} />
-          ) : (
-            <ChevronRight size={16} color={palette.mutedForeground} />
-          )}
-        </Pressable>
-      </View>
+          <Pressable
+            accessibilityLabel={t('schedule.scroll_forward')}
+            accessibilityRole="button"
+            hitSlop={8}
+            onPress={() => handleScrollStep('forward')}
+            style={({ pressed }) => [styles.scrollHintBtn, pressed && { opacity: 0.6 }]}
+          >
+            {isRTL ? (
+              <ChevronLeft size={16} color={palette.mutedForeground} />
+            ) : (
+              <ChevronRight size={16} color={palette.mutedForeground} />
+            )}
+          </Pressable>
+        </View>
+      ) : null}
 
       {/* Unified Schedule Table Container */}
       <View
@@ -273,6 +281,7 @@ export function ScheduleTable({
         <ScrollView
           ref={scrollRef}
           horizontal
+          scrollEnabled={!isWideTable}
           bounces={false}
           alwaysBounceHorizontal={false}
           overScrollMode="never"

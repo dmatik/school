@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
+  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -18,6 +20,8 @@ import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { IncidentCard } from '../components/ui/Cards';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { Incident, WebtopConfig, User } from '../../../src/types';
 
 export function IncidentsScreen({
@@ -30,6 +34,7 @@ export function IncidentsScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('incidents');
   const isChild = currentUser.familyRole === 'child';
 
@@ -185,40 +190,121 @@ export function IncidentsScreen({
     />
   );
 
-  return (
-    <AndroidStickyBlurHost>
-      <Animated.SectionList
-        ref={scrollRef as any}
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        sections={loading ? [] : sections}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={styles.listHeaderContainer}
-        ListEmptyComponent={listEmpty}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeaderWrap}>
-            <SectionDateHeader
-              title={formatDateSectionHeader(section.title, i18n.language, t)}
-            />
-          </View>
-        )}
-        renderItem={({ item: inc }) => (
-          <View style={styles.cardWrap}>
-            <IncidentCard
-              item={inc}
-              childColor={getChildColor(inc.childId || inc.studentId)}
-              showChildBadge={!isChild}
-            />
-          </View>
-        )}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
+  const scrollContentStyle = [
+    styles.content,
+    isDesktop
+      ? {
+          maxWidth: pageMaxWidth,
+          width: '100%' as const,
+          alignSelf: 'center' as const,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 24,
+        }
+      : { paddingTop: headerHeight + 8 },
+  ];
+
+  const renderSectionHeader = (title: string) => (
+    <View style={styles.sectionHeaderWrap}>
+      <SectionDateHeader
+        title={formatDateSectionHeader(title, i18n.language, t)}
       />
-    </AndroidStickyBlurHost>
+    </View>
+  );
+
+  const renderIncidentItem = (inc: Incident) => (
+    <View key={inc.id} style={styles.cardWrap}>
+      <IncidentCard
+        item={inc}
+        childColor={getChildColor(inc.childId || inc.studentId)}
+        showChildBadge={!isChild}
+      />
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <PageHeader title={t('incidents.title')} />
+      <AndroidStickyBlurHost>
+        {Platform.OS === 'web' ? (
+          <ScrollView
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.webHeaderStack}>
+              {isChild && !currentUser.linkedChildId ? (
+                <NoticeBanner variant="warning" description={t('incidents.child_unlinked_desc')} />
+              ) : null}
+
+              <SearchInput
+                testID="incidents-search-input"
+                value={search}
+                onChangeText={setSearch}
+                placeholder={t('incidents.search_placeholder')}
+              />
+            </View>
+
+            <StickyFilterBar style={styles.webStickyBar}>
+              <View
+                style={[
+                  styles.filterRow,
+                  {
+                    flexDirection: flexRow,
+                    justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+                  },
+                ]}
+              >
+                {hasChildFilter && (
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <LiquidTabs
+                      tabs={childOptions}
+                      value={selectedChildId}
+                      onChange={setSelectedChildId}
+                    />
+                  </View>
+                )}
+                <LiquidDatePicker
+                  testID="incidents-date-picker"
+                  date={selectedDate}
+                  setDate={setSelectedDate}
+                  isChild={isChild}
+                  fullFormat={!hasChildFilter}
+                />
+              </View>
+            </StickyFilterBar>
+
+            {loading || sections.length === 0
+              ? listEmpty
+              : sections.map((section) => (
+                  <React.Fragment key={section.title}>
+                    {renderSectionHeader(section.title)}
+                    {section.data.map(renderIncidentItem)}
+                  </React.Fragment>
+                ))}
+          </ScrollView>
+        ) : (
+          <Animated.SectionList
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+            sections={loading ? [] : sections}
+            keyExtractor={(item) => item.id}
+            ListHeaderComponent={listHeader}
+            ListHeaderComponentStyle={styles.listHeaderContainer}
+            ListEmptyComponent={listEmpty}
+            renderSectionHeader={({ section }) => renderSectionHeader(section.title)}
+            renderItem={({ item: inc }) => renderIncidentItem(inc)}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            {...pullToRefreshProps}
+          />
+        )}
+      </AndroidStickyBlurHost>
+    </View>
   );
 }
 
@@ -233,6 +319,13 @@ const styles = StyleSheet.create({
   },
   listHeader: {
     gap: 12,
+    marginBottom: 12,
+  },
+  webHeaderStack: {
+    gap: 12,
+    marginBottom: 12,
+  },
+  webStickyBar: {
     marginBottom: 12,
   },
   listHeaderContainer: {

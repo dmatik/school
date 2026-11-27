@@ -6,14 +6,13 @@ import {
   Pressable,
   ActivityIndicator,
   StyleSheet,
-  useWindowDimensions,
 } from 'react-native';
 import { GraduationCap, Palette, Check, Globe } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme, type ThemeMode } from '../theme/ThemeContext';
 import { heeboFont } from '../theme/typography';
 import { setAppLanguage, useDirection } from '../i18n';
-import { apiFetch, fetchServerVersion } from '../lib/api';
+import { apiFetch } from '../lib/api';
 import { formatGradeHebrew, formatSystemDateTime } from '../lib/dateUtils';
 import {
   InfoBox,
@@ -37,6 +36,8 @@ import {
 } from '../components/ui/Buttons';
 import { ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import appConfig from '../../app.json';
 import type { WebtopConfig, User } from '../../../src/types';
 
@@ -53,7 +54,7 @@ export function SettingsScreen({
   const { themeMode, setThemeMode, palette, isDark } = useTheme();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('settings');
   const { flexRow, textAlign, isRTL } = useDirection();
-  const { width } = useWindowDimensions();
+  const { width, isDesktop, pageMaxWidth } = useResponsiveLayout();
   const isWide = width >= 640;
   const isChild = currentUser.familyRole === 'child';
 
@@ -72,7 +73,6 @@ export function SettingsScreen({
   const hasLoadedWebtopRef = useRef(false);
   const [showDisconnect, setShowDisconnect] = useState(false);
   const [disconnecting, setDisconnecting] = useState(false);
-  const [serverVersion, setServerVersion] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<{
     variant: 'info' | 'destructive';
     message: string;
@@ -111,18 +111,6 @@ export function SettingsScreen({
   useEffect(() => {
     loadConfig();
   }, [loadConfig, syncTrigger]);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchServerVersion().then((version) => {
-      if (!cancelled) {
-        setServerVersion(version);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [syncTrigger]);
 
   const handleTest = async () => {
     if (!webtopUsername || !webtopPassword) {
@@ -304,16 +292,30 @@ export function SettingsScreen({
   };
 
   return (
-    <Animated.ScrollView
-      ref={scrollRef}
-      style={styles.container}
-      contentContainerStyle={[styles.content, { paddingTop: headerHeight + 18 }]}
-      showsVerticalScrollIndicator={false}
-      onScroll={onScroll}
-      scrollEventThrottle={16}
-      {...pullToRefreshProps}
-    >
-      <View style={styles.innerStack}>
+    <View style={{ flex: 1 }}>
+      <PageHeader title={t('settings.title')} />
+      <Animated.ScrollView
+        ref={scrollRef}
+        style={styles.container}
+        contentContainerStyle={[
+          styles.content,
+          isDesktop
+            ? {
+                maxWidth: pageMaxWidth,
+                width: '100%',
+                alignSelf: 'center',
+                paddingHorizontal: 24,
+                paddingTop: 12,
+                paddingBottom: 24,
+              }
+            : { paddingTop: headerHeight + 18 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        {...pullToRefreshProps}
+      >
+        <View style={styles.innerStack}>
         {/* Appearance & Language Card */}
         <SectionCard
           icon={Palette}
@@ -602,21 +604,12 @@ export function SettingsScreen({
           </SectionCard>
         )}
 
-        <View style={[styles.versionRow, { flexDirection: flexRow }]}>
+        <View style={styles.versionRow}>
           <Text
             testID="app-version-text"
             style={[styles.versionText, { color: palette.mutedForeground }]}
           >
-            {t('settings.app_version', { version: appConfig.expo.version })}
-          </Text>
-          <Text style={[styles.versionText, { color: palette.mutedForeground }]}>
-            {' · '}
-          </Text>
-          <Text
-            testID="server-version-text"
-            style={[styles.versionText, { color: palette.mutedForeground }]}
-          >
-            {t('settings.server_version', { version: serverVersion ?? '—' })}
+            {`v${appConfig.expo.version}`}
           </Text>
         </View>
       </View>
@@ -633,7 +626,8 @@ export function SettingsScreen({
           loading={disconnecting}
         />
       )}
-    </Animated.ScrollView>
+      </Animated.ScrollView>
+    </View>
   );
 }
 
@@ -685,9 +679,10 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   versionRow: {
+    width: '100%',
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    flexWrap: 'wrap',
     paddingTop: 4,
   },
   versionText: {

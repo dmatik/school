@@ -4,8 +4,10 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 COPY package.json package-lock.json ./
 RUN npm ci
+COPY mobile/package.json mobile/package-lock.json ./mobile/
+RUN npm --prefix mobile ci
 COPY . .
-RUN npm run build
+RUN npm --prefix mobile run build:web
 
 # Stage 2: The Final Production Image
 FROM node:22-alpine
@@ -16,7 +18,7 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && apk del python3 make g++
 
 # Copy only the necessary artifacts
-COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/mobile/dist ./mobile/dist
 COPY server ./server
 
 # Create data directory

@@ -1,8 +1,13 @@
 import { Platform } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+  browserSupportsWebAuthn,
+  startAuthentication,
+  startRegistration,
+} from '@simplewebauthn/browser';
 import i18n from '../i18n';
-import { apiFetch, getActiveServerUrl } from './api';
+import { apiFetch, getActiveServerUrl, getDefaultWebBaseUrl } from './api';
 import {
   buildWebAuthnAssertion,
   buildWebAuthnRegistration,
@@ -29,6 +34,9 @@ export interface PasskeyInfo {
 export async function getSavedPasskeyAccounts(
   serverUrl: string
 ): Promise<StoredPasskeyEntry[]> {
+  if (Platform.OS === 'web') {
+    return [];
+  }
   const index = await readLocalIndex();
   return filterSavedPasskeyAccounts(index, serverUrl);
 }
@@ -176,7 +184,9 @@ async function removePrivateKeyFromKeychain(
 }
 
 export async function isPasskeySupported(): Promise<boolean> {
-  if (Platform.OS === 'web') return false;
+  if (Platform.OS === 'web') {
+    return typeof window !== 'undefined' && browserSupportsWebAuthn();
+  }
   try {
     return await SecureStore.isAvailableAsync();
   } catch {
@@ -186,12 +196,39 @@ export async function isPasskeySupported(): Promise<boolean> {
 
 /**
  * Registers a new WebAuthn passkey for the currently logged-in user.
+ * Uses native OS/browser WebAuthn on web, and Keychain/SecureStore P-256 on native.
  */
 export async function registerPasskey(
   deviceName: string,
   currentUser: Pick<User, 'id' | 'username' | 'firstName' | 'lastName'>,
   promptMessage = 'Authenticate to create passkey'
 ): Promise<PasskeyInfo> {
+  if (Platform.OS === 'web') {
+    const optsRes = await apiFetch('/api/auth/passkey/register-options', {
+      method: 'POST',
+    });
+    const optsData = await optsRes.json().catch(() => null);
+    if (!optsRes.ok || !optsData?.options || !optsData?.challengeId) {
+      throw new Error(optsData?.error || i18n.t('account.passkey_register_failed'));
+    }
+
+    const registrationResponse = await startRegistration({ optionsJSON: optsData.options });
+
+    const verifyRes = await apiFetch('/api/auth/passkey/register-verify', {
+      method: 'POST',
+      body: JSON.stringify({
+        response: registrationResponse,
+        challengeId: optsData.challengeId,
+        deviceName: deviceName.trim() || 'Passkey',
+      }),
+    });
+    const verifyData = await verifyRes.json().catch(() => null);
+    if (!verifyRes.ok || !verifyData?.passkey) {
+      throw new Error(verifyData?.error || i18n.t('account.passkey_verify_failed'));
+    }
+    return verifyData.passkey;
+  }
+
   const serverUrl = getActiveServerUrl();
   if (!serverUrl) {
     throw new Error(i18n.t('auth.server_url_required'));
@@ -211,7 +248,7 @@ export async function registerPasskey(
 
   const rpId = validateServerRpId(optsData.options.rp?.id, serverUrl);
   const challenge: string = optsData.options.challenge;
-  const willUseBio = Platform.OS !== 'web' && SecureStore.canUseBiometricAuthentication();
+  const willUseBio = SecureStore.canUseBiometricAuthentication();
 
   // 2. Build WebAuthn FIDO2 P-256 credential and store private key in Keychain/Keystore
   const { credentialId, privateKeyHex, registrationResponse } =
@@ -276,6 +313,41 @@ export async function loginWithPasskey(
   username?: string,
   promptMessage = 'Sign in with Passkey'
 ): Promise<{ token: string; user: User }> {
+  if (Platform.OS === 'web') {
+    const baseUrl = serverUrl || getDefaultWebBaseUrl();
+    const cleanUsername = username?.trim() || undefined;
+
+    const optsRes = await fetch(`${baseUrl}/api/auth/passkey/login-options`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: cleanUsername }),
+    });
+    const optsData = await optsRes.json().catch(() => null);
+    if (!optsRes.ok || !optsData?.options || !optsData?.challengeId) {
+      throw new Error(optsData?.error || i18n.t('account.passkey_auth_failed'));
+    }
+
+    const authResponse = await startAuthentication({ optionsJSON: optsData.options });
+
+    const verifyRes = await fetch(`${baseUrl}/api/auth/passkey/login-verify`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        response: authResponse,
+        challengeId: optsData.challengeId,
+      }),
+    });
+    const verifyData = await verifyRes.json().catch(() => null);
+    if (!verifyRes.ok || !verifyData?.token || !verifyData?.user) {
+      throw new Error(verifyData?.error || i18n.t('account.passkey_auth_failed'));
+    }
+
+    return {
+      token: verifyData.token,
+      user: verifyData.user,
+    };
+  }
+
   const origin = new URL(serverUrl).origin;
   const cleanUsername = username?.trim() || undefined;
 
@@ -404,6 +476,10 @@ export async function deletePasskey(id: string): Promise<void> {
   if (!res.ok) {
     const data = await res.json().catch(() => null);
     throw new Error(data?.error || i18n.t('account.passkey_delete_failed'));
+  }
+
+  if (Platform.OS === 'web') {
+    return;
   }
 
   const index = await readLocalIndex();

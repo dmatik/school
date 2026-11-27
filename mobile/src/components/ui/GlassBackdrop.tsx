@@ -63,7 +63,10 @@ export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number })
   const androidBlurTarget = useAndroidBlurTarget();
 
   return (
-    <View pointerEvents="none" style={[styles.fill, { borderRadius, overflow: 'hidden' }]}>
+    <View
+      pointerEvents="none"
+      style={[styles.fill, { borderRadius, overflow: 'hidden', zIndex: 0 }]}
+    >
       <BlurView
         intensity={35}
         tint={isDark ? 'dark' : 'light'}

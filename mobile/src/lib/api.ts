@@ -1,5 +1,13 @@
+import { Platform } from 'react-native';
 import { mobileStorage } from './storage';
 import { fetchHealthVersion } from '../../../src/lib/server-version';
+
+export const IS_COHOSTED_WEB = Platform.OS === 'web';
+
+export function getDefaultWebBaseUrl(): string {
+  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+  return envUrl ? envUrl.replace(/\/+$/, '') : '';
+}
 
 export class ServerNotConfiguredError extends Error {
   constructor(message = 'Self-hosted server URL is not configured') {
@@ -110,6 +118,14 @@ export async function fetchServerVersion(): Promise<string | null> {
 }
 
 export async function hydrateSession(): Promise<{ serverUrl: string | null; token: string | null }> {
+  if (IS_COHOSTED_WEB) {
+    const token = await mobileStorage.getAuthToken();
+    const serverUrl = getDefaultWebBaseUrl();
+    activeServerUrl = serverUrl;
+    activeAuthToken = token;
+    return { serverUrl, token };
+  }
+
   const [serverUrl, token] = await Promise.all([
     mobileStorage.getServerUrl(),
     mobileStorage.getAuthToken(),
@@ -120,6 +136,13 @@ export async function hydrateSession(): Promise<{ serverUrl: string | null; toke
 }
 
 export async function persistSession(serverUrl: string, token: string): Promise<void> {
+  if (IS_COHOSTED_WEB) {
+    activeServerUrl = getDefaultWebBaseUrl();
+    activeAuthToken = token;
+    await mobileStorage.setAuthToken(token);
+    return;
+  }
+
   activeServerUrl = serverUrl;
   activeAuthToken = token;
   await Promise.all([
@@ -135,19 +158,23 @@ export async function clearAuthOnly(): Promise<void> {
 
 /**
  * Executes an authenticated (or public) API request against the configured self-hosted server.
- * Throws ServerNotConfiguredError if no server URL is configured (non-standalone).
+ * On co-hosted web, defaults to same-origin (or EXPO_PUBLIC_API_URL in dev).
+ * Throws ServerNotConfiguredError on native if no server URL is configured (non-standalone).
  */
 export async function apiFetch(
   path: string,
   options: RequestInit & { timeoutMs?: number } = {}
 ): Promise<Response> {
-  if (!activeServerUrl) {
+  if (!IS_COHOSTED_WEB && !activeServerUrl) {
     throw new ServerNotConfiguredError();
   }
 
   const { timeoutMs = 15000, signal: externalSignal, ...fetchOptions } = options;
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
-  const url = `${activeServerUrl}${normalizedPath}`;
+  const baseUrl = IS_COHOSTED_WEB
+    ? (activeServerUrl ?? getDefaultWebBaseUrl())
+    : activeServerUrl!;
+  const url = `${baseUrl}${normalizedPath}`;
 
   const headers = new Headers(fetchOptions.headers || {});
   const hadAuthToken = Boolean(activeAuthToken);

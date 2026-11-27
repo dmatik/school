@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
 import { SyncButton } from './Buttons';
@@ -72,8 +73,9 @@ const ScrollHeaderContext = createContext<ScrollHeaderContextValue | null>(null)
 
 export function ScrollHeaderProvider({ children }: { children: React.ReactNode }) {
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
   const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = Math.max(insets.top, 8) + 52;
+  const headerHeight = isDesktop ? 0 : Math.max(insets.top, 8) + 52;
 
   const syncConfigRef = useRef<{ onRefresh?: () => void; syncing?: boolean }>({});
   const isDraggingRef = useRef(false);
@@ -127,7 +129,7 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
 
   const onScroll = useRef(
     Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== 'web',
       listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
         const y = e.nativeEvent.contentOffset.y;
         if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
@@ -165,6 +167,14 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
   }, [scrollY, clearPullState]);
 
   const pullToRefreshProps = useMemo<PullToRefreshScrollProps>(() => {
+    if (isDesktop || Platform.OS === 'web') {
+      return {
+        onScrollBeginDrag,
+        onScrollEndDrag,
+        alwaysBounceVertical: false,
+        bounces: false,
+      };
+    }
     const base: PullToRefreshScrollProps = {
       onScrollBeginDrag,
       onScrollEndDrag,
@@ -181,7 +191,7 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
       );
     }
     return base;
-  }, [onScrollBeginDrag, onScrollEndDrag, androidSyncing, headerHeight]);
+  }, [isDesktop, onScrollBeginDrag, onScrollEndDrag, androidSyncing, headerHeight]);
 
   return (
     <ScrollHeaderContext.Provider
@@ -359,18 +369,29 @@ export function MobileHeader({
             {title}
           </Text>
           {formattedSync ? (
-            <View style={styles.lastSyncedRow}>
+            <View
+              style={[
+                styles.lastSyncedRow,
+                Platform.OS === 'web' ? { marginTop: 3 } : null,
+              ]}
+            >
               <Text
                 numberOfLines={1}
-                style={[styles.lastSynced, { color: palette.mutedForeground }]}
+                style={[
+                  styles.lastSynced,
+                  { color: palette.mutedForeground },
+                  Platform.OS === 'web' ? { lineHeight: 10 } : null,
+                ]}
               >
                 {formattedSync}
               </Text>
               <View
                 style={
-                  Platform.OS === 'android'
-                    ? undefined
-                    : { transform: [{ translateY: -2.5 }] }
+                  Platform.OS === 'ios'
+                    ? { transform: [{ translateY: -2.5 }] }
+                    : Platform.OS === 'web'
+                    ? { transform: [{ translateY: -0.5 }] }
+                    : undefined
                 }
               >
                 <RefreshCw size={10} color={palette.mutedForeground} />

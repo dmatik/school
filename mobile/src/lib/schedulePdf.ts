@@ -1,6 +1,8 @@
+import { Platform } from 'react-native';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import { File, Paths } from 'expo-file-system';
+import { shareSchedulePdf, type SchedulePdfOptions } from '../../../src/lib/schedule-pdf';
 import {
   SCHEDULE_PDF_FILENAME,
   SCHEDULE_PDF_LAYOUT,
@@ -11,9 +13,15 @@ import {
 
 /**
  * Generates the centered A4 landscape schedule PDF using the shared Web/Mobile
- * PDF specification, renames it to `schedule.pdf`, and opens the native share sheet.
+ * PDF specification, renames it to `schedule.pdf`, and opens the native share sheet
+ * (or uses the shared web PDF generator & opens in a new tab on web).
  */
 export async function shareSchedulePdfMobile(options: SchedulePdfInput): Promise<void> {
+  if (Platform.OS === 'web') {
+    await shareSchedulePdf(options as SchedulePdfOptions);
+    return;
+  }
+
   const model = buildSchedulePdfModel(options);
   const html = buildSchedulePdfHtml(model);
 

@@ -1,6 +1,8 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
+  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -20,6 +22,8 @@ import { Button } from '../components/ui/Buttons';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { HomeworkCard } from '../components/ui/Cards';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
   HomeworkItem,
   ConsolidatedHomeworkItem,
@@ -37,6 +41,7 @@ export function HomeworkScreen({
   const { t, i18n } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('homework');
   const isChild = currentUser.familyRole === 'child';
 
@@ -227,40 +232,121 @@ export function HomeworkScreen({
     />
   );
 
-  return (
-    <AndroidStickyBlurHost>
-      <Animated.SectionList
-        ref={scrollRef as any}
-        style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8 }]}
-        showsVerticalScrollIndicator={false}
-        stickySectionHeadersEnabled={false}
-        sections={loading ? [] : sections}
-        keyExtractor={(item) => item.ids.join('-')}
-        ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={styles.listHeaderContainer}
-        ListEmptyComponent={listEmpty}
-        renderSectionHeader={({ section }) => (
-          <View style={styles.sectionHeaderWrap}>
-            <SectionDateHeader
-              title={formatDateSectionHeader(section.title, i18n.language, t)}
-            />
-          </View>
-        )}
-        renderItem={({ item: hw }) => (
-          <View style={styles.cardWrap}>
-            <HomeworkCard
-              item={hw}
-              childColor={getChildColor(hw.childId || hw.studentId)}
-              showChildBadge={!isChild}
-            />
-          </View>
-        )}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
+  const scrollContentStyle = [
+    styles.content,
+    isDesktop
+      ? {
+          maxWidth: pageMaxWidth,
+          width: '100%' as const,
+          alignSelf: 'center' as const,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 24,
+        }
+      : { paddingTop: headerHeight + 8 },
+  ];
+
+  const renderSectionHeader = (title: string) => (
+    <View style={styles.sectionHeaderWrap}>
+      <SectionDateHeader
+        title={formatDateSectionHeader(title, i18n.language, t)}
       />
-    </AndroidStickyBlurHost>
+    </View>
+  );
+
+  const renderHomeworkItem = (hw: ConsolidatedHomeworkItem) => (
+    <View key={hw.ids.join('-')} style={styles.cardWrap}>
+      <HomeworkCard
+        item={hw}
+        childColor={getChildColor(hw.childId || hw.studentId)}
+        showChildBadge={!isChild}
+      />
+    </View>
+  );
+
+  return (
+    <View style={{ flex: 1 }}>
+      <PageHeader title={t('homework.title')} />
+      <AndroidStickyBlurHost>
+        {Platform.OS === 'web' ? (
+          <ScrollView
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.webHeaderStack}>
+              {isChild && !currentUser.linkedChildId ? (
+                <NoticeBanner variant="warning" description={t('homework.child_unlinked_desc')} />
+              ) : null}
+
+              <SearchInput
+                testID="homework-search-input"
+                value={search}
+                onChangeText={setSearch}
+                placeholder={t('homework.search_placeholder')}
+              />
+            </View>
+
+            <StickyFilterBar style={styles.webStickyBar}>
+              <View
+                style={[
+                  styles.filterRow,
+                  {
+                    flexDirection: flexRow,
+                    justifyContent: hasChildFilter ? 'space-between' : 'flex-start',
+                  },
+                ]}
+              >
+                {hasChildFilter && (
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <LiquidTabs
+                      tabs={childOptions}
+                      value={selectedChildId}
+                      onChange={setSelectedChildId}
+                    />
+                  </View>
+                )}
+                <LiquidDatePicker
+                  testID="homework-date-picker"
+                  date={selectedDate}
+                  setDate={setSelectedDate}
+                  isChild={isChild}
+                  fullFormat={!hasChildFilter}
+                />
+              </View>
+            </StickyFilterBar>
+
+            {loading || sections.length === 0
+              ? listEmpty
+              : sections.map((section) => (
+                  <React.Fragment key={section.title}>
+                    {renderSectionHeader(section.title)}
+                    {section.data.map(renderHomeworkItem)}
+                  </React.Fragment>
+                ))}
+          </ScrollView>
+        ) : (
+          <Animated.SectionList
+            ref={scrollRef as any}
+            style={styles.container}
+            contentContainerStyle={scrollContentStyle}
+            showsVerticalScrollIndicator={false}
+            stickySectionHeadersEnabled={false}
+            sections={loading ? [] : sections}
+            keyExtractor={(item) => item.ids.join('-')}
+            ListHeaderComponent={listHeader}
+            ListHeaderComponentStyle={styles.listHeaderContainer}
+            ListEmptyComponent={listEmpty}
+            renderSectionHeader={({ section }) => renderSectionHeader(section.title)}
+            renderItem={({ item: hw }) => renderHomeworkItem(hw)}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
+            {...pullToRefreshProps}
+          />
+        )}
+      </AndroidStickyBlurHost>
+    </View>
   );
 }
 
@@ -275,6 +361,13 @@ const styles = StyleSheet.create({
   },
   listHeader: {
     gap: 12,
+    marginBottom: 12,
+  },
+  webHeaderStack: {
+    gap: 12,
+    marginBottom: 12,
+  },
+  webStickyBar: {
     marginBottom: 12,
   },
   listHeaderContainer: {

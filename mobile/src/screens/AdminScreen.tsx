@@ -23,6 +23,8 @@ import { Button, FloatingActionButton, useFabScrollPadding } from '../components
 import { AndroidBlurTarget, AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User, WebtopChild } from '../../../src/types';
 
 export function AdminScreen({
@@ -35,6 +37,7 @@ export function AdminScreen({
   const { t } = useTranslation();
   const { palette } = useTheme();
   const { flexRow } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('admin');
   const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
@@ -252,11 +255,24 @@ export function AdminScreen({
 
   return (
     <View style={{ flex: 1 }}>
+      <PageHeader title={t('admin.title')} />
       <AndroidBlurTarget targetRef={fabBlurTargetRef} style={{ flex: 1 }}>
         <Animated.FlatList
           ref={scrollRef as any}
           style={styles.container}
-          contentContainerStyle={[styles.content, { paddingTop: headerHeight + 8, paddingBottom: bottomPadding }]}
+          contentContainerStyle={[
+            styles.content,
+            isDesktop
+              ? {
+                  maxWidth: pageMaxWidth,
+                  width: '100%',
+                  alignSelf: 'center',
+                  paddingHorizontal: 24,
+                  paddingTop: 12,
+                  paddingBottom: bottomPadding,
+                }
+              : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
+          ]}
           showsVerticalScrollIndicator={false}
           data={loading ? [] : filtered}
           keyExtractor={(u) => u.id}

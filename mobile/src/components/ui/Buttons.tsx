@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import {
   Pressable,
   Text,
+  View,
   ActivityIndicator,
   StyleSheet,
   type ViewStyle,
@@ -30,6 +31,11 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
+import {
+  PAGE_MAX_WIDTH,
+  SIDEBAR_WIDTH,
+  useResponsiveLayout,
+} from '../../hooks/useResponsiveLayout';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { getDockBottomMargin } from './LiquidDock';
 
@@ -324,9 +330,13 @@ export function LiquidButton({
     >
       <GlassBackdrop />
       {loading ? (
-        <ActivityIndicator size="small" color={tintColor} />
+        <View style={styles.fabIconWrap}>
+          <ActivityIndicator size="small" color={tintColor} />
+        </View>
       ) : Icon ? (
-        <Icon size={18} strokeWidth={1.85} color={tintColor} />
+        <View style={styles.fabIconWrap}>
+          <Icon size={18} strokeWidth={1.85} color={tintColor} />
+        </View>
       ) : null}
       {label ? (
         <Text numberOfLines={1} style={[styles.liquidButtonText, { color: tintColor }]}>
@@ -347,6 +357,10 @@ const FAB_CONTENT_CLEARANCE = 16;
  */
 export function useFabScrollPadding(visible = true): number {
   const insets = useSafeAreaInsets();
+  const { isDesktop } = useResponsiveLayout();
+  if (isDesktop) {
+    return visible ? 96 : 24;
+  }
   const baseBottom = getDockBottomMargin(insets.bottom);
   if (!visible) {
     return baseBottom + FAB_DOCK_GAP;
@@ -370,7 +384,12 @@ export function FloatingActionButton({
   const insets = useSafeAreaInsets();
   const { palette, isDark } = useTheme();
   const { isRTL } = useDirection();
-  const bottomOffset = getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
+  const { width, isDesktop } = useResponsiveLayout();
+  const bottomOffset = isDesktop ? 24 : getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
+  const contentAreaWidth = isDesktop ? width - SIDEBAR_WIDTH : width;
+  const sideOffset = isDesktop
+    ? Math.max(24, Math.floor((contentAreaWidth - PAGE_MAX_WIDTH) / 2) + 24)
+    : 16;
   const isSuccess = variant === 'success';
 
   return (
@@ -384,8 +403,8 @@ export function FloatingActionButton({
         getGlassShadow(isDark),
         {
           bottom: bottomOffset,
-          left: isRTL ? 16 : undefined,
-          right: isRTL ? undefined : 16,
+          left: isRTL ? sideOffset : undefined,
+          right: isRTL ? undefined : sideOffset,
           backgroundColor: isSuccess ? palette.tealSoft : undefined,
           borderColor: isSuccess ? palette.teal : undefined,
           transform: [{ scale: pressed ? 0.92 : 1 }],
@@ -393,11 +412,13 @@ export function FloatingActionButton({
       ]}
     >
       <GlassBackdrop />
-      <Icon
-        size={22}
-        strokeWidth={2.2}
-        color={isSuccess ? palette.teal : palette.foreground}
-      />
+      <View style={styles.fabIconWrap}>
+        <Icon
+          size={22}
+          strokeWidth={2.2}
+          color={isSuccess ? palette.teal : palette.foreground}
+        />
+      </View>
     </Pressable>
   );
 }
@@ -641,6 +662,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 30,
+  },
+  fabIconWrap: {
+    position: 'relative',
+    zIndex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   iconPill: {
     height: 34,

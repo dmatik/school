@@ -48,6 +48,8 @@ import { UserAvatar } from '../components/ui/Badges';
 import { Button } from '../components/ui/Buttons';
 import { Modal, ConfirmModal } from '../components/ui/Modal';
 import { useScrollHeader } from '../components/ui/MobileHeader';
+import { PageHeader } from '../components/ui/PageHeader';
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User } from '../../../src/types';
 
 export function AccountScreen({
@@ -64,6 +66,7 @@ export function AccountScreen({
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign } = useDirection();
+  const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, scrollRef } = useScrollHeader('account');
 
   const [firstName, setFirstName] = useState(currentUser.firstName || '');
@@ -127,6 +130,13 @@ export function AccountScreen({
   const getDefaultPasskeyName = () => {
     if (Platform.OS === 'ios') return t('account.passkey_device_iphone');
     if (Platform.OS === 'android') return t('account.passkey_device_android');
+    if (Platform.OS === 'web' && typeof navigator !== 'undefined') {
+      const ua = navigator.userAgent;
+      if (/iPhone|iPad/i.test(ua)) return t('account.passkey_device_iphone');
+      if (/Macintosh|Mac OS/i.test(ua)) return t('account.passkey_device_mac');
+      if (/Android/i.test(ua)) return t('account.passkey_device_android');
+      if (/Windows/i.test(ua)) return t('account.passkey_device_windows');
+    }
     return t('account.passkey_default_name');
   };
 
@@ -312,11 +322,24 @@ export function AccountScreen({
   };
 
   return (
-    <>
+    <View style={{ flex: 1 }}>
+      <PageHeader title={t('account.title')} />
       <Animated.ScrollView
         ref={scrollRef}
         style={styles.container}
-        contentContainerStyle={[styles.content, { paddingTop: headerHeight + 18 }]}
+        contentContainerStyle={[
+          styles.content,
+          isDesktop
+            ? {
+                maxWidth: pageMaxWidth,
+                width: '100%',
+                alignSelf: 'center',
+                paddingHorizontal: 24,
+                paddingTop: 12,
+                paddingBottom: 24,
+              }
+            : { paddingTop: headerHeight + 18 },
+        ]}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}
         scrollEventThrottle={16}
@@ -325,7 +348,15 @@ export function AccountScreen({
           <NoticeBanner variant={feedback.variant} description={feedback.message} />
         ) : null}
 
+        <View
+          style={
+            isDesktop
+              ? { flexDirection: flexRow, gap: 16, alignItems: 'flex-start' }
+              : { gap: 16 }
+          }
+        >
         <SectionCard
+          style={isDesktop ? { flex: 1, minWidth: 0 } : undefined}
           icon={UserIcon}
           title={t('account.personal_info')}
           description={t('account.personal_info_desc')}
@@ -413,6 +444,7 @@ export function AccountScreen({
         </SectionCard>
 
         <SectionCard
+          style={isDesktop ? { flex: 1, minWidth: 0 } : undefined}
           icon={Lock}
           title={t('account.change_password')}
           description={t('account.change_password_desc')}
@@ -454,6 +486,7 @@ export function AccountScreen({
             onPress={handleChangePassword}
           />
         </SectionCard>
+        </View>
 
         {passkeySupported ? (
           <SectionCard
@@ -584,7 +617,7 @@ export function AccountScreen({
         loading={deletingPasskey}
         variant="destructive"
       />
-    </>
+    </View>
   );
 }
 

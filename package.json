@@ -31,6 +31,8 @@
     "mobile:ios:ipa": "npm --prefix mobile run ios:ipa",
     "mobile:android": "npm --prefix mobile run android",
     "mobile:storybook": "npm --prefix mobile run storybook",
+    "mobile:web": "npm --prefix mobile run web:dev",
+    "mobile:web:build": "npm --prefix mobile run build:web",
     "mobile:typecheck": "npm --prefix mobile run typecheck",
     "test:maestro": "node mobile/scripts/run-maestro-e2e.mjs",
     "test:maestro:android": "node mobile/scripts/run-maestro-e2e.mjs --android"
