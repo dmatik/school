@@ -1,4 +1,4 @@
-import { createEphemeralDb } from '../mobile/scripts/maestro-fixtures.mjs';
+import { createEphemeralDb } from '../app/scripts/maestro-fixtures.mjs';
 
 export default async function globalSetup() {
   const dbPath = process.env.SCHOOL_DB_PATH;

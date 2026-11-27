@@ -33,19 +33,18 @@ Dockerfile
 # Local Data
 data
 
-# Mobile native builds, caches & Maestro E2E (excluded from Docker build context & image)
-mobile/node_modules
-mobile/ios
-mobile/android
-mobile/dist
-mobile/dist-ios
-mobile/.expo
-mobile/.maestro
+# App native builds, caches & Maestro E2E (excluded from Docker build context & image)
+app/node_modules
+app/ios
+app/android
+app/dist
+app/dist-ios
+app/.expo
+app/.maestro
 .maestro
 
-# Local E2E & Storybook artifacts
+# Local E2E artifacts
 e2e
 playwright-report
 test-results
-storybook-static
 

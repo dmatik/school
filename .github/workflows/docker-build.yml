@@ -7,9 +7,7 @@ permissions:
   contents: read
 
 jobs:
-
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -20,12 +18,15 @@ jobs:
       with:
         node-version: '22'
         cache: 'npm'
+        cache-dependency-path: |
+          package-lock.json
+          app/package-lock.json
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci && npm --prefix app ci
 
-    - name: Run tests
-      run: npm run test
+    - name: Run Unit Tests (Jest)
+      run: npm test
 
     - name: Set up Docker Buildx
       uses: docker/setup-buildx-action@v4

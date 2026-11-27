@@ -4,7 +4,7 @@ import path from 'path';
 import { randomBytes } from 'crypto';
 import { afterEach, describe, expect, it } from '@jest/globals';
 import Database from 'better-sqlite3';
-import { createEphemeralDb, removeEphemeralDb } from '../../mobile/scripts/maestro-fixtures.mjs';
+import { createEphemeralDb, removeEphemeralDb } from '../../app/scripts/maestro-fixtures.mjs';
 import { WebtopClient } from '../webtop.js';
 
 describe('Maestro E2E fixtures and isolation', () => {

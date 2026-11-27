@@ -35,15 +35,12 @@ test-results/
 playwright-report/
 blob-report/
 
-# Storybook
-storybook-static
-
-# Mobile App (Expo)
-mobile/node_modules
-mobile/.expo
-mobile/dist
-mobile/web-build
-mobile/ios
-mobile/android
+# App (Expo)
+app/node_modules
+app/.expo
+app/dist
+app/web-build
+app/ios
+app/android
 
 

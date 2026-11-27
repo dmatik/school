@@ -178,7 +178,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Serve static files from the Expo Web build
-const WEB_DIST_DIR = path.join(__dirname, '../mobile/dist');
+const WEB_DIST_DIR = path.join(__dirname, '../app/dist');
 app.use(express.static(WEB_DIST_DIR));
 
 /* --- Auth Middleware --- */

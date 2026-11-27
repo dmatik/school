@@ -10,11 +10,11 @@ import {
   buildWebAuthnAssertion,
   p256SignDer,
   randomBytes,
-} from '../../src/lib/webauthn-crypto-p256';
+} from '../../shared/lib/webauthn-crypto-p256';
 import {
   filterSavedPasskeyAccounts,
   type StoredPasskeyEntry,
-} from '../../src/lib/passkey-accounts';
+} from '../../shared/lib/passkey-accounts';
 
 describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
   it('generates registration and authentication payloads verified by @simplewebauthn/server', async () => {

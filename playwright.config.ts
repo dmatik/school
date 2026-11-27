@@ -49,7 +49,7 @@ export default defineConfig({
 
   /* Build Expo Web and run co-hosted Express server against the ephemeral test DB */
   webServer: {
-    command: 'npm run mobile:web:build && node server/index.js',
+    command: 'npm run build && node server/index.js',
     url: `http://127.0.0.1:${BACKEND_PORT}/api/health`,
     reuseExistingServer: false,
     timeout: 180 * 1000,

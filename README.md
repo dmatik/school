@@ -4,13 +4,13 @@
 ![Build Status](https://img.shields.io/github/actions/workflow/status/dmatik/school/build-and-test.yml?label=build)
 [![Version](https://img.shields.io/github/v/release/dmatik/school?label=version&color=green)](https://github.com/dmatik/school/releases/latest)
 
-**School** (בית הספר) is a self-hosted Progressive Web App (PWA) and native mobile app (iOS & Android) for parents and students to track homework assignments, school incidents, exams and grades, and weekly schedules—synced directly from the Israeli **Webtop** (SmartSchool) portal.
+**School** (בית הספר) is a self-hosted cross-platform app (**Web, iOS & Android**) built with **Expo** and **Express 5** for parents and students to track homework assignments, school incidents, exams and grades, and weekly schedules—synced directly from the Israeli **Webtop** (SmartSchool) portal.
 
-> 🌐 **Bilingual First:** Fully localized in **Hebrew (RTL, default)** and **English (LTR)** with instant language switching.
+> 🌐 **Bilingual First:** Fully localized in **Hebrew (RTL, default)** and **English (LTR)** with instant language switching and light/dark themes.
 
 ---
 
-## 📱 Mobile Screenshots
+## 📱 Screenshots
 
 | Homework (שיעורי בית) | Incidents (אירועי משמעת) | Exams (מבחנים) | Schedule (מערכת שעות) |
 | :---: | :---: | :---: | :---: |
@@ -23,7 +23,7 @@
 * **📚 Homework & Assignments:** Live Webtop sync with smart consolidation of duplicate same-day lessons, automatic subject classification, search, and date filtering.
 * **🚨 School Incidents & Attendance:** Track disciplinary events, positive teacher commendations, attendance, and tardiness with child and date filtering.
 * **📝 Exams & Grades:** Upcoming and past exam timelines with parent-managed scheduling, study topics, and grade recording.
-* **🗓️ Weekly Schedule:** Sunday–Friday timetable with daily dismissal times, batch edit mode, PDF sharing, and per-child color accents.
+* **🗓️ Weekly Schedule:** Sunday–Friday timetable with daily dismissal times, batch edit mode, shared landscape PDF export/sharing across web and mobile, and per-child color accents.
 * **⚙️ Webtop Integration & Auto-Sync:** Centralized family Webtop connector with **AES-256-GCM** encrypted credentials at rest, automatic background sync (production only, with quiet hours and circuit-breaker backoff), and one-touch manual sync.
 * **👨‍👩‍👧‍👦 Family & Role-Based Access:** Shared family data model with **Admin / User** system roles and **Parent / Child** family roles (students see a private, read-only view scoped to their own data).
 * **🔑 Security & Passkeys:** Passwordless WebAuthn biometric login (Face ID, Touch ID, Windows Hello, hardware keys), JWT sessions with `token_version` revocation, bcrypt password hashing, and route rate limiting.
@@ -34,13 +34,33 @@
 
 | Layer | Technologies |
 | :--- | :--- |
-| **Frontend (Web)** | **React 19** + **TypeScript 6** + **Vite 7** |
-| **Mobile App** | **Expo 58** + **React Native 0.88** + **Reanimated 4** + **Gesture Handler** + **Expo SecureStore** |
-| **UI & Styling** | **Radix UI Primitives** + **Tailwind CSS 3.4** + **Storybook 10** + **Lucide React** |
-| **Localization & Dates** | **i18next** (`he` / `en`) + **`date-fns` v3** |
-| **Backend & Database** | **Express 5** + **Better-SQLite3** (`school.db` in WAL mode) |
-| **Security & Auth** | **@simplewebauthn** + **JWT** + **Bcrypt** + **AES-256-GCM** |
+| **Client (Web, iOS & Android)** | **Expo 58** + **React Native 0.88** + **React 19** + **TypeScript 6** (`expo export -p web` co-hosted by Express) |
+| **UI & Styling** | **React Native** + **React Native Web** + **Reanimated 4** + **Lucide React Native** + **React Native Storybook** |
+| **Localization & Dates** | **i18next** (`he` / `en`) + **`date-fns` v4** |
+| **Backend & Database** | **Express 5** + **Better-SQLite3** (`data/school.db` in WAL mode) |
+| **Security & Auth** | **@simplewebauthn** + **JWT** + **Bcrypt** + **AES-256-GCM** + **Expo SecureStore** |
+| **Testing** | **Jest** (`ts-jest` for server + `jest-expo` for app/web) in CI; **Playwright** (Web E2E) & **Maestro** (Mobile E2E) locally |
 | **Container & CI** | **Docker** (Alpine) + **GitHub Actions** |
+
+---
+
+## 📁 Project Structure
+
+```text
+school/
+├── app/                     # Unified Expo app (Web, iOS & Android)
+│   ├── src/screens/         # Homework, Incidents, Exams, Schedule, Settings, Admin, Account, Login
+│   ├── src/components/ui/   # Shared cross-platform UI components
+│   ├── src/stories/         # React Native Storybook component catalog
+│   ├── __tests__/           # Jest (jest-expo) unit & component tests
+│   └── .maestro/            # Local Maestro mobile E2E flows
+├── shared/                  # Shared types, locales (he.json/en.json), palettes, PDF & WebAuthn helpers
+├── server/                  # Express 5 API + Better-SQLite3 DB + co-hosted static serving of app/dist
+│   └── __tests__/           # Jest Node ESM backend & shared-module tests
+├── e2e/                     # Local Playwright E2E tests against co-hosted Expo Web + ephemeral SQLite DB
+├── scripts/                 # Screenshot generation script (Playwright against app/dist)
+└── data/                    # Persistent SQLite database directory
+```
 
 ---
 
@@ -83,7 +103,7 @@ docker compose up -d
 
 ---
 
-### Option B: Local Development 💻
+### Option B: Local Development (Web + Backend) 💻
 
 1. **Clone the repository:**
    ```bash
@@ -91,42 +111,43 @@ docker compose up -d
    cd school
    ```
 
-2. **Install dependencies:**
+2. **Install dependencies (root + Expo app):**
    ```bash
    npm install
+   npm --prefix app install
    ```
 
-3. **Start backend API & frontend dev server:**
+3. **Start backend API & Expo Web dev server:**
    ```bash
    npm run dev:all
    ```
-   *This concurrently boots the Express 5 backend (port `3001`) and Vite dev server (port `5173`).*
+   *This concurrently boots the Express 5 backend (port `3001`) and Expo Web dev server (port `8081`). Open `http://localhost:8081` in your browser.*
 
-4. **Open your browser:**
-   Navigate to `http://localhost:5173`
+4. **Or run the production co-hosted build locally:**
+   ```bash
+   npm run build
+   npm run server
+   ```
+   *Navigate to `http://localhost:3001`.*
 
 ---
 
-### Option C: Mobile App (iOS & Android) 📱
+### Option C: Native Mobile App (iOS & Android) 📱
 
-The `mobile/` workspace contains the native **Expo / React Native** app with full feature parity (Homework, Incidents, Exams, Schedule, Settings, Admin, Account, bilingual RTL/LTR, and light/dark themes).
+The `app/` workspace builds the native **Expo / React Native** app from the exact same codebase as Web.
 
-1. **Install mobile dependencies:**
-   ```bash
-   cd mobile && npm install
-   ```
-
-2. **Run on iOS, Android, or Expo Dev Client:**
+1. **Run on iOS, Android, Expo Go, or Storybook:**
    ```bash
    # From the repository root:
-   npm run mobile:ios       # Build & launch on iOS simulator/device
-   npm run mobile:android   # Build & launch on Android emulator/device
-   npm run mobile:start     # Start Expo dev client bundler
-   npm run mobile:storybook # Start React Native Storybook (port 8082)
+   npm run app:ios       # Build & launch on iOS simulator/device
+   npm run app:android   # Build & launch on Android emulator/device
+   npm run app:go        # Start Expo Go bundler
+   npm run app:start     # Start Expo dev client bundler
+   npm run app:storybook # Start React Native Storybook (port 8082)
    ```
 
-3. **Connect to your server:**
-   Enter your self-hosted **School** server URL on the mobile login screen (saved securely with `expo-secure-store`).
+2. **Connect to your server:**
+   Enter your self-hosted **School** server URL on the mobile login screen (saved securely with `expo-secure-store`). When running on co-hosted Web, the server URL is detected automatically.
 
 ---
 
@@ -150,20 +171,11 @@ All variables are optional with sensible defaults:
 
 ## 📖 Storybook Component Catalog
 
-All shared UI components in `src/components/ui/` are documented in **Storybook 10** (`src/stories/`), organized into four categories:
-1. **Fields & Inputs** (`Input`, `SearchInput`, `Textarea`, `Select`, `DatePicker`, `Calendar`, `Switch`)
-2. **Buttons & Navigation** (`Button`, `SyncButton`, `ActionButton`, `LogoutButton`, `FloatingActionButton`, `LiquidTabs`, `PullToRefresh`, `Navigation Shell`)
-3. **Badges & Pickers** (`ChildBadge`, `SubjectIconBadge`, `StatusBadge`, `DateBadge`, `ColorSwatchPicker`, `UserAvatar`)
-4. **Surfaces & Cards** (`Card`, `SectionCard`, `NoticeBanner`, `InfoBox`, `HomeworkCard`, `IncidentCard`, `ExamCard`, `ScheduleTable`, `AdminUserRow`, `EmptyStateCard`, `Modal`, `Login`)
-
-The Storybook toolbar includes live toggles for **Hebrew (RTL) / English (LTR)** and **Light / Dark mode**.
+All shared UI components in `app/src/components/ui/` are documented in **React Native Storybook** (`app/src/stories/`), with live toggles for **Hebrew (RTL) / English (LTR)** and **Light / Dark mode**:
 
 ```bash
-# Start interactive Storybook dev server on http://localhost:6006
-npm run storybook
-
-# Build static Storybook site
-npm run build-storybook
+# Start React Native Storybook bundler on port 8082
+npm run app:storybook
 ```
 
 ---
@@ -171,25 +183,29 @@ npm run build-storybook
 ## 🧪 Verification, Testing & Screenshots
 
 ```bash
-# 1. Typecheck and Production Build
-npm run build
+# 1. Typecheck (root shared/e2e + Expo app)
+npm run typecheck
 
-# 2. Linting
+# 2. Linting (root + Expo app)
 npm run lint
 
-# 3. Unit & Component Tests (Vitest in happy-dom)
+# 3. Unit & Component Tests (Jest: server + app/web — runs in CI)
 npm test
+npm run test:server   # Backend & shared-module Jest tests only
+npm run test:web      # Expo UI/web Jest tests only
 
-# 4. Local End-to-End Tests (Playwright)
+# 4. Production Web Build (exports Expo Web to app/dist)
+npm run build
+
+# 5. Local End-to-End Tests (Playwright against co-hosted Expo Web + ephemeral SQLite DB)
 npm run test:e2e
 
-# 5. Regenerate README mobile screenshots using synthetic mock data (Playwright)
-npm run screenshots
-
-# 6. Mobile Typecheck, Lint & Maestro E2E (local)
-npm run mobile:typecheck
-npm --prefix mobile run lint
+# 6. Local Mobile End-to-End Tests (Maestro iOS / Android)
 npm run test:maestro
+npm run test:maestro:android
+
+# 7. Regenerate README screenshots from Expo Web using synthetic mock data
+npm run screenshots
 ```
 
 ---

@@ -3,7 +3,7 @@ import os from 'os';
 import path from 'path';
 import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { resolveServerVersion } from '../version.js';
-import { fetchHealthVersion } from '../../src/lib/server-version';
+import { fetchHealthVersion } from '../../shared/lib/server-version';
 
 describe('resolveServerVersion', () => {
   let tmpDir: string;

@@ -1,0 +1,21 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "resolveJsonModule": true,
+    "types": ["jest"],
+    "paths": {
+      "@/*": ["./src/*"],
+      "@shared/*": ["../shared/*"]
+    }
+  },
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "../shared/types.ts",
+    "../shared/lib/child-colors.ts",
+    "../shared/lib/subject-palette.ts",
+    "../shared/lib/schedule-pdf-shared.ts",
+    "../shared/lib/webauthn-crypto-p256.ts"
+  ]
+}

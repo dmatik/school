@@ -1,13 +1,15 @@
 import { chromium } from '@playwright/test';
-import { spawn } from 'node:child_process';
+import { execSync } from 'node:child_process';
 import fs from 'node:fs';
+import http from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT_DIR = path.resolve(__dirname, '..');
+const APP_DIST_DIR = path.join(ROOT_DIR, 'app', 'dist');
 const OUTPUT_DIR = path.join(ROOT_DIR, 'docs', 'screenshots');
-const BASE_URL = process.env.SCREENSHOT_URL || 'http://localhost:5173';
+const BASE_URL = process.env.SCREENSHOT_URL || 'http://127.0.0.1:4173';
 
 function formatDateOffset(daysOffset) {
   const d = new Date();
@@ -270,6 +272,18 @@ function buildMockData() {
   return { user, webtopConfig, homework, incidents, exams, lessons, finishTimes };
 }
 
+const MIME_TYPES = {
+  '.html': 'text/html; charset=utf-8',
+  '.js': 'application/javascript; charset=utf-8',
+  '.css': 'text/css; charset=utf-8',
+  '.json': 'application/json; charset=utf-8',
+  '.png': 'image/png',
+  '.svg': 'image/svg+xml',
+  '.ico': 'image/x-icon',
+  '.ttf': 'font/ttf',
+  '.woff2': 'font/woff2',
+};
+
 async function isServerReachable(url) {
   try {
     const res = await fetch(url);
@@ -279,36 +293,41 @@ async function isServerReachable(url) {
   }
 }
 
-async function waitForServer(url, timeoutMs = 30000) {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    if (await isServerReachable(url)) return;
-    await new Promise((r) => setTimeout(r, 400));
-  }
-  throw new Error(`Timed out waiting for Vite server at ${url}`);
-}
-
-async function ensureViteServer() {
+async function ensureExpoWebServer() {
   if (await isServerReachable(BASE_URL)) {
-    return { proc: null, reused: true };
+    return { server: null, reused: true };
   }
 
-  const proc = spawn('npx', ['vite', '--port', '5173', '--strictPort'], {
-    cwd: ROOT_DIR,
-    stdio: 'ignore',
-    detached: true,
+  if (!fs.existsSync(path.join(APP_DIST_DIR, 'index.html'))) {
+    console.log('Building Expo Web bundle (app/dist)...');
+    execSync('npm run build', { cwd: ROOT_DIR, stdio: 'inherit' });
+  }
+
+  const parsed = new URL(BASE_URL);
+  const port = Number(parsed.port || 4173);
+
+  const server = http.createServer((req, res) => {
+    const reqPath = (req.url || '/').split('?')[0];
+    const safeRel = reqPath === '/' ? 'index.html' : reqPath.replace(/^\/+/, '');
+    let filePath = path.join(APP_DIST_DIR, safeRel);
+    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
+      filePath = path.join(APP_DIST_DIR, 'index.html');
+    }
+    const ext = path.extname(filePath).toLowerCase();
+    res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
+    fs.createReadStream(filePath).pipe(res);
   });
 
-  await waitForServer(BASE_URL);
-  return { proc, reused: false };
+  await new Promise((resolve) => server.listen(port, parsed.hostname, resolve));
+  return { server, reused: false };
 }
 
 async function main() {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
   const mock = buildMockData();
 
-  const { proc, reused } = await ensureViteServer();
-  console.log(reused ? `Using running dev server at ${BASE_URL}` : `Started temporary Vite server at ${BASE_URL}`);
+  const { server, reused } = await ensureExpoWebServer();
+  console.log(reused ? `Using running dev server at ${BASE_URL}` : `Serving Expo Web dist at ${BASE_URL}`);
 
   const browser = await chromium.launch();
   try {
@@ -321,9 +340,9 @@ async function main() {
     });
 
     await context.addInitScript(() => {
-      localStorage.setItem('auth_token', 'screenshot-mock-token');
-      localStorage.setItem('i18nextLng', 'he');
-      localStorage.setItem('theme', 'light');
+      localStorage.setItem('school_auth_token', 'screenshot-mock-token');
+      localStorage.setItem('school_lang', 'he');
+      localStorage.setItem('school_theme', 'light');
     });
 
     const page = await context.newPage();
@@ -346,21 +365,21 @@ async function main() {
         const list = childId && childId !== 'all'
           ? mock.homework.filter((h) => h.childId === childId)
           : mock.homework;
-        return route.fulfill({ json: { homework: list } });
+        return route.fulfill({ json: list });
       }
       if (pathname === '/api/incidents') {
         const childId = url.searchParams.get('childId');
         const list = childId && childId !== 'all'
           ? mock.incidents.filter((i) => i.childId === childId)
           : mock.incidents;
-        return route.fulfill({ json: { incidents: list } });
+        return route.fulfill({ json: list });
       }
       if (pathname === '/api/exams') {
         const childId = url.searchParams.get('childId');
         const list = childId && childId !== 'all'
           ? mock.exams.filter((e) => e.childId === childId)
           : mock.exams;
-        return route.fulfill({ json: { exams: list } });
+        return route.fulfill({ json: list });
       }
       if (pathname === '/api/schedule') {
         return route.fulfill({
@@ -377,28 +396,23 @@ async function main() {
     await page.goto(BASE_URL, { waitUntil: 'networkidle' });
     await page.evaluate(() => document.fonts.ready);
 
-    const mobileNav = page.locator('nav[aria-label="Mobile Navigation"] button');
-
     const captures = [
-      { tabIndex: 0, file: 'homework-mobile.png', expectedHeader: /שיעורי בית|Homework/ },
-      { tabIndex: 1, file: 'incidents-mobile.png', expectedHeader: /אירועי משמעת|School Incidents/ },
-      { tabIndex: 2, file: 'exams-mobile.png', expectedHeader: /מבחנים|Exams/ },
-      { tabIndex: 3, file: 'schedule-mobile.png', expectedHeader: /מערכת שעות|Weekly Schedule/ },
+      { tabId: 'homework', file: 'homework-mobile.png', expectedHeader: /שיעורי בית|Homework/ },
+      { tabId: 'incidents', file: 'incidents-mobile.png', expectedHeader: /אירועי משמעת|School Incidents/ },
+      { tabId: 'exams', file: 'exams-mobile.png', expectedHeader: /מבחנים|Exams/ },
+      { tabId: 'schedule', file: 'schedule-mobile.png', expectedHeader: /מערכת שעות|Weekly Schedule/ },
     ];
 
     for (const capture of captures) {
-      if (capture.tabIndex > 0) {
-        await mobileNav.nth(capture.tabIndex).click();
+      if (capture.tabId !== 'homework') {
+        await page.getByTestId(`dock-tab-${capture.tabId}`).click();
       }
-      await page.locator('header.md\\:hidden h1').waitFor({ state: 'visible' });
-      await page.waitForFunction(
-        (patternStr) => {
-          const h1 = document.querySelector('header.md\\:hidden h1');
-          return h1 && new RegExp(patternStr).test(h1.textContent || '');
-        },
-        capture.expectedHeader.source
-      );
-      // Allow Framer Motion spring transitions and layout settling to complete
+      const titleEl = page.getByTestId('mobile-header-title');
+      await titleEl.waitFor({ state: 'visible' });
+      const text = await titleEl.textContent();
+      if (!capture.expectedHeader.test(text || '')) {
+        await page.waitForTimeout(300);
+      }
       await page.waitForTimeout(550);
 
       const outPath = path.join(OUTPUT_DIR, capture.file);
@@ -407,12 +421,8 @@ async function main() {
     }
   } finally {
     await browser.close();
-    if (proc && proc.pid) {
-      try {
-        process.kill(-proc.pid);
-      } catch {
-        // ignore if already exited
-      }
+    if (server) {
+      server.close();
     }
   }
 }

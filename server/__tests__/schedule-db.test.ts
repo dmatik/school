@@ -1,14 +1,14 @@
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
 import Database from 'better-sqlite3';
 import { initDb } from '../db.js';
-import { getChildSolidHex } from '../../src/lib/child-colors';
-import { getSubjectColorSpec } from '../../src/lib/subject-palette';
+import { getChildSolidHex } from '../../shared/lib/child-colors';
+import { getSubjectColorSpec } from '../../shared/lib/subject-palette';
 import {
   SCHEDULE_PDF_FILENAME,
   SCHEDULE_PDF_LAYOUT,
   buildSchedulePdfHtml,
   buildSchedulePdfModel,
-} from '../../src/lib/schedule-pdf-shared';
+} from '../../shared/lib/schedule-pdf-shared';
 
 const mockLessons = [
   { id: 'lesson-1', childId: 'child-abc-1', dayOfWeek: 0, hourNum: 1, subject: 'מתמטיקה' },
