@@ -308,19 +308,23 @@ async function ensureExpoWebServer() {
 
   const distRoot = path.resolve(APP_DIST_DIR);
   const indexHtmlPath = path.join(distRoot, 'index.html');
+  const distFiles = new Map();
+  const collectDistFiles = (dir, prefix = '') => {
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+      const fullPath = path.join(dir, entry.name);
+      const urlPath = `${prefix}/${entry.name}`;
+      if (entry.isDirectory()) {
+        collectDistFiles(fullPath, urlPath);
+      } else if (entry.isFile()) {
+        distFiles.set(urlPath, fullPath);
+      }
+    }
+  };
+  collectDistFiles(distRoot);
 
   const server = http.createServer((req, res) => {
     const reqPath = (req.url || '/').split('?')[0];
-    const safeRel = reqPath === '/' ? 'index.html' : reqPath.replace(/^\/+/, '');
-    let filePath = path.resolve(distRoot, safeRel);
-    if (!filePath.startsWith(distRoot + path.sep)) {
-      res.writeHead(403);
-      res.end('Forbidden');
-      return;
-    }
-    if (!fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
-      filePath = indexHtmlPath;
-    }
+    const filePath = distFiles.get(reqPath) || indexHtmlPath;
     const ext = path.extname(filePath).toLowerCase();
     res.writeHead(200, { 'Content-Type': MIME_TYPES[ext] || 'application/octet-stream' });
     fs.createReadStream(filePath).pipe(res);
