@@ -14,6 +14,8 @@ export interface TestUser {
 
 /**
  * Creates a unique dedicated test user directly in the database.
+ * When creating a child user without an explicit linkedChildId, links to the
+ * first seeded child in `webtop_children` if available so schedule/exam views load cleanly.
  */
 export function createTestUser(
   role: 'admin' | 'user' = 'admin',
@@ -29,6 +31,18 @@ export function createTestUser(
   const now = new Date().toISOString();
   const effectiveFamilyRole = role === 'admin' ? 'parent' : familyRole;
 
+  let resolvedChildId = linkedChildId;
+  if (effectiveFamilyRole === 'child' && !resolvedChildId) {
+    try {
+      const firstChild = db.prepare('SELECT id FROM children LIMIT 1').get() as
+        | { id: string }
+        | undefined;
+      resolvedChildId = firstChild?.id ?? null;
+    } catch {
+      resolvedChildId = null;
+    }
+  }
+
   db.prepare(`
     INSERT INTO users (id, username, password_hash, first_name, last_name, avatar, role, family_role, linked_child_id, created_at, updated_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -41,12 +55,19 @@ export function createTestUser(
     '',
     role,
     effectiveFamilyRole,
-    effectiveFamilyRole === 'child' ? linkedChildId : null,
+    effectiveFamilyRole === 'child' ? resolvedChildId : null,
     now,
     now
   );
 
-  return { id: uniqueId, username, password, role, familyRole: effectiveFamilyRole, linkedChildId };
+  return {
+    id: uniqueId,
+    username,
+    password,
+    role,
+    familyRole: effectiveFamilyRole,
+    linkedChildId: resolvedChildId,
+  };
 }
 
 /**
@@ -78,17 +99,19 @@ export function cleanupAllTestUsers() {
 }
 
 /**
- * Logs in with a specific test user in Playwright.
+ * Logs in with a specific test user in Playwright against the Expo Web UI.
  */
 export async function loginWithUser(page: Page, user: TestUser) {
   await page.goto('/');
   await page.evaluate(() => localStorage.clear());
   await page.reload();
 
-  await page.fill('#username', user.username);
-  await page.fill('#password', user.password);
-  await page.click('button[type="submit"]');
+  await page.getByTestId('username-input').fill(user.username);
+  await page.getByTestId('password-input').fill(user.password);
+  await page.getByTestId('login-submit-button').click();
 
-  // Wait until logged in (desktop sidebar or mobile header avatar visible)
-  await expect(page.locator('aside button:visible, header button:visible').first()).toBeVisible();
+  // Wait until logged in (desktop sidebar or mobile header account button visible)
+  await expect(
+    page.getByTestId('desktop-sidebar').or(page.getByTestId('header-account-button')).first()
+  ).toBeVisible();
 }

@@ -33,12 +33,18 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm ci && npm --prefix app ci
 
-      - name: Run tests
-        run: npm run test
+      - name: Typecheck & Lint
+        run: npm run typecheck && npm run lint
+
+      - name: Run Unit Tests (Jest)
+        run: npm test
 
       - name: Configure Git
         run: |
@@ -50,15 +56,15 @@ jobs:
         run: |
           npm version ${{ inputs.release_type }} --no-git-tag-version
           NEW_VERSION=$(node -p "require('./package.json').version")
-          npm --prefix mobile version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+          npm --prefix app version "$NEW_VERSION" --no-git-tag-version --allow-same-version
           NEW_VERSION="$NEW_VERSION" node -e '
             const fs = require("fs");
-            const p = "mobile/app.json";
+            const p = "app/app.json";
             const data = JSON.parse(fs.readFileSync(p, "utf8"));
             data.expo.version = process.env.NEW_VERSION;
             fs.writeFileSync(p, JSON.stringify(data, null, 2) + "\n");
           '
-          git add package.json package-lock.json mobile/package.json mobile/package-lock.json mobile/app.json
+          git add package.json package-lock.json app/package.json app/package-lock.json app/app.json
           git commit -m "chore: release v$NEW_VERSION"
           git tag "v$NEW_VERSION"
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
@@ -109,50 +115,13 @@ jobs:
         with:
           node-version: '22'
           cache: 'npm'
+          cache-dependency-path: app/package-lock.json
 
-      - name: Install mobile dependencies
-        run: npm --prefix mobile ci
+      - name: Install app dependencies
+        run: npm --prefix app ci
 
       - name: Publish OTA update to Expo (Expo Go)
-        working-directory: mobile
+        working-directory: app
         env:
           EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
         run: npx --yes eas-cli@latest update --branch production --message "Release v${{ needs.release.outputs.version }}" --non-interactive
-
-  # Uncomment below if you want to build and attach an unsigned iOS .ipa + AltStore source on macos-latest:
-  # build-ios:
-  #   needs: release
-  #   runs-on: macos-latest
-  #   permissions:
-  #     contents: write
-  #
-  #   steps:
-  #     - name: Checkout release tag
-  #       uses: actions/checkout@v7
-  #       with:
-  #         ref: v${{ needs.release.outputs.version }}
-  #
-  #     - name: Set up Node.js
-  #       uses: actions/setup-node@v7
-  #       with:
-  #         node-version: '22'
-  #         cache: 'npm'
-  #
-  #     - name: Install dependencies
-  #       run: |
-  #         npm ci
-  #         npm --prefix mobile ci
-  #
-  #     - name: Build iOS Release IPA
-  #       env:
-  #         GITHUB_REPOSITORY: ${{ github.repository }}
-  #       run: npm run mobile:ios:ipa
-  #
-  #     - name: Upload IPA to GitHub Release
-  #       uses: softprops/action-gh-release@v3
-  #       with:
-  #         tag_name: v${{ needs.release.outputs.version }}
-  #         files: |
-  #           mobile/dist-ios/school-ios-v${{ needs.release.outputs.version }}.ipa
-  #           mobile/dist-ios/school-ios.ipa
-  #           mobile/dist-ios/altstore-source.json

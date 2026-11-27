@@ -177,8 +177,9 @@ app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', app: 'school', version: SERVER_VERSION });
 });
 
-// Serve static files from the React app
-app.use(express.static(path.join(__dirname, '../dist')));
+// Serve static files from the Expo Web build
+const WEB_DIST_DIR = path.join(__dirname, '../app/dist');
+app.use(express.static(WEB_DIST_DIR));
 
 /* --- Auth Middleware --- */
 export function authenticate(req, res, next) {
@@ -295,7 +296,7 @@ app.post('/api/auth/passkey/register-options', authenticate, async (req, res) =>
       excludeCredentials,
       authenticatorSelection: {
         residentKey: 'preferred',
-        userVerification: 'preferred',
+        userVerification: 'required',
       },
     });
 
@@ -403,7 +404,7 @@ app.post('/api/auth/passkey/login-options', rateLimitAuth(20, 60000), async (req
     const options = await generateAuthenticationOptions({
       rpID,
       allowCredentials,
-      userVerification: 'preferred',
+      userVerification: 'required',
     });
 
     const challengeId = crypto.randomUUID();
@@ -2394,7 +2395,7 @@ const spaRateLimiter = rateLimit({
 
 // SPA fallback
 app.get(/.*/, spaRateLimiter, (req, res) => {
-  res.sendFile(path.join(__dirname, '../dist/index.html'));
+  res.sendFile(path.join(WEB_DIST_DIR, 'index.html'));
 });
 
 app.listen(PORT, () => {

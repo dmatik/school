@@ -14,18 +14,16 @@ Welcome to `school`. This document serves as the primary project-level instructi
    * Always create and work on a dedicated side branch (e.g., `feature/<name>`, `fix/<name>`, `chore/<name>`).
    * When instructed by the user to commit and push, always push to the side branch and open a Pull Request.
 3. **Testing & Runner Discipline**:
-   * **Vitest** runs unit and component tests (`src/**/*.{test,spec}.{ts,tsx}`) inside `happy-dom`. This is the **only** test suite that runs in GitHub Actions CI.
-   * **Playwright** runs end-to-end browser tests (`e2e/*.spec.ts`) **locally only**. Never add Playwright commands or browser installs to `.github/workflows/`.
+   * **Jest** runs all unit and component tests: `server/__tests__/*.test.ts` (Node ESM) and `app/__tests__/*.test.{ts,tsx}` (`jest-expo` + `@testing-library/react-native`). This is the **only** test suite that runs in GitHub Actions CI.
+   * **Playwright** (`e2e/*.spec.ts`) and **Maestro** (`app/.maestro/`) run **locally only** against isolated ephemeral SQLite databases. Never add Playwright or Maestro commands to `.github/workflows/`.
    * **Zero Test Pollution**: All Playwright E2E tests **must** create a dedicated, uniquely-named temporary user (`createTestUser('admin')` from `e2e/helpers/auth.ts`) and tear it down in `afterEach`. Never mutate or log in as existing production records (`admin-default`).
 4. **Bilingual & RTL Integrity**:
    * The app supports **Hebrew (RTL, default)** and **English (LTR)**.
-   * Never hardcode user-facing strings in JSX. Always add translation keys to **both** [`src/locales/he.json`](src/locales/he.json) and [`src/locales/en.json`](src/locales/en.json).
-   * Never use physical CSS directions (`left-`, `right-`, `pl-`, `pr-`, `ml-`, `mr-`, `text-left`, `text-right`). Always use logical Tailwind properties: `start-`, `end-`, `ps-`, `pe-`, `ms-`, `me-`, `text-start`, `text-end`.
+   * Never hardcode user-facing strings in JSX. Always add translation keys to **both** [`shared/locales/he.json`](shared/locales/he.json) and [`shared/locales/en.json`](shared/locales/en.json).
+   * Respect logical layout and `useDirection()` (`flexRow`, `textAlign`, `writingDirection`) across mobile and web viewports.
 5. **Shared Components & Storybook Mandate (Zero Code Duplication)**:
-   * **Zero Duplication**: Never duplicate UI markup, form controls, modals, cards, badges, or button styles across pages. Every UI element **must** be built using the shared components in [`src/components/ui/`](src/components/ui).
-   * **Build Shared First**: If a new UI element, field variant, card layout, or modal pattern is needed, create or extend a shared component in `src/components/ui/` first and consume it across views.
-   * **Storybook Single Source of Truth**: Every new or modified shared UI component or variant **must** be added or updated in [`src/stories/`](src/stories) (and documented in [`src/stories/Introduction.mdx`](src/stories/Introduction.mdx)).
-   * **Code Review Enforcement**: Every code review **must** verify that no ad-hoc or duplicated UI markup was introduced and that Storybook stories are up to date.
+   * **Zero Duplication**: Never duplicate UI markup, form controls, modals, cards, badges, or button styles across screens. Every UI element **must** be built using the shared components in [`app/src/components/ui/`](app/src/components/ui).
+   * **Storybook Single Source of Truth**: New or modified shared UI components or variants **must** be cataloged in React Native Storybook ([`app/src/stories/`](app/src/stories)).
 
 ---
 
@@ -35,12 +33,12 @@ To prevent hallucinated dependencies and architectural mismatches, adhere strict
 
 | Layer | Standard In This Project | Strict Rules & What NOT to Do |
 | :--- | :--- | :--- |
-| **Frontend Framework** | **React 19** + **TypeScript 6** + **Vite 7** | Ref is a standard prop in React 19 (no `forwardRef`). Use functional components and hooks only. |
-| **UI Components** | **Radix UI Primitives** + **Tailwind CSS 3.4** + **Storybook 8** | All shared components live in [`src/components/ui/`](src/components/ui) and are cataloged in [`src/stories/`](src/stories). Combine classes using `cn()` from `@/lib/utils`. Never duplicate UI markup; always use shared components and update Storybook. Do not install extra component libraries (MUI, Chakra, AntD). |
-| **Icons** | **Lucide React** (`lucide-react`) | Use existing Lucide icons. |
-| **State & HTTP** | React Hooks (`useState`, `useEffect`) + Native `fetch` | No Axios, Redux, or TanStack Query. Use native `fetch` with `Authorization: Bearer ${token}`. |
-| **Dates** | **`date-fns` v3** (`format`, `parseISO`, `addDays`, `he`/`enUS` locales) | Do not install `moment` or `dayjs`. |
-| **Backend API** | **Express 5** (`server/index.js`) | Express 5 handles rejected Promises natively. Routes are proxied from Vite via `/api` to port 3001. |
+| **Frontend Framework** | **Expo (React Native 0.88 + React 19 + TypeScript 6)** | Single cross-platform codebase in `app/` for iOS, Android, and Web (`expo export -p web` co-hosted by `server/index.js`). |
+| **UI Components** | **React Native + Lucide React Native + RN Storybook** | Shared components live in [`app/src/components/ui/`](app/src/components/ui) and stories in [`app/src/stories/`](app/src/stories). |
+| **Icons** | **Lucide React Native** (`lucide-react-native`) | Use existing Lucide icons. |
+| **State & HTTP** | React Hooks + `apiFetch` (`app/src/lib/api.ts`) | Native `fetch` with `Authorization: Bearer ${token}`. |
+| **Dates** | **`date-fns` v4** (`format`, `parseISO`, `addDays`, `he`/`enUS` locales) | Do not install `moment` or `dayjs`. |
+| **Backend API** | **Express 5** (`server/index.js`) | Express 5 handles rejected Promises natively. Serves co-hosted Expo Web static bundle from `app/dist`. |
 | **Database** | **Better-SQLite3** (`server/db.js` $\rightarrow$ `data/school.db`) | **SYNCHRONOUS API ONLY**: `db.prepare(...).run()`, `.get()`, `.all()`. Never write `await db...`. All queries must use parameterized bindings (`?`). |
 | **Authentication** | **JWT** (`jsonwebtoken`) + **Bcrypt** (`bcryptjs`) + **WebAuthn** (`@simplewebauthn`) | Passwords hashed with salt 10. Sessions verified via Bearer tokens. |
 | **PWA** | `vite-plugin-pwa` | Web app manifest with standalone display, RTL support, and mobile icons in `public/`. |
@@ -49,18 +47,19 @@ To prevent hallucinated dependencies and architectural mismatches, adhere strict
 
 ## 3. Directory Layout & Key Entry Points
 
-* `src/`: React 19 application
-  * `src/components/`: Primary application views (`IncidentsPage`, `HomeworkPage`, `ExamsPage`, `SchedulePage`, `SettingsPage`, `AdminPage`, `AccountPage`, `LoginView`, `LanguageSwitcher`, `ModeToggle`).
-  * `src/components/ui/`: Shared UI components & Radix primitives styled with Tailwind (`SectionCard`, `Modal`, `ConfirmModal`, `FilledInput`, `FilledTextarea`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `Button`, `EditButton`, `DestructiveButton`, `SyncButton`, `LogoutButton`, `FloatingActionButton`, `PageHeader`, `Header`, `Sidebar`, `Dock`, `LiquidTabs`, `ChildBadge`, `StatusBadge`, `DateBadge`, `SubjectIconBadge`, `UserAvatar`, `ColorSwatchPicker`, `HomeworkCard`, `IncidentCard`, `ExamCard`, `AdminUserRow`, `ScheduleTable`, `EmptyStateCard`, `InfoBox`, `SectionDateHeader`, `Separator`, etc.).
-  * `src/stories/`: Storybook 8 component catalog (`1-fields-and-inputs/`, `2-buttons-and-nav/`, `3-badges-and-pickers/`, `4-surfaces-and-cards/`, `Introduction.mdx`).
-  * `src/locales/`: Localization files (`he.json` and `en.json`).
-  * `src/lib/`: Utilities (`cn`, `uuidv4`, `webauthn.ts`, `image.ts`).
-  * `src/types.ts`: TypeScript interfaces (`User`, `Incident`, `HomeworkItem`).
+* `app/`: Expo (iOS, Android, and Web) React Native application
+  * `app/src/screens/`: Primary application screens (`IncidentsScreen`, `HomeworkScreen`, `ExamsScreen`, `ScheduleScreen`, `SettingsScreen`, `AdminScreen`, `AccountScreen`, `LoginScreen`).
+  * `app/src/components/ui/`: Shared UI components (`SectionCard`, `Modal`, `FullScreenModal`, `ConfirmModal`, `FilledInput`, `FilledTextarea`, `IconInput`, `CounterField`, `ReadOnlyPillField`, `TimePresetInput`, `Button`, `EditButton`, `DestructiveButton`, `SyncButton`, `FloatingActionButton`, `PageHeader`, `MobileHeader`, `AppSidebar`, `LiquidDock`, `LiquidTabs`, `ChildBadge`, `StatusBadge`, `SubjectIconBadge`, `UserAvatar`, `ColorSwatchPicker`, `HomeworkCard`, `IncidentCard`, `ExamCard`, `AdminUserRow`, `ScheduleTable`, `EmptyStateCard`, `InfoBox`, `SectionDateHeader`, etc.).
+  * `app/src/stories/`: React Native Storybook component catalog.
+  * `app/src/lib/`: Utilities (`api.ts`, `colors.ts`, `dateUtils.ts`, `homeworkUtils.ts`, `passkey.ts`, `schedulePdf.ts`, `storage.ts`, `subjectIcons.ts`).
+  * `app/__tests__/`: Jest (`jest-expo`) unit and component tests.
+* `shared/`: Shared TypeScript types, localization files (`he.json`, `en.json`), palettes, WebAuthn P-256 helpers, and shared schedule PDF generator
 * `server/`: Node.js Express 5 backend
-  * `server/index.js`: Express REST API endpoints, JWT auth middleware, WebAuthn passkey routes, incidents/homework endpoints.
+  * `server/index.js`: Express REST API endpoints, JWT auth middleware, WebAuthn passkey routes, incidents/homework/exams/schedule endpoints, and static serving of `app/dist`.
   * `server/db.js`: Better-SQLite3 initialization (`initDb()`), WAL mode, schema declarations, default admin seeder.
+  * `server/__tests__/`: Jest Node ESM backend & shared-module tests.
 * `data/`: SQLite database storage (`school.db`, `school.db-wal`, `school.db-shm`).
-* `e2e/`: Local Playwright test suites (`auth.spec.ts`, `navigation.spec.ts`).
+* `e2e/`: Local Playwright test suites (`auth.spec.ts`, `navigation.spec.ts`, `schedule.spec.ts`) running against the co-hosted Expo Web build.
   * `e2e/helpers/auth.ts` & `test-user.ts`: Utilities for isolated test user creation and automatic teardown.
 
 ---
@@ -104,16 +103,17 @@ Synthesize the four evaluations into a unified, actionable report covering archi
 
 Before completing any task, always verify your changes:
 ```bash
-# 1. Typecheck & Build
+# 1. Typecheck & Build (Expo Web)
+npm run typecheck
 npm run build
 
 # 2. Linting
 npm run lint
 
-# 3. Unit & Component Tests (Vitest)
+# 3. Unit & Component Tests (Jest: server + app)
 npm test
 
-# 4. Local E2E Tests (Playwright)
+# 4. Local E2E Tests (Playwright against Expo Web)
 npm run test:e2e
 ```
 
