@@ -24,10 +24,13 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      run: npm ci
+      run: npm ci && npm --prefix mobile ci
+
+    - name: Typecheck & Lint Mobile/Web
+      run: npm run mobile:typecheck && npm --prefix mobile run lint
 
     - name: Build Code
-      run: npm run build
+      run: npm run build && npm run mobile:web:build
 
     - name: Run Tests
-      run: npm run test
+      run: npm test

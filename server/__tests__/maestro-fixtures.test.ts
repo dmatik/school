@@ -2,10 +2,10 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import { randomBytes } from 'crypto';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from '@jest/globals';
 import Database from 'better-sqlite3';
 import { createEphemeralDb, removeEphemeralDb } from '../../mobile/scripts/maestro-fixtures.mjs';
-import { WebtopClient } from '../../server/webtop.js';
+import { WebtopClient } from '../webtop.js';
 
 describe('Maestro E2E fixtures and isolation', () => {
   const tempDbPaths: string[] = [];

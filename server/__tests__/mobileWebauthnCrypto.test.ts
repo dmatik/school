@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect } from '@jest/globals';
 import {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -10,11 +10,11 @@ import {
   buildWebAuthnAssertion,
   p256SignDer,
   randomBytes,
-} from '../lib/webauthn-crypto-p256';
+} from '../../src/lib/webauthn-crypto-p256';
 import {
   filterSavedPasskeyAccounts,
   type StoredPasskeyEntry,
-} from '../lib/passkey-accounts';
+} from '../../src/lib/passkey-accounts';
 
 describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
   it('generates registration and authentication payloads verified by @simplewebauthn/server', async () => {
@@ -54,7 +54,6 @@ describe('mobile WebAuthn FIDO2 P-256 Passkey crypto engine', () => {
     expect(regVerification.verified).toBe(true);
     expect(regVerification.registrationInfo?.credential.id).toBe(credentialId);
 
-    // Now verify authentication assertion with the registered public key
     const authOptions = await generateAuthenticationOptions({
       rpID,
       userVerification: 'preferred',

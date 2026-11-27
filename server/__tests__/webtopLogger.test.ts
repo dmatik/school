@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { createWebtopLogger, createLogger, getLogLevel, maskUser, formatJerusalemTime } from '../../server/webtopLogger.js';
-import { WebtopClient, WebtopAuthError, clearWebtopSession } from '../../server/webtop.js';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
+import { createWebtopLogger, createLogger, getLogLevel, maskUser, formatJerusalemTime } from '../webtopLogger.js';
+import { WebtopClient, WebtopAuthError, clearWebtopSession } from '../webtop.js';
 
-const makeSink = () => ({ log: vi.fn(), warn: vi.fn(), error: vi.fn() });
-const all = (s: ReturnType<typeof makeSink>) => [...s.log.mock.calls, ...s.warn.mock.calls, ...s.error.mock.calls].map(c => c.join(' ')).join('\n');
+const makeSink = () => ({ log: jest.fn(), warn: jest.fn(), error: jest.fn() });
+const all = (s: ReturnType<typeof makeSink>) =>
+  [...s.log.mock.calls, ...s.warn.mock.calls, ...s.error.mock.calls].map((c) => c.join(' ')).join('\n');
 
 describe('Webtop leveled logger', () => {
   it('defaults to errors and falls back on invalid values', () => {
@@ -67,30 +68,30 @@ describe('Webtop leveled logger', () => {
   });
 
   it('formats timestamp in Asia/Jerusalem timezone', () => {
-    // 2026-01-15T12:34:56.789Z in UTC is winter in Israel (UTC+2) -> 14:34:56.789
     const winterUtc = new Date('2026-01-15T12:34:56.789Z');
     expect(formatJerusalemTime(winterUtc)).toBe('2026-01-15 14:34:56.789');
 
-    // 2026-07-15T12:34:56.123Z in UTC is daylight saving in Israel (UTC+3) -> 15:34:56.123
     const summerUtc = new Date('2026-07-15T12:34:56.123Z');
     expect(formatJerusalemTime(summerUtc)).toBe('2026-07-15 15:34:56.123');
   });
 });
 
 describe('Webtop client logging', () => {
+  const originalFetch = globalThis.fetch;
   let sink: ReturnType<typeof makeSink>;
   const okJson = (body: unknown) => new Response(JSON.stringify(body), { status: 200 });
 
   beforeEach(() => {
     clearWebtopSession();
     sink = makeSink();
-    vi.spyOn(console, 'log').mockImplementation(sink.log);
-    vi.spyOn(console, 'warn').mockImplementation(sink.warn);
-    vi.spyOn(console, 'error').mockImplementation(sink.error);
+    jest.spyOn(console, 'log').mockImplementation(sink.log);
+    jest.spyOn(console, 'warn').mockImplementation(sink.warn);
+    jest.spyOn(console, 'error').mockImplementation(sink.error);
   });
+
   afterEach(() => {
-    vi.restoreAllMocks();
-    vi.unstubAllGlobals();
+    jest.restoreAllMocks();
+    globalThis.fetch = originalFetch;
     delete process.env.LOG_LEVEL;
   });
 
@@ -99,7 +100,7 @@ describe('Webtop client logging', () => {
       process.env.LOG_LEVEL = level;
       sink.error.mockClear();
       clearWebtopSession();
-      vi.stubGlobal('fetch', vi.fn(async () => okJson({ status: false, message: 'bad' })));
+      globalThis.fetch = jest.fn(async () => okJson({ status: false, message: 'bad' })) as unknown as typeof fetch;
       await expect(new WebtopClient().login('dmitry', 'SuperSecret1')).rejects.toBeInstanceOf(WebtopAuthError);
       expect(sink.error).toHaveBeenCalledTimes(1);
       const out = all(sink);
@@ -110,18 +111,18 @@ describe('Webtop client logging', () => {
   });
 
   it('successful login and call are printed only at "all"', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    globalThis.fetch = jest.fn(async (url: string) => {
       if (url.includes('Login')) return okJson({ status: true, data: { token: 'tok-secret' } });
       if (url.includes('InitDashboard')) {
         return okJson({
           status: true,
           data: {
-            childrens: [{ id: 'child123', firstName: 'Dana', lastName: 'Levi' }]
-          }
+            childrens: [{ id: 'child123', firstName: 'Dana', lastName: 'Levi' }],
+          },
         });
       }
       return okJson({ status: true, data: {} });
-    }));
+    }) as unknown as typeof fetch;
 
     process.env.LOG_LEVEL = 'errors';
     const c1 = new WebtopClient();
@@ -146,8 +147,9 @@ describe('Webtop client logging', () => {
 
   it('non-auth call failures are printed at "errors" level', async () => {
     process.env.LOG_LEVEL = 'errors';
-    vi.stubGlobal('fetch', vi.fn(async (url: string) =>
-      url.includes('Login') ? okJson({ status: true, data: { token: 't' } }) : new Response('', { status: 503 })));
+    globalThis.fetch = jest.fn(async (url: string) =>
+      url.includes('Login') ? okJson({ status: true, data: { token: 't' } }) : new Response('', { status: 503 })
+    ) as unknown as typeof fetch;
     const c = new WebtopClient();
     await c.useSession('dmitry', 'pw');
     await expect(c.initDashboard()).rejects.toThrow();
@@ -157,7 +159,7 @@ describe('Webtop client logging', () => {
   it('retries transient ECONNRESET fetch errors on login and API calls', async () => {
     process.env.LOG_LEVEL = 'all';
     let loginAttempts = 0;
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+    globalThis.fetch = jest.fn(async (url: string) => {
       if (url.includes('Login')) {
         loginAttempts++;
         if (loginAttempts === 1) {
@@ -168,7 +170,7 @@ describe('Webtop client logging', () => {
         return okJson({ status: true, data: { token: 'tok' } });
       }
       return okJson({ status: true, data: { childrens: [] } });
-    }));
+    }) as unknown as typeof fetch;
 
     const c = new WebtopClient();
     await c.useSession('dmitry', 'pw');

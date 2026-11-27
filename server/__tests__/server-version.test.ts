@@ -1,9 +1,9 @@
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { resolveServerVersion } from '../../server/version.js';
-import { fetchHealthVersion } from '../lib/server-version';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { resolveServerVersion } from '../version.js';
+import { fetchHealthVersion } from '../../src/lib/server-version';
 
 describe('resolveServerVersion', () => {
   let tmpDir: string;
@@ -41,7 +41,7 @@ describe('resolveServerVersion', () => {
 
 describe('fetchHealthVersion', () => {
   it('returns the live server version reported by /api/health', async () => {
-    const fetcher = vi.fn().mockResolvedValue({
+    const fetcher = jest.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       json: async () => ({ status: 'ok', app: 'school', version: '1.5.2' }),
     } as Response);
@@ -56,7 +56,7 @@ describe('fetchHealthVersion', () => {
   });
 
   it('returns null when an older server omits version from /api/health', async () => {
-    const fetcher = vi.fn().mockResolvedValue({
+    const fetcher = jest.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       json: async () => ({ status: 'ok', app: 'school' }),
     } as Response);
@@ -65,16 +65,16 @@ describe('fetchHealthVersion', () => {
   });
 
   it('returns null on HTTP errors, invalid app payload, or network failure', async () => {
-    const httpError = vi.fn().mockResolvedValue({ ok: false, status: 503 } as Response);
+    const httpError = jest.fn<typeof fetch>().mockResolvedValue({ ok: false, status: 503 } as Response);
     expect(await fetchHealthVersion(httpError)).toBeNull();
 
-    const wrongApp = vi.fn().mockResolvedValue({
+    const wrongApp = jest.fn<typeof fetch>().mockResolvedValue({
       ok: true,
       json: async () => ({ status: 'ok', app: 'other', version: '1.0.0' }),
     } as Response);
     expect(await fetchHealthVersion(wrongApp)).toBeNull();
 
-    const networkError = vi.fn().mockRejectedValue(new Error('Network error'));
+    const networkError = jest.fn<typeof fetch>().mockRejectedValue(new Error('Network error'));
     expect(await fetchHealthVersion(networkError)).toBeNull();
   });
 });
