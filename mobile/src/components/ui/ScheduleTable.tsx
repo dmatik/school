@@ -56,8 +56,7 @@ export function ScheduleTable({
   const hasAutoScrolledRef = useRef(false);
 
   const editable = canEditProp ?? isEditMode;
-  const todayDayOfWeek = useMemo(() => new Date().getDay(), []);
-  const currentDay = currentDayOfWeekProp ?? todayDayOfWeek;
+  const currentDay = currentDayOfWeekProp ?? new Date().getDay();
 
   // Match Web initial target day (showing 3 days at a time):
   // Wed(3)/Thu(4)/Fri(5) -> 3 (Wed..Fri); Sat(6) -> 0 (Sun..Tue); Sun..Tue -> currentDay
@@ -121,7 +120,7 @@ export function ScheduleTable({
     return isRTL ? (3 - clamped) * dayColWidth : clamped * dayColWidth;
   };
 
-  const autoScrollKey = `${resetScrollKey ?? ''}|${isRTL ? 'rtl' : 'ltr'}|${initialTargetDay}`;
+  const autoScrollKey = `${resetScrollKey ?? ''}|${isRTL ? 'rtl' : 'ltr'}|${currentDay}|${initialTargetDay}`;
 
   const performAutoScroll = (animated: boolean) => {
     if (!scrollRef.current || dayColWidth <= 0) return;

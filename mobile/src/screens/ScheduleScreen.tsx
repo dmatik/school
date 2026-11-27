@@ -1,9 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  AppState,
   View,
   ActivityIndicator,
   StyleSheet,
+  type AppStateStatus,
 } from 'react-native';
 import { CalendarDays, Pencil, Check, Share2, Trash2 } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
@@ -51,6 +53,7 @@ export function ScheduleScreen({
   const [loading, setLoading] = useState(true);
   const [sharingPdf, setSharingPdf] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
+  const [currentDayOfWeek, setCurrentDayOfWeek] = useState(() => new Date().getDay());
 
   const [editingLesson, setEditingLesson] = useState<{
     dayOfWeek: number;
@@ -128,6 +131,50 @@ export function ScheduleScreen({
   useEffect(() => {
     loadConfig();
   }, [loadConfig, syncTrigger]);
+
+  // Keep currentDayOfWeek in sync when returning from background, syncing, or crossing midnight
+  useEffect(() => {
+    let midnightTimer: ReturnType<typeof setTimeout> | null = null;
+
+    const syncDayOfWeek = () => {
+      const nextDay = new Date().getDay();
+      setCurrentDayOfWeek((prev) => (prev === nextDay ? prev : nextDay));
+    };
+
+    const scheduleMidnightUpdate = () => {
+      if (midnightTimer) clearTimeout(midnightTimer);
+      const now = new Date();
+      const nextMidnight = new Date(
+        now.getFullYear(),
+        now.getMonth(),
+        now.getDate() + 1,
+        0,
+        0,
+        0,
+        50
+      );
+      const msUntilMidnight = Math.max(1_000, nextMidnight.getTime() - now.getTime());
+      midnightTimer = setTimeout(() => {
+        syncDayOfWeek();
+        scheduleMidnightUpdate();
+      }, msUntilMidnight);
+    };
+
+    syncDayOfWeek();
+    scheduleMidnightUpdate();
+
+    const subscription = AppState.addEventListener('change', (nextAppState: AppStateStatus) => {
+      if (nextAppState === 'active') {
+        syncDayOfWeek();
+        scheduleMidnightUpdate();
+      }
+    });
+
+    return () => {
+      if (midnightTimer) clearTimeout(midnightTimer);
+      subscription.remove();
+    };
+  }, [syncTrigger]);
 
   useEffect(() => {
     if (selectedChildId) {
@@ -318,6 +365,7 @@ export function ScheduleScreen({
             lessons={lessons}
             finishTimes={finishTimes}
             childColorId={currentChild?.color}
+            currentDayOfWeek={currentDayOfWeek}
             isEditMode={isEditMode}
             canEdit={isParent && isEditMode}
             resetScrollKey={selectedChildId}
