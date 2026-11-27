@@ -469,7 +469,6 @@ describe('Mobile & Desktop Shared UI Components', () => {
   describe('FormFields', () => {
     it('renders text inputs, counter bounds, time presets, search, select, switch, and color picker', () => {
       const onChangeText = jest.fn();
-      const onCountChange = jest.fn();
       const onTimeChange = jest.fn();
       const onSearchChange = jest.fn();
       const onSelectChange = jest.fn();

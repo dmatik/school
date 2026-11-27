@@ -176,7 +176,7 @@ describe('ExamsScreen', () => {
   });
 
   it('opens Add Exam modal and creates a new exam via POST /api/exams', async () => {
-    const { getByTestId, getByPlaceholderText, getByText } = render(
+    const { getByTestId, getByPlaceholderText } = render(
       <TestProviders>
         <ExamsScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>

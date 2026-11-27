@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from 'react';
 import {
-  Modal,
   Pressable,
   Text,
   View,
@@ -49,7 +48,7 @@ function CalendarModal({
   clearable: boolean;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette, isDark } = useTheme();
+  const { palette } = useTheme();
   const { isRTL, flexRow } = useDirection();
   const dateLocale = (i18n.language || 'he').startsWith('en') ? enUS : he;
 
@@ -259,7 +258,7 @@ export function DatePickerField({
   testID?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette, isDark } = useTheme();
+  const { palette } = useTheme();
   const { flexRow, textAlign } = useDirection();
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
