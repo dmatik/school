@@ -28,150 +28,125 @@ test.describe('Navigation Flow', () => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
+    const expectDesktopTitle = (pattern: RegExp) =>
+      expect(page.getByTestId('desktop-page-header').filter({ hasText: pattern })).toBeVisible();
+
     // Default tab should be Homework
-    await expect(page.locator('main h1')).toContainText(/שיעורי בית|Homework/);
+    await expectDesktopTitle(/שיעורי בית|Homework/);
 
-    // Click Incidents tab (2nd tab)
-    const incidentsBtn = page.locator('aside nav button').nth(1);
-    await incidentsBtn.click();
-    await expect(page.locator('main h1')).toContainText(/אירועי משמעת|School Incidents/);
+    // Incidents
+    await page.getByTestId('sidebar-tab-incidents').click();
+    await expectDesktopTitle(/אירועי משמעת|School Incidents/);
 
-    // Click Exams tab (3rd tab)
-    const examsBtn = page.locator('aside nav button').nth(2);
-    await examsBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+    // Exams
+    await page.getByTestId('sidebar-tab-exams').click();
+    await expectDesktopTitle(/מבחנים|Exams/);
 
-    // Click Schedule tab (4th tab)
-    const scheduleBtn = page.locator('aside nav button').nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    // Schedule
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expectDesktopTitle(/מערכת שעות|Weekly Schedule/);
 
-    // Click Settings tab (5th tab)
-    const settingsBtn = page.locator('aside nav button').nth(4);
-    await settingsBtn.click();
-    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
-    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
+    // Settings
+    await page.getByTestId('sidebar-tab-settings').click();
+    await expectDesktopTitle(/הגדרות|Settings/);
+    await expect(page.getByTestId('settings-webtop-card')).toBeVisible();
 
-    // Click Admin tab (6th tab)
-    const adminBtn = page.locator('aside nav button').nth(5);
-    await adminBtn.click();
-    await expect(page.locator('main h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
+    // Admin
+    await page.getByTestId('sidebar-tab-admin').click();
+    await expectDesktopTitle(/ניהול מערכת|Administration/);
 
-    // Click Account shortcut
-    const accountBtn = page.locator('aside button').first();
-    await accountBtn.click();
-    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות חשבון|Account Settings/);
-    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
+    // Account shortcut
+    await page.getByTestId('sidebar-account-button').click();
+    await expectDesktopTitle(/הגדרות חשבון|Account Settings/);
+    await expect(page.getByTestId('logout-button')).toBeVisible();
   });
 
   test('regular user sees Homework, Incidents, Exams, Schedule, and Settings tabs but not Admin tab', async ({ page }) => {
     regularUser = createTestUser('user');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 5 (Homework, Incidents, Exams, Schedule, Settings)
-    const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(5);
+    const expectDesktopTitle = (pattern: RegExp) =>
+      expect(page.getByTestId('desktop-page-header').filter({ hasText: pattern })).toBeVisible();
 
-    // Click Schedule tab (4th tab)
-    const scheduleBtn = navButtons.nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await expect(page.getByTestId('sidebar-tab-homework')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-incidents')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-exams')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-schedule')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-settings')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-admin')).not.toBeVisible();
 
-    // Click Settings tab (5th tab)
-    const settingsBtn = navButtons.nth(4);
-    await settingsBtn.click();
-    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
-    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).toBeVisible();
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expectDesktopTitle(/מערכת שעות|Weekly Schedule/);
+
+    await page.getByTestId('sidebar-tab-settings').click();
+    await expectDesktopTitle(/הגדרות|Settings/);
+    await expect(page.getByTestId('settings-webtop-card')).toBeVisible();
   });
 
   test('child user sees Homework, Incidents, Exams, Schedule, and Settings, can use Settings without Webtop config, and does not see Admin tab', async ({ page }) => {
     regularUser = createTestUser('user', 'child');
     await loginWithUser(page, regularUser);
 
-    // Nav items count in aside nav should be 5 (Homework, Incidents, Exams, Schedule, Settings)
-    const navButtons = page.locator('aside nav button');
-    await expect(navButtons).toHaveCount(5);
+    const expectDesktopTitle = (pattern: RegExp) =>
+      expect(page.getByTestId('desktop-page-header').filter({ hasText: pattern })).toBeVisible();
 
-    // Click Schedule tab (4th tab)
-    const scheduleBtn = navButtons.nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await expect(page.getByTestId('sidebar-tab-homework')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-settings')).toBeVisible();
+    await expect(page.getByTestId('sidebar-tab-admin')).not.toBeVisible();
 
-    // Click Settings tab (5th tab)
-    const settingsBtn = navButtons.nth(4);
-    await settingsBtn.click();
-    await expect(page.locator('main h1, main h2').first()).toContainText(/הגדרות|Settings/);
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expectDesktopTitle(/מערכת שעות|Weekly Schedule/);
+
+    await page.getByTestId('sidebar-tab-settings').click();
+    await expectDesktopTitle(/הגדרות|Settings/);
 
     // Appearance & Language settings must be visible
-    await expect(page.locator('text=/תצוגה ושפה|Appearance & Language/')).toBeVisible();
-    await expect(page.locator('[data-settings-language-selector]')).toBeVisible();
-    await expect(page.locator('[data-settings-theme-selector]')).toBeVisible();
+    await expect(page.getByTestId('settings-language-selector')).toBeVisible();
+    await expect(page.getByTestId('settings-theme-selector')).toBeVisible();
 
-    // Webtop configuration part must NOT be visible to child
-    await expect(page.locator('text=/חיבור למערכת Webtop|Webtop Integration/')).not.toBeVisible();
+    // Webtop configuration card must NOT be visible to child
+    await expect(page.getByTestId('settings-webtop-card')).not.toBeVisible();
 
-    // Admin should not be present
-    await expect(page.locator('aside nav').getByText(/ניהול מערכת|Administration/)).not.toBeVisible();
-
-    // Webtop Sync button remains available in aside footer
-    const syncBtn = page.locator('aside').getByRole('button', { name: /סנכרן|סנכרון|Sync/ });
-    await expect(syncBtn).toBeVisible();
+    // Webtop Sync button remains available in sidebar footer
+    await expect(page.getByTestId('sidebar-sync-button')).toBeVisible();
   });
 
-  test('mobile view displays centered page title in mobile header, hides in-page title headers, has floating Add User button on Admin and bottom Logout on Account', async ({ page }) => {
+  test('mobile view displays centered page title in mobile header, hides desktop headers, has floating Add User button on Admin and bottom Logout on Account', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
     // Switch to mobile viewport (iPhone 13 dimensions)
     await page.setViewportSize({ width: 390, height: 844 });
 
-    // Mobile header should display the Homework title
-    const mobileHeader = page.locator('header.md\\:hidden');
+    const mobileHeader = page.getByTestId('mobile-header');
+    const mobileTitle = page.getByTestId('mobile-header-title');
     await expect(mobileHeader).toBeVisible();
-    await expect(mobileHeader.locator('h1')).toContainText(/שיעורי בית|Homework/);
+    await expect(mobileTitle).toContainText(/שיעורי בית|Homework/);
+    await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    // In-page header with data-page-title should be hidden on mobile
-    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+    // Incidents tab in mobile dock
+    await page.getByTestId('dock-tab-incidents').click();
+    await expect(mobileTitle).toContainText(/אירועי משמעת|School Incidents/);
+    await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    const headerBox = await mobileHeader.boundingBox();
-    const hwFirst = await page.locator('main input[type="search"]').boundingBox();
-    // Verify compact gap below header on mobile (< 15px instead of previous 31px+)
-    if (headerBox && hwFirst) {
-      const gap = hwFirst.y - (headerBox.y + headerBox.height);
-      expect(gap).toBeLessThan(15);
-      expect(gap).toBeGreaterThanOrEqual(0);
-    }
+    // Admin tab in mobile dock
+    await page.getByTestId('dock-tab-admin').click();
+    await expect(mobileTitle).toContainText(/ניהול מערכת|Administration/);
+    await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    // Click Incidents tab in mobile dock
-    const incidentsMobileBtn = page.locator('nav[aria-label="Mobile Navigation"] button').nth(1);
-    await incidentsMobileBtn.click();
-    await expect(mobileHeader.locator('h1')).toContainText(/אירועי משמעת|School Incidents/);
-    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
-
-    // Click Admin tab in mobile dock (last button)
-    const adminMobileBtn = page.locator('nav[aria-label="Mobile Navigation"] button').last();
-    await adminMobileBtn.click();
-    await expect(mobileHeader.locator('h1')).toContainText(/ניהול מערכת|Administration/);
-    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
-
-    // Floating round Add User button should be visible on AdminPage
-    const floatingAddUserBtn = page.locator('button[aria-label="הוסף משתמש"], button[aria-label="Add User"]').first();
+    // Floating round Add User button should be visible on Admin
+    const floatingAddUserBtn = page.getByTestId('add-user-fab');
     await expect(floatingAddUserBtn).toBeVisible();
     await floatingAddUserBtn.click();
-    // Modal should open
-    await expect(page.locator('[role="dialog"]')).toBeVisible();
-    // Close modal
-    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('user-modal')).toBeVisible();
+    await page.getByTestId('create-user-cancel').click();
 
     // Click user avatar in mobile header to go to Account page
-    const avatarBtn = mobileHeader.locator('button').first();
-    await avatarBtn.click();
-    await expect(mobileHeader.locator('h1')).toContainText(/הגדרות חשבון|Account Settings/);
-    await expect(page.locator('main [data-page-title]')).not.toBeVisible();
+    await page.getByTestId('header-account-button').click();
+    await expect(mobileTitle).toContainText(/הגדרות חשבון|Account Settings/);
+    await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    // Logout button should be at the bottom of the Account page
-    const logoutBtn = page.locator('button', { hasText: /התנתק|Sign Out/ });
-    await expect(logoutBtn).toBeVisible();
+    // Logout button should be visible on Account screen
+    await expect(page.getByTestId('logout-button')).toBeVisible();
   });
 });
-

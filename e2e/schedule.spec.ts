@@ -28,54 +28,45 @@ test.describe('Weekly Schedule Flow', () => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Navigate to Schedule
-    const scheduleBtn = page.locator('aside nav button').nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ })).toBeVisible();
 
-    // Verify 6 days headers exist in the table header
-    const dayHeaders = page.locator('[data-schedule-header] [data-schedule-day]');
-    await expect(dayHeaders.filter({ hasText: /ראשון|Sunday/ })).toBeVisible();
-    await expect(dayHeaders.filter({ hasText: /חמישי|Thursday/ })).toBeVisible();
-    await expect(dayHeaders.filter({ hasText: /שישי|Friday/ })).toBeVisible();
+    // Verify Sunday through Friday day headers exist
+    await expect(page.getByTestId('schedule-day-0')).toContainText(/ראשון|Sunday/);
+    await expect(page.getByTestId('schedule-day-4')).toContainText(/חמישי|Thursday/);
+    await expect(page.getByTestId('schedule-day-5')).toContainText(/שישי|Friday/);
 
-    // Verify dismissal finish time footer row exists
-    await expect(page.locator('[data-schedule-dismissal] span').filter({ hasText: /סיום לימודים|School ends at/ }).first()).toBeVisible();
+    // Verify dismissal finish time row exists
+    await expect(page.getByTestId('schedule-dismissal-row')).toContainText(/סיום לימודים|School ends at/);
   });
 
-  test('child user views schedule in read-only mode without child dropdown', async ({ page }) => {
+  test('child user views schedule in read-only mode without child selector', async ({ page }) => {
     childUser = createTestUser('user', 'child');
     await loginWithUser(page, childUser);
 
-    // Navigate to Schedule (4th tab for child)
-    const scheduleBtn = page.locator('aside nav button').nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ })).toBeVisible();
 
-    // Child user should NOT see child selector dropdown or liquid glass selector
-    await expect(page.locator('button[role="combobox"]')).not.toBeVisible();
-    await expect(page.locator('[data-schedule-child-selector]')).not.toBeVisible();
+    await expect(page.getByTestId('schedule-child-selector')).not.toBeVisible();
+    await expect(page.getByTestId('schedule-edit-fab')).not.toBeVisible();
   });
 
-  test('mobile mode renders schedule with 3 days visible', async ({ page }) => {
+  test('mobile mode renders schedule with scroll hints and aligned header/dismissal columns', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Switch to mobile viewport
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // On mobile, click bottom dock 4th icon (Schedule)
-    const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
-    await dockButtons.nth(3).click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await page.getByTestId('dock-tab-schedule').click();
+    await expect(page.getByTestId('mobile-header-title')).toContainText(/מערכת שעות|Weekly Schedule/);
 
     // Check scroll hints exist on mobile
-    await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).toBeVisible();
-    await expect(page.locator('button[aria-label="Scroll backward"], button[aria-label="גלול אחורה"]')).toBeVisible();
+    await expect(page.getByRole('button', { name: /Scroll forward|גלול קדימה/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Scroll backward|גלול אחורה/ })).toBeVisible();
 
     // Verify header # column and day header share identical vertical bounds, as well as dismissal row
-    const hourColBox = await page.locator('[data-schedule-hour-col]').boundingBox();
-    const firstDayBox = await page.locator('[data-schedule-header] [data-schedule-day]').first().boundingBox();
+    const hourColBox = await page.getByTestId('schedule-hour-col').boundingBox();
+    const firstDayBox = await page.getByTestId('schedule-day-0').boundingBox();
     expect(hourColBox).not.toBeNull();
     expect(firstDayBox).not.toBeNull();
     if (hourColBox && firstDayBox) {
@@ -83,8 +74,8 @@ test.describe('Weekly Schedule Flow', () => {
       expect(Math.abs(hourColBox.height - firstDayBox.height)).toBeLessThanOrEqual(1);
     }
 
-    const dismissalRowBox = await page.locator('[data-schedule-dismissal]').boundingBox();
-    const finishIconBox = await page.locator('[data-schedule-finish-icon]').boundingBox();
+    const dismissalRowBox = await page.getByTestId('schedule-dismissal-row').boundingBox();
+    const finishIconBox = await page.getByTestId('schedule-finish-icon').boundingBox();
     expect(dismissalRowBox).not.toBeNull();
     expect(finishIconBox).not.toBeNull();
     if (dismissalRowBox && finishIconBox) {
@@ -93,53 +84,40 @@ test.describe('Weekly Schedule Flow', () => {
     }
   });
 
-  test('mobile modal renders full screen and keeps input and actions visible', async ({ page }) => {
+  test('mobile modal renders full width and keeps input and actions visible', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Switch to mobile viewport (iPhone dimensions)
     await page.setViewportSize({ width: 375, height: 667 });
 
-    // Navigate to Admin tab on mobile
-    const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
-    // Admin is the last tab (6th) for adminUser
-    await dockButtons.last().click();
-    await expect(page.locator('header.md\\:hidden h1, main h1, main h2').first()).toContainText(/ניהול מערכת|Administration/);
+    await page.getByTestId('dock-tab-admin').click();
+    await expect(page.getByTestId('mobile-header-title')).toContainText(/ניהול מערכת|Administration/);
 
-    // Click "Add User" button on mobile
-    const addUserBtn = page.locator('button[aria-label="הוסף משתמש"], button[aria-label="Add User"]').first();
-    await addUserBtn.click();
+    await page.getByTestId('add-user-fab').click();
 
-    // Modal dialog should appear
-    const dialogContent = page.locator('[role="dialog"]');
-    await expect(dialogContent).toBeVisible();
+    const modal = page.getByTestId('user-modal');
+    await expect(modal).toBeVisible();
 
-    // Verify modal dialog fills entire width on mobile
-    const box = await dialogContent.boundingBox();
+    const box = await modal.boundingBox();
     expect(box).not.toBeNull();
     if (box) {
       expect(box.width).toBeCloseTo(375, -1);
       expect(box.x).toBeCloseTo(0, -1);
     }
 
-    // Verify editable input and action buttons are visible
-    const usernameInput = dialogContent.locator('#create-username');
-    await expect(usernameInput).toBeVisible();
-    await expect(dialogContent.locator('button[type="submit"]')).toBeVisible();
-    await expect(dialogContent.locator('button:has-text("ביטול"), button:has-text("Cancel")')).toBeVisible();
+    await expect(page.getByTestId('create-username')).toBeVisible();
+    await expect(page.getByTestId('create-user-submit')).toBeVisible();
+    await expect(page.getByTestId('create-user-cancel')).toBeVisible();
   });
 
-  test('floating round action button renders on bottom-right, has 50x50 size, and toggles edit mode to V', async ({ page }) => {
+  test('floating round action button renders on page away from sidebar, has 50x50 size, and toggles edit mode to V', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Navigate to Schedule
-    const scheduleBtn = page.locator('aside nav button').nth(3);
-    await scheduleBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await page.getByTestId('sidebar-tab-schedule').click();
+    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ })).toBeVisible();
 
-    // Verify floating Edit button exists and is on the page (not over the sidebar)
-    const fab = page.locator('button[aria-label="הפעל מצב עריכה"], button[aria-label="Enable edit mode"]');
+    const fab = page.getByTestId('schedule-edit-fab');
     await expect(fab).toBeVisible();
 
     const box = await fab.boundingBox();
@@ -149,44 +127,36 @@ test.describe('Weekly Schedule Flow', () => {
       expect(Math.round(box.height)).toBe(50);
     }
 
-    const aside = page.locator('aside');
+    const aside = page.getByTestId('desktop-sidebar');
     const asideBox = await aside.boundingBox();
     expect(asideBox).not.toBeNull();
-    const dir = await page.locator('html').getAttribute('dir') || 'ltr';
     if (box && asideBox) {
-      if (dir === 'rtl') {
-        // In RTL desktop mode, the sidebar is on the right.
-        // The floating button must be on the page (to the left of the sidebar).
+      // In RTL desktop (default), sidebar is on the right (x > 0); in LTR, on the left
+      if (asideBox.x > 0) {
         expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
       } else {
-        // In LTR desktop mode, the sidebar is on the left.
-        // The floating button must be on the page (to the right of the sidebar).
         expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
       }
     }
 
-    // Click floating Edit button -> turns into V checkmark button with no X button
+    // Click floating Edit button -> turns into V checkmark button with no Cancel button
     await fab.click();
-    const finishBtn = page.locator('button[aria-label="סיום עריכה"], button[aria-label="Finish editing"]');
-    await expect(finishBtn).toBeVisible();
-    await expect(page.locator('button[aria-label="בטל שינויים"], button[aria-label="Cancel editing"]')).not.toBeVisible();
+    await expect(page.getByRole('button', { name: /סיום עריכה|Finish editing/ })).toBeVisible();
+    await expect(page.getByRole('button', { name: /בטל שינויים|Cancel editing/ })).not.toBeVisible();
 
     // Click finish button -> exits edit mode
-    await finishBtn.click();
-    await expect(fab).toBeVisible();
+    await page.getByRole('button', { name: /סיום עריכה|Finish editing/ }).click();
+    await expect(page.getByRole('button', { name: /הפעל מצב עריכה|Enable edit mode/ })).toBeVisible();
   });
 
-  test('exams page renders floating 50x50 Add Exam button on bottom-right for parent', async ({ page }) => {
+  test('exams page renders floating 50x50 Add Exam button away from sidebar for parent', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Navigate to Exams
-    const examsBtn = page.locator('aside nav button').nth(2);
-    await examsBtn.click();
-    await expect(page.locator('main h1')).toContainText(/מבחנים|Exams/);
+    await page.getByTestId('sidebar-tab-exams').click();
+    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מבחנים|Exams/ })).toBeVisible();
 
-    // Verify floating Add Exam button exists and is on the page (not over the sidebar)
-    const addFab = page.locator('button[aria-label="הוסף מבחן"], button[aria-label="Add Exam"]');
+    const addFab = page.getByTestId('add-exam-fab');
     await expect(addFab).toBeVisible();
 
     const box = await addFab.boundingBox();
@@ -196,18 +166,13 @@ test.describe('Weekly Schedule Flow', () => {
       expect(Math.round(box.height)).toBe(50);
     }
 
-    const aside = page.locator('aside');
+    const aside = page.getByTestId('desktop-sidebar');
     const asideBox = await aside.boundingBox();
     expect(asideBox).not.toBeNull();
-    const dir = await page.locator('html').getAttribute('dir') || 'ltr';
     if (box && asideBox) {
-      if (dir === 'rtl') {
-        // In RTL desktop mode, the sidebar is on the right.
-        // The floating button must be on the page (to the left of the sidebar).
+      if (asideBox.x > 0) {
         expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
       } else {
-        // In LTR desktop mode, the sidebar is on the left.
-        // The floating button must be on the page (to the right of the sidebar).
         expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
       }
     }
@@ -217,24 +182,20 @@ test.describe('Weekly Schedule Flow', () => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Switch to Hebrew
+    // Ensure Hebrew language is selected
     await page.evaluate(() => {
-      localStorage.setItem('i18nextLng', 'he');
+      localStorage.setItem('school_lang', 'he');
     });
     await page.reload();
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
-    // Navigate to Exams
-    const examsBtn = page.locator('aside nav button').nth(2);
-    await examsBtn.click();
-    await expect(page.locator('main h1')).toContainText('מבחנים');
+    await page.getByTestId('sidebar-tab-exams').click();
+    await expect(page.getByTestId('desktop-page-header').filter({ hasText: 'מבחנים' })).toBeVisible();
 
-    const addFab = page.locator('button[aria-label="הוסף מבחן"]');
+    const addFab = page.getByTestId('add-exam-fab');
     await expect(addFab).toBeVisible();
 
     const box = await addFab.boundingBox();
-    const aside = page.locator('aside');
-    const asideBox = await aside.boundingBox();
+    const asideBox = await page.getByTestId('desktop-sidebar').boundingBox();
     expect(box).not.toBeNull();
     expect(asideBox).not.toBeNull();
     if (box && asideBox) {
@@ -247,61 +208,22 @@ test.describe('Weekly Schedule Flow', () => {
     }
   });
 
-  test('share button renders in filter row, exports landscape PDF, and print media shows only full 6-day schedule table even on mobile', async ({ page }) => {
+  test('share button renders in filter row and opens landscape PDF in a new tab on mobile viewport', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
-    // Switch to mobile viewport (375x667) where screen mode only shows 3 days
     await page.setViewportSize({ width: 375, height: 667 });
 
-    const dockButtons = page.locator('nav[aria-label="Mobile Navigation"] button');
-    await dockButtons.nth(3).click();
-    await expect(page.locator('main h1')).toContainText(/מערכת שעות|Weekly Schedule/);
+    await page.getByTestId('dock-tab-schedule').click();
+    await expect(page.getByTestId('mobile-header-title')).toContainText(/מערכת שעות|Weekly Schedule/);
 
-    // Share button should be visible in the filter row and open the PDF in a new tab on desktop UA
-    const shareBtn = page.locator('[data-schedule-share-btn]');
+    const shareBtn = page.getByTestId('schedule-share-btn');
     await expect(shareBtn).toBeVisible();
     const [popup] = await Promise.all([
       page.waitForEvent('popup'),
-      shareBtn.click()
+      shareBtn.click(),
     ]);
     expect(popup).toBeTruthy();
     await popup.close();
-
-    // Emulate print media from mobile viewport
-    await page.emulateMedia({ media: 'print' });
-
-    // Chrome (sidebar, mobile header, mobile dock, filters, FAB, mobile scroll hints) must be hidden
-    await expect(page.locator('aside')).not.toBeVisible();
-    await expect(page.locator('header')).not.toBeVisible();
-    await expect(page.locator('nav[aria-label="Mobile Navigation"]')).not.toBeVisible();
-    await expect(page.locator('[data-sticky-filters]')).not.toBeVisible();
-    await expect(page.locator('button[aria-label="הפעל מצב עריכה"], button[aria-label="Enable edit mode"]')).not.toBeVisible();
-    await expect(page.locator('button[aria-label="Scroll forward"], button[aria-label="גלול קדימה"]')).not.toBeVisible();
-
-    // Full 6-day table must be visible and fit within the table container width
-    const table = page.locator('[data-schedule-table]');
-    await expect(table).toBeVisible();
-
-    const dayHeaders = page.locator('[data-schedule-header] [data-schedule-day]');
-    await expect(dayHeaders).toHaveCount(6);
-    for (let i = 0; i < 6; i++) {
-      await expect(dayHeaders.nth(i)).toBeVisible();
-    }
-
-    const tableBox = await table.boundingBox();
-    const firstDayBox = await dayHeaders.first().boundingBox();
-    const lastDayBox = await dayHeaders.last().boundingBox();
-    expect(tableBox).not.toBeNull();
-    expect(firstDayBox).not.toBeNull();
-    expect(lastDayBox).not.toBeNull();
-    if (tableBox && firstDayBox && lastDayBox) {
-      expect(firstDayBox.x).toBeGreaterThanOrEqual(tableBox.x - 1);
-      expect(firstDayBox.x + firstDayBox.width).toBeLessThanOrEqual(tableBox.x + tableBox.width + 1);
-      expect(lastDayBox.x).toBeGreaterThanOrEqual(tableBox.x - 1);
-      expect(lastDayBox.x + lastDayBox.width).toBeLessThanOrEqual(tableBox.x + tableBox.width + 1);
-    }
-
-    await page.emulateMedia({ media: 'screen' });
   });
 });

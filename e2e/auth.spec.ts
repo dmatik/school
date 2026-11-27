@@ -9,7 +9,6 @@ test.describe('Authentication Flow', () => {
   });
 
   test.beforeEach(async ({ page }) => {
-    // Clear tokens before each test
     await page.goto('/');
     await page.evaluate(() => localStorage.clear());
     await page.reload();
@@ -26,58 +25,56 @@ test.describe('Authentication Flow', () => {
     cleanupAllTestUsers();
   });
 
-  test('displays login form with username, password and submit button', async ({ page }) => {
+  test('displays login form with username, password and submit button (without server URL on co-hosted web)', async ({ page }) => {
     await page.goto('/');
 
-    const usernameInput = page.locator('#username');
-    const passwordInput = page.locator('#password');
-    const submitButton = page.locator('button[type="submit"]');
+    const usernameInput = page.getByTestId('username-input');
+    const passwordInput = page.getByTestId('password-input');
+    const submitButton = page.getByTestId('login-submit-button');
 
     await expect(usernameInput).toBeVisible();
     await expect(passwordInput).toBeVisible();
     await expect(submitButton).toBeVisible();
+    await expect(page.getByTestId('server-url-input')).not.toBeVisible();
   });
 
   test('shows error notification on invalid credentials', async ({ page }) => {
     await page.goto('/');
 
-    await page.fill('#username', 'nonexistent_user_123');
-    await page.fill('#password', 'wrong_password_123');
-    await page.click('button[type="submit"]');
+    await page.getByTestId('username-input').fill('nonexistent_user_123');
+    await page.getByTestId('password-input').fill('wrong_password_123');
+    await page.getByTestId('login-submit-button').click();
 
-    // Should display an error alert box
-    const errorBox = page.locator('.bg-destructive\\/15');
-    await expect(errorBox).toBeVisible();
+    await expect(page.getByTestId('login-error-box')).toBeVisible();
   });
 
   test('successfully logs in with dedicated test user and logs out', async ({ page }) => {
-    // 1. Create a dedicated isolated test user
     dedicatedUser = createTestUser('admin');
 
     await page.goto('/');
-    await page.fill('#username', dedicatedUser.username);
-    await page.fill('#password', dedicatedUser.password);
-    await page.click('button[type="submit"]');
+    await page.getByTestId('username-input').fill(dedicatedUser.username);
+    await page.getByTestId('password-input').fill(dedicatedUser.password);
+    await page.getByTestId('login-submit-button').click();
 
-    // Should navigate to dashboard / authenticated shell
-    const accountButton = page.locator('aside button').first();
+    // Should navigate to authenticated shell
+    const accountButton = page.getByTestId('sidebar-account-button');
     await expect(accountButton).toBeVisible();
 
     // Verify localStorage has the auth token
-    const token = await page.evaluate(() => localStorage.getItem('auth_token'));
+    const token = await page.evaluate(() => localStorage.getItem('school_auth_token'));
     expect(token).toBeTruthy();
 
-    // Navigate to Account page by clicking user profile button
+    // Navigate to Account screen
     await accountButton.click();
 
     // Click logout button
-    const logoutButton = page.locator('button:has(svg.lucide-log-out)');
+    const logoutButton = page.getByTestId('logout-button');
     await expect(logoutButton).toBeVisible();
     await logoutButton.click();
 
     // Should be returned to the login screen
-    await expect(page.locator('#username')).toBeVisible();
-    const tokenAfterLogout = await page.evaluate(() => localStorage.getItem('auth_token'));
+    await expect(page.getByTestId('username-input')).toBeVisible();
+    const tokenAfterLogout = await page.evaluate(() => localStorage.getItem('school_auth_token'));
     expect(tokenAfterLogout).toBeNull();
   });
 });

@@ -318,7 +318,7 @@ export function MobileHeader({
   });
 
   return (
-    <View style={styles.headerOuter} pointerEvents="box-none">
+    <View testID="mobile-header" style={styles.headerOuter} pointerEvents="box-none">
       {/* Gradual vertical fade extending below the header so there is no hard edge */}
       <Animated.View
         pointerEvents="none"
