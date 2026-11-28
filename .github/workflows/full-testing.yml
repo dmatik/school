@@ -1,0 +1,258 @@
+name: Full Testing
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  unit-tests:
+    name: "1. Unit Tests (Jest)"
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    outputs:
+      passed: ${{ steps.jest.outputs.passed }}
+      failed: ${{ steps.jest.outputs.failed }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci && npm --prefix app ci
+
+      - name: Run Unit & Component Tests (Jest)
+        id: jest
+        shell: bash
+        run: |
+          set -o pipefail
+          EXIT_CODE=0
+          npm test 2>&1 | tee jest.log || EXIT_CODE=$?
+
+          node -e '
+            const fs = require("fs");
+            const log = fs.readFileSync("jest.log", "utf8");
+            let passed = 0;
+            let failed = 0;
+            for (const line of log.split(/\r?\n/)) {
+              if (!line.trim().startsWith("Tests:")) continue;
+              const p = line.match(/(\d+)\s+passed/);
+              const f = line.match(/(\d+)\s+failed/);
+              if (p) passed += Number(p[1]);
+              if (f) failed += Number(f[1]);
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\nfailed=${failed}\n`);
+          '
+
+          exit "$EXIT_CODE"
+
+  playwright-e2e:
+    name: "2. Playwright E2E (Expo Web)"
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    outputs:
+      passed: ${{ steps.playwright.outputs.passed }}
+      failed: ${{ steps.playwright.outputs.failed }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci && npm --prefix app ci
+
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run Playwright E2E Tests
+        id: playwright
+        shell: bash
+        run: |
+          set -o pipefail
+          EXIT_CODE=0
+          npm run test:e2e 2>&1 | tee playwright.log || EXIT_CODE=$?
+
+          node -e '
+            const fs = require("fs");
+            const log = fs.readFileSync("playwright.log", "utf8");
+            const passedMatches = [...log.matchAll(/(\d+)\s+passed/g)];
+            const failedMatches = [...log.matchAll(/(\d+)\s+failed/g)];
+            const passed = passedMatches.length ? Number(passedMatches.at(-1)[1]) : 0;
+            const failed = failedMatches.length ? Number(failedMatches.at(-1)[1]) : 0;
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\nfailed=${failed}\n`);
+          '
+
+          exit "$EXIT_CODE"
+
+      - name: Upload Playwright Failure Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-test-results
+          path: test-results/
+          if-no-files-found: ignore
+          retention-days: 7
+
+  maestro-ios-e2e:
+    name: "3 & 4. Maestro iOS Build & E2E"
+    needs: playwright-e2e
+    runs-on: macos-15
+    timeout-minutes: 45
+    outputs:
+      build_outcome: ${{ steps.build-ios.outcome }}
+      passed: ${{ steps.maestro.outputs.passed }}
+      failed: ${{ steps.maestro.outputs.failed }}
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: |
+            package-lock.json
+            app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci && npm --prefix app ci
+
+      - name: Boot iOS Simulator
+        shell: bash
+        run: |
+          UDID=$(xcrun simctl list devices available -j | node -e '
+            const data = JSON.parse(require("fs").readFileSync(0, "utf8"));
+            const runtimes = Object.keys(data.devices).filter((r) => r.includes("iOS")).sort().reverse();
+            for (const runtime of runtimes) {
+              const iphone = data.devices[runtime].find((d) => d.isAvailable && d.name.includes("iPhone"));
+              if (iphone) {
+                console.log(iphone.udid);
+                process.exit(0);
+              }
+            }
+            process.exit(1);
+          ')
+          echo "Booting iOS Simulator: $UDID"
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Install Maestro CLI
+        shell: bash
+        run: |
+          curl -fsSL "https://get.maestro.mobile.dev" | bash
+          echo "$HOME/.maestro/bin" >> "$GITHUB_PATH"
+
+      - name: "Stage 3: Build & Start Maestro iOS App"
+        id: build-ios
+        run: npm run app:ios:maestro
+
+      - name: "Stage 4: Run Maestro E2E Tests (iOS)"
+        id: maestro
+        shell: bash
+        run: |
+          set -o pipefail
+          EXIT_CODE=0
+          npm run test:maestro -- --ios 2>&1 | tee maestro.log || EXIT_CODE=$?
+
+          node -e '
+            const fs = require("fs");
+            const log = fs.readFileSync("maestro.log", "utf8");
+            const match = log.match(/(\d+)\/(\d+)\s+Flows Passed/);
+            const passed = match ? Number(match[1]) : 0;
+            const total = match ? Number(match[2]) : 0;
+            const failed = Math.max(0, total - passed);
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `passed=${passed}\nfailed=${failed}\n`);
+          '
+
+          exit "$EXIT_CODE"
+
+      - name: Upload Maestro Debug Artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: maestro-ios-debug
+          path: |
+            ~/.maestro/tests/
+            maestro.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  summary:
+    name: Full Testing Summary
+    needs: [unit-tests, playwright-e2e, maestro-ios-e2e]
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Write Full Testing Summary
+        shell: bash
+        env:
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          UNIT_PASSED: ${{ needs.unit-tests.outputs.passed }}
+          UNIT_FAILED: ${{ needs.unit-tests.outputs.failed }}
+          PW_RESULT: ${{ needs.playwright-e2e.result }}
+          PW_PASSED: ${{ needs.playwright-e2e.outputs.passed }}
+          PW_FAILED: ${{ needs.playwright-e2e.outputs.failed }}
+          MAESTRO_JOB_RESULT: ${{ needs.maestro-ios-e2e.result }}
+          IOS_BUILD_OUTCOME: ${{ needs.maestro-ios-e2e.outputs.build_outcome }}
+          MAESTRO_PASSED: ${{ needs.maestro-ios-e2e.outputs.passed }}
+          MAESTRO_FAILED: ${{ needs.maestro-ios-e2e.outputs.failed }}
+        run: |
+          format_status() {
+            case "$1" in
+              success) echo "Pass" ;;
+              failure) echo "Fail" ;;
+              skipped) echo "Skipped" ;;
+              cancelled) echo "Cancelled" ;;
+              *) echo "$1" ;;
+            esac
+          }
+
+          S1_STATUS=$(format_status "$UNIT_RESULT")
+          S2_STATUS=$(format_status "$PW_RESULT")
+          if [ "$MAESTRO_JOB_RESULT" = "skipped" ]; then
+            S3_STATUS="Skipped"
+            S4_STATUS="Skipped"
+          else
+            S3_STATUS=$(format_status "${IOS_BUILD_OUTCOME:-skipped}")
+            if [ "$IOS_BUILD_OUTCOME" = "success" ]; then
+              S4_STATUS=$(format_status "$MAESTRO_JOB_RESULT")
+            else
+              S4_STATUS="Skipped"
+            fi
+          fi
+
+          {
+            echo "## Full Testing Summary"
+            echo ""
+            echo "| Stage | Status | Passed | Failed |"
+            echo "| :--- | :--- | :---: | :---: |"
+            echo "| 1. Unit Tests (Jest: server + app) | ${S1_STATUS} | ${UNIT_PASSED:-—} | ${UNIT_FAILED:-—} |"
+            echo "| 2. Playwright E2E | ${S2_STATUS} | ${PW_PASSED:-—} | ${PW_FAILED:-—} |"
+            echo "| 3. Start Maestro iOS App | ${S3_STATUS} | — | — |"
+            echo "| 4. Maestro E2E (iOS) | ${S4_STATUS} | ${MAESTRO_PASSED:-—} | ${MAESTRO_FAILED:-—} |"
+          } >> "$GITHUB_STEP_SUMMARY"
