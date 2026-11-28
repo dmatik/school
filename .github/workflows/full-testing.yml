@@ -118,7 +118,7 @@ jobs:
   maestro-ios-e2e:
     name: "3 & 4. Maestro iOS Build & E2E"
     needs: playwright-e2e
-    runs-on: macos-15
+    runs-on: macos-26
     timeout-minutes: 45
     outputs:
       build_outcome: ${{ steps.build-ios.outcome }}
@@ -143,6 +143,7 @@ jobs:
       - name: Boot iOS Simulator
         shell: bash
         run: |
+          xcodebuild -version
           UDID=$(xcrun simctl list devices available -j | node -e '
             const data = JSON.parse(require("fs").readFileSync(0, "utf8"));
             const runtimes = Object.keys(data.devices).filter((r) => r.includes("iOS")).sort().reverse();
@@ -167,7 +168,15 @@ jobs:
 
       - name: "Stage 3: Build & Start Maestro iOS App"
         id: build-ios
-        run: npm run app:ios:maestro
+        shell: bash
+        run: |
+          if ! npm run app:ios:maestro; then
+            echo "::group::Xcodebuild Error Log Tail"
+            [ -f app/.expo/xcodebuild-error.log ] && tail -n 100 app/.expo/xcodebuild-error.log || true
+            [ -f app/.expo/xcodebuild.log ] && tail -n 100 app/.expo/xcodebuild.log || true
+            echo "::endgroup::"
+            exit 1
+          fi
 
       - name: "Stage 4: Run Maestro E2E Tests (iOS)"
         id: maestro
@@ -197,6 +206,8 @@ jobs:
           path: |
             ~/.maestro/tests/
             maestro.log
+            app/.expo/xcodebuild.log
+            app/.expo/xcodebuild-error.log
           if-no-files-found: ignore
           retention-days: 7
 
