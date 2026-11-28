@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, type Componen
 import {
   Animated,
   Platform,
-  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -32,7 +31,7 @@ import { ExamCard } from '../components/ui/Cards';
 import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { ExamItem, WebtopConfig, User } from '../../../shared/types';
@@ -347,12 +346,15 @@ export function ExamsScreen({
       <PageHeader title={t('exams.title')} />
       <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
         {Platform.OS === 'web' ? (
-          <ScrollView
+          <Animated.ScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
           >
+            <InlineWebMobileHeader />
             <View style={{ gap: 12, marginBottom: 12 }}>
               {isChild && !currentUser.linkedChildId ? (
                 <NoticeBanner variant="warning" description={t('exams.child_unlinked_desc')} />
@@ -411,7 +413,7 @@ export function ExamsScreen({
                     {section.data.map(renderExamItem)}
                   </React.Fragment>
                 ))}
-          </ScrollView>
+          </Animated.ScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

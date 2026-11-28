@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Platform,
-  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -19,7 +18,7 @@ import { AndroidStickyBlurHost, LiquidTabs, SearchInput, StickyFilterBar } from 
 import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { IncidentCard } from '../components/ui/Cards';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { Incident, WebtopConfig, User } from '../../../shared/types';
@@ -227,12 +226,15 @@ export function IncidentsScreen({
       <PageHeader title={t('incidents.title')} />
       <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
-          <ScrollView
+          <Animated.ScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
           >
+            <InlineWebMobileHeader />
             <View style={styles.webHeaderStack}>
               {isChild && !currentUser.linkedChildId ? (
                 <NoticeBanner variant="warning" description={t('incidents.child_unlinked_desc')} />
@@ -283,7 +285,7 @@ export function IncidentsScreen({
                     {section.data.map(renderIncidentItem)}
                   </React.Fragment>
                 ))}
-          </ScrollView>
+          </Animated.ScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

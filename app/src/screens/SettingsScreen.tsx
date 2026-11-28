@@ -35,7 +35,7 @@ import {
   SyncButton,
 } from '../components/ui/Buttons';
 import { ConfirmModal } from '../components/ui/Modal';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import appConfig from '../../app.json';
@@ -315,6 +315,7 @@ export function SettingsScreen({
         scrollEventThrottle={16}
         {...pullToRefreshProps}
       >
+        <InlineWebMobileHeader />
         <View style={styles.innerStack}>
         {/* Appearance & Language Card */}
         <SectionCard

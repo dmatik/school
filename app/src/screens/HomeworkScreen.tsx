@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Animated,
   Platform,
-  ScrollView,
   View,
   RefreshControl,
   ActivityIndicator,
@@ -21,7 +20,7 @@ import { LiquidDatePicker } from '../components/ui/LiquidDatePicker';
 import { Button } from '../components/ui/Buttons';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { HomeworkCard } from '../components/ui/Cards';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
@@ -269,12 +268,15 @@ export function HomeworkScreen({
       <PageHeader title={t('homework.title')} />
       <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
-          <ScrollView
+          <Animated.ScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
             showsVerticalScrollIndicator={false}
+            onScroll={onScroll}
+            scrollEventThrottle={16}
           >
+            <InlineWebMobileHeader />
             <View style={styles.webHeaderStack}>
               {isChild && !currentUser.linkedChildId ? (
                 <NoticeBanner variant="warning" description={t('homework.child_unlinked_desc')} />
@@ -325,7 +327,7 @@ export function HomeworkScreen({
                     {section.data.map(renderHomeworkItem)}
                   </React.Fragment>
                 ))}
-          </ScrollView>
+          </Animated.ScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

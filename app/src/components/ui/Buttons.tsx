@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import {
+  Platform,
   Pressable,
   Text,
   View,
@@ -38,6 +39,7 @@ import {
 } from '../../hooks/useResponsiveLayout';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { getDockBottomMargin } from './LiquidDock';
+import { getScrollVisibilityWebStyle, useOptionalScrollHeader } from './ScrollHeaderContext';
 
 export function Button({
   label,
@@ -375,17 +377,26 @@ export function FloatingActionButton({
   accessibilityLabel,
   testID,
   variant = 'primary',
+  hideOnScroll = true,
 }: {
   icon: LucideIcon;
   onPress: () => void;
   accessibilityLabel: string;
   testID?: string;
   variant?: 'primary' | 'success';
+  hideOnScroll?: boolean;
 }) {
   const insets = useSafeAreaInsets();
   const { palette, isDark } = useTheme();
   const { isRTL } = useDirection();
   const { width, isDesktop } = useResponsiveLayout();
+  const scrollCtx = useOptionalScrollHeader();
+  const isHidden = hideOnScroll && Boolean(scrollCtx?.isScrolling);
+  const visibilityStyle =
+    Platform.OS === 'web'
+      ? getScrollVisibilityWebStyle(isHidden, 20, 0.85)
+      : { opacity: 1 };
+
   const bottomOffset = isDesktop ? 24 : getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
   const contentAreaWidth = isDesktop ? width - SIDEBAR_WIDTH : width;
   const sideOffset = isDesktop
@@ -394,33 +405,46 @@ export function FloatingActionButton({
   const isSuccess = variant === 'success';
 
   return (
-    <Pressable
-      testID={testID}
-      accessibilityLabel={accessibilityLabel}
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.fab,
-        getGlassShadow(isDark),
+    <View
+      testID={testID ? `${testID}-container` : undefined}
+      pointerEvents={isHidden ? 'none' : 'auto'}
+      accessibilityElementsHidden={isHidden}
+      importantForAccessibility={isHidden ? 'no-hide-descendants' : 'yes'}
+      style={[
+        styles.fabPosition,
         {
           bottom: bottomOffset,
           left: isRTL ? sideOffset : undefined,
           right: isRTL ? undefined : sideOffset,
-          backgroundColor: isSuccess ? palette.tealSoft : undefined,
-          borderColor: isSuccess ? palette.teal : undefined,
-          transform: [{ scale: pressed ? 0.92 : 1 }],
         },
+        visibilityStyle,
       ]}
     >
-      <GlassBackdrop />
-      <View style={styles.fabIconWrap}>
-        <Icon
-          size={22}
-          strokeWidth={2.2}
-          color={isSuccess ? palette.teal : palette.foreground}
-        />
-      </View>
-    </Pressable>
+      <Pressable
+        testID={testID}
+        accessibilityLabel={accessibilityLabel}
+        accessibilityRole="button"
+        onPress={onPress}
+        style={({ pressed }) => [
+          styles.fab,
+          getGlassShadow(isDark),
+          {
+            backgroundColor: isSuccess ? palette.tealSoft : undefined,
+            borderColor: isSuccess ? palette.teal : undefined,
+            transform: [{ scale: pressed ? 0.92 : 1 }],
+          },
+        ]}
+      >
+        <GlassBackdrop />
+        <View style={styles.fabIconWrap}>
+          <Icon
+            size={22}
+            strokeWidth={2.2}
+            color={isSuccess ? palette.teal : palette.foreground}
+          />
+        </View>
+      </Pressable>
+    </View>
   );
 }
 
@@ -655,14 +679,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     ...heeboFont('500'),
   },
-  fab: {
+  fabPosition: {
     position: 'absolute',
+    zIndex: 30,
+  },
+  fab: {
     width: 50,
     height: 50,
     borderRadius: 25,
     alignItems: 'center',
     justifyContent: 'center',
-    zIndex: 30,
   },
   fabIconWrap: {
     position: 'relative',

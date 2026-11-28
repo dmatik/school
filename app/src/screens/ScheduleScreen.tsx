@@ -26,7 +26,7 @@ import { ScheduleTable } from '../components/ui/ScheduleTable';
 import { Button, FloatingActionButton, LiquidButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { FullScreenModal } from '../components/ui/Modal';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
@@ -327,6 +327,7 @@ export function ScheduleScreen({
           scrollEventThrottle={16}
           {...pullToRefreshProps}
         >
+        <InlineWebMobileHeader />
         {isChild && !currentUser.linkedChildId ? (
           <NoticeBanner variant="warning" description={t('schedule.child_unlinked_desc')} />
         ) : null}

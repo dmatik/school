@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View } from 'react-native';
+import { Animated, Text, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
 import {
   BookOpen,
@@ -25,7 +25,7 @@ import {
 import { LiquidTabs, StickyFilterBar } from '../../components/ui/FormFields';
 import { LiquidDatePicker } from '../../components/ui/LiquidDatePicker';
 import { LiquidDock } from '../../components/ui/LiquidDock';
-import { MobileHeader } from '../../components/ui/MobileHeader';
+import { MobileHeader, useScrollHeader } from '../../components/ui/MobileHeader';
 import { AppSidebar } from '../../components/ui/AppSidebar';
 import { SlidingPill } from '../../components/ui/SlidingPill';
 import { useTheme } from '../../theme/ThemeContext';
@@ -124,8 +124,28 @@ export const LiquidFiltersAndDatePicker: StoryObj = {
 export const DockAndHeader: StoryObj = {
   render: () => {
     const [active, setActive] = useState('homework');
+    const { headerHeight, onScroll } = useScrollHeader('story-dock');
     return (
-      <View style={{ flex: 1, minHeight: 360 }}>
+      <View style={{ flex: 1, minHeight: 420 }}>
+        <Animated.ScrollView
+          style={{ flex: 1 }}
+          contentContainerStyle={{ paddingTop: headerHeight + 12, paddingBottom: 140, gap: 10 }}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
+          {Array.from({ length: 14 }, (_, idx) => (
+            <View
+              key={idx}
+              style={{
+                padding: 14,
+                borderRadius: 12,
+                backgroundColor: 'rgba(148, 163, 184, 0.14)',
+              }}
+            >
+              <Text>Scrollable item {idx + 1}</Text>
+            </View>
+          ))}
+        </Animated.ScrollView>
         <MobileHeader
           title="שיעורי בית"
           user={{

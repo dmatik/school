@@ -1,14 +1,11 @@
-import React, { createContext, useContext, useEffect, useMemo, useRef, useCallback, useState } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import {
   Animated,
   Platform,
-  RefreshControl,
   View,
   Text,
   Pressable,
   StyleSheet,
-  type NativeSyntheticEvent,
-  type NativeScrollEvent,
 } from 'react-native';
 import Reanimated, {
   Easing,
@@ -17,7 +14,6 @@ import Reanimated, {
   useSharedValue,
   withRepeat,
   withTiming,
-  type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { RefreshCw } from 'lucide-react-native';
@@ -30,205 +26,45 @@ import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
 import { SyncButton } from './Buttons';
 import { GlassBackdrop } from './GlassBackdrop';
+import {
+  PULL_THRESHOLD,
+  ScrollHeaderProvider,
+  getScrollVisibilityWebStyle,
+  useOptionalScrollHeader,
+  useScrollHeader,
+} from './ScrollHeaderContext';
 import type { User } from '../../../../shared/types';
 
-const PULL_THRESHOLD = 110;
+export {
+  ScrollHeaderProvider,
+  getScrollVisibilityWebStyle,
+  useOptionalScrollHeader,
+  useScrollHeader,
+};
 
-interface PullToRefreshScrollProps {
-  onScrollBeginDrag: () => void;
-  onScrollEndDrag: () => void;
-  alwaysBounceVertical: boolean;
-  bounces: boolean;
-  refreshControl?: React.ReactElement<React.ComponentProps<typeof RefreshControl>>;
+export interface MobileHeaderProps {
+  title: string;
+  user: User;
+  lastSyncedAt?: string | null;
+  isAccountActive?: boolean;
+  onPressAccount: () => void;
+  onPressSync: () => void;
+  syncing?: boolean;
+  syncSuccess?: boolean;
+  inline?: boolean;
 }
 
-interface ScrollHeaderContextValue {
-  headerHeight: number;
-  scrollY: Animated.Value;
-  onScroll: (...args: any[]) => void;
-  resetScroll: () => void;
-  switchTabScroll: (tab: string) => void;
-  pullToRefreshProps: PullToRefreshScrollProps;
-  pullDistance: SharedValue<number>;
-  isPulling: SharedValue<boolean>;
-  pullReady: boolean;
-  registerSync: (onRefresh: () => void, syncing: boolean) => void;
-  registerScrollView: (tab: string, node: any) => void;
-}
+const WebMobileHeaderContext = createContext<Omit<MobileHeaderProps, 'inline'> | null>(null);
 
-function scrollNodeToTop(node: any) {
-  if (!node) return;
-  const target =
-    typeof node.scrollTo === 'function' || typeof node.scrollToOffset === 'function'
-      ? node
-      : node.getNode?.();
-  if (typeof target?.scrollTo === 'function') {
-    target.scrollTo({ y: 0, animated: false });
-  } else if (typeof target?.scrollToOffset === 'function') {
-    target.scrollToOffset({ offset: 0, animated: false });
-  }
-}
+export const WebMobileHeaderProvider = WebMobileHeaderContext.Provider;
 
-const ScrollHeaderContext = createContext<ScrollHeaderContextValue | null>(null);
-
-export function ScrollHeaderProvider({ children }: { children: React.ReactNode }) {
-  const insets = useSafeAreaInsets();
+export function InlineWebMobileHeader() {
+  const headerProps = useContext(WebMobileHeaderContext);
   const { isDesktop } = useResponsiveLayout();
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const headerHeight = isDesktop ? 0 : Math.max(insets.top, 8) + 52;
-
-  const syncConfigRef = useRef<{ onRefresh?: () => void; syncing?: boolean }>({});
-  const isDraggingRef = useRef(false);
-  const readyRef = useRef(false);
-  const currentTabRef = useRef<string>('homework');
-  const scrollViewsRef = useRef<Record<string, any>>({});
-  const [pullReady, setPullReady] = useState(false);
-
-  const pullDistance = useSharedValue(0);
-  const isPulling = useSharedValue(false);
-
-  const [androidSyncing, setAndroidSyncing] = useState(false);
-
-  const registerSync = useCallback((onRefresh: () => void, syncing: boolean) => {
-    syncConfigRef.current = { onRefresh, syncing };
-    if (Platform.OS === 'android') {
-      setAndroidSyncing(syncing);
-    }
-  }, []);
-
-  const registerScrollView = useCallback((tab: string, node: any) => {
-    if (node) {
-      scrollViewsRef.current[tab] = node;
-    } else {
-      delete scrollViewsRef.current[tab];
-    }
-  }, []);
-
-  const clearPullState = useCallback(() => {
-    isDraggingRef.current = false;
-    readyRef.current = false;
-    pullDistance.value = 0;
-    isPulling.value = false;
-    setPullReady(false);
-  }, [pullDistance, isPulling]);
-
-  const onScrollBeginDrag = useCallback(() => {
-    if (syncConfigRef.current.syncing) return;
-    isDraggingRef.current = true;
-    readyRef.current = false;
-  }, []);
-
-  const onScrollEndDrag = useCallback(() => {
-    const shouldTrigger =
-      isDraggingRef.current && readyRef.current && !syncConfigRef.current.syncing;
-    clearPullState();
-    if (shouldTrigger) {
-      syncConfigRef.current.onRefresh?.();
-    }
-  }, [clearPullState]);
-
-  const onScroll = useRef(
-    Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
-      useNativeDriver: Platform.OS !== 'web',
-      listener: (e: NativeSyntheticEvent<NativeScrollEvent>) => {
-        const y = e.nativeEvent.contentOffset.y;
-        if (!isDraggingRef.current || syncConfigRef.current.syncing) return;
-        const pull = y < 0 ? -y : 0;
-        pullDistance.value = pull;
-        isPulling.value = pull > 4;
-        const nextReady = pull >= PULL_THRESHOLD;
-        if (nextReady !== readyRef.current) {
-          readyRef.current = nextReady;
-          setPullReady(nextReady);
-        }
-      },
-    })
-  ).current;
-
-  const switchTabScroll = useCallback(
-    (tab: string) => {
-      const prevTab = currentTabRef.current;
-      if (prevTab !== tab) {
-        scrollNodeToTop(scrollViewsRef.current[prevTab]);
-      }
-      scrollNodeToTop(scrollViewsRef.current[tab]);
-      currentTabRef.current = tab;
-      scrollY.setValue(0);
-      clearPullState();
-    },
-    [scrollY, clearPullState]
-  );
-
-  const resetScroll = useCallback(() => {
-    Object.values(scrollViewsRef.current).forEach(scrollNodeToTop);
-    currentTabRef.current = 'homework';
-    scrollY.setValue(0);
-    clearPullState();
-  }, [scrollY, clearPullState]);
-
-  const pullToRefreshProps = useMemo<PullToRefreshScrollProps>(() => {
-    if (isDesktop || Platform.OS === 'web') {
-      return {
-        onScrollBeginDrag,
-        onScrollEndDrag,
-        alwaysBounceVertical: false,
-        bounces: false,
-      };
-    }
-    const base: PullToRefreshScrollProps = {
-      onScrollBeginDrag,
-      onScrollEndDrag,
-      alwaysBounceVertical: true,
-      bounces: true,
-    };
-    if (Platform.OS === 'android') {
-      base.refreshControl = (
-        <RefreshControl
-          refreshing={androidSyncing}
-          onRefresh={() => syncConfigRef.current.onRefresh?.()}
-          progressViewOffset={headerHeight}
-        />
-      );
-    }
-    return base;
-  }, [isDesktop, onScrollBeginDrag, onScrollEndDrag, androidSyncing, headerHeight]);
-
-  return (
-    <ScrollHeaderContext.Provider
-      value={{
-        headerHeight,
-        scrollY,
-        onScroll,
-        resetScroll,
-        switchTabScroll,
-        pullToRefreshProps,
-        pullDistance,
-        isPulling,
-        pullReady,
-        registerSync,
-        registerScrollView,
-      }}
-    >
-      {children}
-    </ScrollHeaderContext.Provider>
-  );
-}
-
-export function useScrollHeader(tabId?: string) {
-  const ctx = useContext(ScrollHeaderContext);
-  if (!ctx) {
-    throw new Error('useScrollHeader must be used inside ScrollHeaderProvider');
+  if (Platform.OS !== 'web' || isDesktop || !headerProps) {
+    return null;
   }
-  const { registerScrollView } = ctx;
-  const scrollRef = useCallback(
-    (node: any) => {
-      if (tabId) {
-        registerScrollView(tabId, node);
-      }
-    },
-    [tabId, registerScrollView]
-  );
-  return { ...ctx, scrollRef };
+  return <MobileHeader {...headerProps} inline />;
 }
 
 export function MobileHeader({
@@ -240,16 +76,8 @@ export function MobileHeader({
   onPressSync,
   syncing = false,
   syncSuccess = false,
-}: {
-  title: string;
-  user: User;
-  lastSyncedAt?: string | null;
-  isAccountActive?: boolean;
-  onPressAccount: () => void;
-  onPressSync: () => void;
-  syncing?: boolean;
-  syncSuccess?: boolean;
-}) {
+  inline = false,
+}: MobileHeaderProps) {
   const insets = useSafeAreaInsets();
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
@@ -322,7 +150,7 @@ export function MobileHeader({
     <View
       testID="mobile-header"
       style={[
-        styles.headerOuter,
+        inline ? styles.headerInline : styles.headerOuter,
         isWeb ? { backgroundColor: palette.background } : null,
       ]}
       pointerEvents="box-none"
@@ -339,22 +167,14 @@ export function MobileHeader({
             style={[styles.bottomBorder, { backgroundColor: nativeBorderColor }]}
           />
         </Animated.View>
-      ) : (
-        <Animated.View
-          testID="mobile-header-bottom-border"
-          pointerEvents="none"
-          style={[
-            styles.bottomBorder,
-            { backgroundColor: palette.border, opacity: scrollProgress },
-          ]}
-        />
-      )}
+      ) : null}
 
       <View
         style={[
           styles.headerRow,
           {
-            paddingTop: Math.max(insets.top, 8) + 6,
+            paddingTop: inline ? 0 : Math.max(insets.top, 8) + 6,
+            paddingHorizontal: inline ? 0 : 16,
             flexDirection: flexRow,
           },
         ]}
@@ -457,6 +277,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 20,
+  },
+  headerInline: {
+    width: '100%',
   },
   backdropWrap: {
     position: 'absolute',
