@@ -21,6 +21,7 @@ import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/u
 import { HomeworkCard } from '../components/ui/Cards';
 import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
   HomeworkItem,
@@ -264,7 +265,7 @@ export function HomeworkScreen({
       <PageHeader title={t('homework.title')} />
       <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
-          <Animated.ScrollView
+          <ScreenScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
@@ -323,7 +324,7 @@ export function HomeworkScreen({
                     {section.data.map(renderHomeworkItem)}
                   </React.Fragment>
                 ))}
-          </Animated.ScrollView>
+          </ScreenScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

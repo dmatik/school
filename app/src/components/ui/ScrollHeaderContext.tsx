@@ -252,6 +252,13 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
         scrollNodeToTop(scrollViewsRef.current[prevTab]);
       }
       scrollNodeToTop(scrollViewsRef.current[tab]);
+      if (isWebMobileRef.current && typeof window !== 'undefined') {
+        try {
+          window.scrollTo({ top: 0, behavior: 'auto' });
+        } catch {
+          // Ignore in non-browser test environments (e.g. jsdom).
+        }
+      }
       currentTabRef.current = tab;
       scrollY.setValue(0);
       lastScrollYRef.current = 0;
@@ -264,6 +271,13 @@ export function ScrollHeaderProvider({ children }: { children: React.ReactNode }
 
   const resetScroll = useCallback(() => {
     Object.values(scrollViewsRef.current).forEach(scrollNodeToTop);
+    if (isWebMobileRef.current && typeof window !== 'undefined') {
+      try {
+        window.scrollTo({ top: 0, behavior: 'auto' });
+      } catch {
+        // Ignore in non-browser test environments (e.g. jsdom).
+      }
+    }
     currentTabRef.current = 'homework';
     scrollY.setValue(0);
     lastScrollYRef.current = 0;

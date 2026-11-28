@@ -471,13 +471,22 @@ function TabPane({
   active: boolean;
   children: React.ReactNode;
 }) {
+  const { isDesktop } = useResponsiveLayout();
+  const isWebMobile = Platform.OS === 'web' && !isDesktop;
+
   return (
     <WebMobileHeaderActiveProvider value={active}>
       <View
         pointerEvents={active ? 'auto' : 'none'}
         accessibilityElementsHidden={!active}
         importantForAccessibility={active ? 'yes' : 'no-hide-descendants'}
-        style={[styles.tabPane, !active && styles.tabPaneHidden]}
+        style={
+          isWebMobile
+            ? active
+              ? styles.tabPaneWebMobile
+              : styles.tabPaneWebMobileHidden
+            : [styles.tabPane, !active && styles.tabPaneHidden]
+        }
       >
         {children}
       </View>
@@ -551,5 +560,14 @@ const styles = StyleSheet.create({
   },
   tabPaneHidden: {
     opacity: 0,
+  },
+  tabPaneWebMobile: {
+    flex: 1,
+    width: '100%',
+    maxWidth: '100%',
+    minWidth: 0,
+  },
+  tabPaneWebMobileHidden: {
+    display: 'none',
   },
 });

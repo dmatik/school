@@ -12,6 +12,7 @@ import React, {
 import {
   BackHandler,
   Modal as RNModal,
+  Platform,
   StyleSheet,
   View,
   type ModalProps,
@@ -75,6 +76,19 @@ export function ModalPortalProvider({ children }: { children: React.ReactNode })
     return () => sub.remove();
   }, []);
 
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof document === 'undefined' || !document.body) {
+      return;
+    }
+    if (layers.length === 0) return;
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [layers.length]);
+
   const value = useMemo(
     () => ({ upsertLayer, removeLayer }),
     [upsertLayer, removeLayer]
@@ -92,7 +106,13 @@ export function ModalPortalProvider({ children }: { children: React.ReactNode })
         </AndroidBlurTarget>
         {layers.length > 0 ? (
           <AndroidBlurTargetProvider value={portalBlurTargetRef}>
-            <View style={[StyleSheet.absoluteFill, styles.portalHost]} pointerEvents="box-none">
+            <View
+              style={[
+                Platform.OS === 'web' ? styles.portalHostWeb : StyleSheet.absoluteFill,
+                styles.portalHost,
+              ]}
+              pointerEvents="box-none"
+            >
               {layers.map((layer, idx) => (
                 <View
                   key={layer.id}
@@ -176,5 +196,12 @@ const styles = StyleSheet.create({
   portalHost: {
     zIndex: 9999,
     elevation: 9999,
+  },
+  portalHostWeb: {
+    position: 'fixed' as any,
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
   },
 });

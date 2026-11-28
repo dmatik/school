@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
-  Animated,
   View,
   Platform,
   ActivityIndicator,
@@ -49,6 +48,7 @@ import { Button } from '../components/ui/Buttons';
 import { Modal, ConfirmModal } from '../components/ui/Modal';
 import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User } from '../../../shared/types';
 
@@ -324,7 +324,7 @@ export function AccountScreen({
   return (
     <View style={{ flex: 1 }}>
       <PageHeader title={t('account.title')} />
-      <Animated.ScrollView
+      <ScreenScrollView
         ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[
@@ -558,7 +558,7 @@ export function AccountScreen({
           icon={LogOut}
           onPress={onLogout}
         />
-      </Animated.ScrollView>
+      </ScreenScrollView>
 
       {/* Add Passkey Modal */}
       <Modal

@@ -35,6 +35,7 @@ import {
   useScrollHeader,
 } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { ExamItem, WebtopConfig, User } from '../../../shared/types';
 
@@ -355,7 +356,7 @@ export function ExamsScreen({
       />
       <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
-          <Animated.ScrollView
+          <ScreenScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
@@ -422,7 +423,7 @@ export function ExamsScreen({
                     {section.data.map(renderExamItem)}
                   </React.Fragment>
                 ))}
-          </Animated.ScrollView>
+          </ScreenScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

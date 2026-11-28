@@ -19,6 +19,7 @@ import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/u
 import { IncidentCard } from '../components/ui/Cards';
 import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { Incident, WebtopConfig, User } from '../../../shared/types';
 
@@ -222,7 +223,7 @@ export function IncidentsScreen({
       <PageHeader title={t('incidents.title')} />
       <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
-          <Animated.ScrollView
+          <ScreenScrollView
             ref={scrollRef as any}
             style={styles.container}
             contentContainerStyle={scrollContentStyle}
@@ -281,7 +282,7 @@ export function IncidentsScreen({
                     {section.data.map(renderIncidentItem)}
                   </React.Fragment>
                 ))}
-          </Animated.ScrollView>
+          </ScreenScrollView>
         ) : (
           <Animated.SectionList
             ref={scrollRef as any}

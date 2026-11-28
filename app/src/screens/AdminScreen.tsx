@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Platform,
   View,
   ActivityIndicator,
   StyleSheet,
@@ -26,6 +27,7 @@ import {
   useScrollHeader,
 } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User, WebtopChild } from '../../../shared/types';
 
@@ -260,61 +262,85 @@ export function AdminScreen({
     />
   );
 
+  const renderUserItem = (u: User) => {
+    const linked = children.find(
+      (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
+    );
+    const linkedName = linked
+      ? `${linked.firstName} ${linked.lastName}`.trim()
+      : null;
+
+    return (
+      <AdminUserRow
+        user={u}
+        isSelf={u.id === currentUser.id}
+        linkedChildName={linkedName}
+        onEdit={() => openEditModal(u)}
+        onResetPassword={() => {
+          setResetTarget(u);
+          setResetPassword('');
+        }}
+        onDelete={() => setDeleteTarget(u)}
+      />
+    );
+  };
+
+  const listContentStyle = [
+    styles.content,
+    isDesktop
+      ? {
+          maxWidth: pageMaxWidth,
+          width: '100%' as const,
+          alignSelf: 'center' as const,
+          paddingHorizontal: 24,
+          paddingTop: 12,
+          paddingBottom: 24,
+        }
+      : { paddingTop: headerHeight + 8 },
+  ];
+
   return (
     <View style={{ flex: 1 }}>
       <PageHeader
         title={t('admin.title')}
         actions={<HeaderActionButton {...headerAction} />}
       />
-      <Animated.FlatList
-        ref={scrollRef as any}
-        style={styles.container}
-        contentContainerStyle={[
-          styles.content,
-          isDesktop
-            ? {
-                maxWidth: pageMaxWidth,
-                width: '100%',
-                alignSelf: 'center',
-                paddingHorizontal: 24,
-                paddingTop: 12,
-                paddingBottom: 24,
-              }
-            : { paddingTop: headerHeight + 8 },
-        ]}
-        showsVerticalScrollIndicator={false}
-        data={loading ? [] : filtered}
-        keyExtractor={(u) => u.id}
-        ListHeaderComponent={listHeader}
-        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
-        ListEmptyComponent={listEmpty}
-        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-        renderItem={({ item: u }) => {
-          const linked = children.find(
-            (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
-          );
-          const linkedName = linked
-            ? `${linked.firstName} ${linked.lastName}`.trim()
-            : null;
-
-          return (
-            <AdminUserRow
-              user={u}
-              isSelf={u.id === currentUser.id}
-              linkedChildName={linkedName}
-              onEdit={() => openEditModal(u)}
-              onResetPassword={() => {
-                setResetTarget(u);
-                setResetPassword('');
-              }}
-              onDelete={() => setDeleteTarget(u)}
-            />
-          );
-        }}
-        onScroll={onScroll}
-        scrollEventThrottle={16}
-        {...pullToRefreshProps}
-      />
+      {Platform.OS === 'web' && !isDesktop ? (
+        <ScreenScrollView
+          ref={scrollRef as any}
+          style={styles.container}
+          contentContainerStyle={listContentStyle}
+          showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+        >
+          <View style={{ zIndex: 20 }}>{listHeader}</View>
+          {loading || filtered.length === 0
+            ? listEmpty
+            : filtered.map((u, idx) => (
+                <View key={u.id} style={idx > 0 ? { marginTop: 12 } : undefined}>
+                  {renderUserItem(u)}
+                </View>
+              ))}
+        </ScreenScrollView>
+      ) : (
+        <Animated.FlatList
+          ref={scrollRef as any}
+          style={styles.container}
+          contentContainerStyle={listContentStyle}
+          showsVerticalScrollIndicator={false}
+          data={loading ? [] : filtered}
+          keyExtractor={(u) => u.id}
+          ListHeaderComponent={listHeader}
+          ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
+          ListEmptyComponent={listEmpty}
+          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+          renderItem={({ item: u }) => renderUserItem(u)}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
+          {...pullToRefreshProps}
+        />
+      )}
 
       <FullScreenModal
         testID="user-modal"
