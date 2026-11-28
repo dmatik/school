@@ -51,7 +51,8 @@
     "last_sync": "Updated: {{date}}",
     "clear_search": "Clear search",
     "print": "Print",
-    "share": "Share"
+    "share": "Share",
+    "open_menu": "Open menu"
   },
   "incidents": {
     "title": "School Incidents",
@@ -219,7 +220,8 @@
     "scroll_backward": "Scroll backward",
     "scroll_forward": "Scroll forward",
     "print": "Print",
-    "share": "Share"
+    "share": "Share",
+    "open_menu": "Open menu"
   },
   "auth": {
     "login_subtitle": "Sign in to your School account",

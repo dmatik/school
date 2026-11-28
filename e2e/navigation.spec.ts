@@ -111,7 +111,7 @@ test.describe('Navigation Flow', () => {
     await expect(page.getByTestId('sidebar-sync-button')).toBeVisible();
   });
 
-  test('mobile view displays centered page title in mobile header, hides desktop headers, has floating Add User button on Admin and bottom Logout on Account', async ({ page }) => {
+  test('mobile view hides bottom dock, shows header hamburger menu that slides full-height sidebar, has floating Add User button on Admin and bottom Logout on Account', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
@@ -123,24 +123,52 @@ test.describe('Navigation Flow', () => {
     await expect(mobileHeader).toBeVisible();
     await expect(mobileTitle).toContainText(/שיעורי בית|Homework/);
     await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
+    await expect(page.getByTestId('mobile-dock')).not.toBeVisible();
 
-    // Incidents tab in mobile dock
-    await page.getByTestId('dock-tab-incidents').click();
+    const menuBtn = page.getByTestId('header-menu-button');
+    await expect(menuBtn).toBeVisible();
+    const menuBtnBox = await menuBtn.boundingBox();
+    const accountBtnBox = await page.getByTestId('header-account-button').boundingBox();
+    expect(menuBtnBox).not.toBeNull();
+    expect(accountBtnBox).not.toBeNull();
+    if (menuBtnBox && accountBtnBox) {
+      expect(Math.round(menuBtnBox.width)).toBe(36);
+      expect(Math.round(menuBtnBox.height)).toBe(36);
+    }
+
+    // Open slide-out sidebar and verify full-height AppSidebar
+    await menuBtn.click();
+    const drawerSidebar = page.getByTestId('desktop-sidebar');
+    await expect(drawerSidebar).toBeVisible();
+    const drawerBox = await drawerSidebar.boundingBox();
+    expect(drawerBox).not.toBeNull();
+    if (drawerBox) {
+      expect(Math.round(drawerBox.height)).toBe(844);
+    }
+
+    // Backdrop click closes the drawer
+    await page.getByTestId('mobile-sidebar-backdrop').click();
+    await expect(drawerSidebar).not.toBeVisible();
+
+    // Incidents tab via slide-out sidebar
+    await menuBtn.click();
+    await page.getByTestId('sidebar-tab-incidents').click();
     await expect(mobileTitle).toContainText(/אירועי משמעת|School Incidents/);
+    await expect(drawerSidebar).not.toBeVisible();
     await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    // Admin tab in mobile dock
-    await page.getByTestId('dock-tab-admin').click();
+    // Admin tab via slide-out sidebar
+    await menuBtn.click();
+    await page.getByTestId('sidebar-tab-admin').click();
     await expect(mobileTitle).toContainText(/ניהול מערכת|Administration/);
+    await expect(drawerSidebar).not.toBeVisible();
     await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
     // Round Add User button should be visible in mobile header at 36x36 matching avatar
     const headerAddUserBtn = page.getByTestId('add-user-header-btn');
     await expect(headerAddUserBtn).toBeVisible();
     const addBtnBox = await headerAddUserBtn.boundingBox();
-    const accountBtnBox = await page.getByTestId('header-account-button').boundingBox();
     expect(addBtnBox).not.toBeNull();
-    expect(accountBtnBox).not.toBeNull();
     if (addBtnBox && accountBtnBox) {
       expect(Math.round(addBtnBox.width)).toBe(36);
       expect(Math.round(addBtnBox.height)).toBe(36);

@@ -19,6 +19,7 @@ import {
   EditButton,
   HeaderActionButton,
   LiquidButton,
+  MenuButton,
   SyncButton,
   ModeToggleButton,
   LanguageToggleButton,
@@ -27,7 +28,7 @@ import { LiquidTabs, StickyFilterBar } from '../../components/ui/FormFields';
 import { LiquidDatePicker } from '../../components/ui/LiquidDatePicker';
 import { LiquidDock } from '../../components/ui/LiquidDock';
 import { MobileHeader, useScrollHeader } from '../../components/ui/MobileHeader';
-import { AppSidebar } from '../../components/ui/AppSidebar';
+import { AppSidebar, AppSidebarDrawer } from '../../components/ui/AppSidebar';
 import { SlidingPill } from '../../components/ui/SlidingPill';
 import { useTheme } from '../../theme/ThemeContext';
 
@@ -59,6 +60,7 @@ export const Buttons: StoryObj = {
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <ModeToggleButton />
         <LanguageToggleButton />
+        <MenuButton onPress={() => {}} />
         <HeaderActionButton icon={Plus} accessibilityLabel="Add" onPress={() => {}} />
         <HeaderActionButton icon={Check} variant="success" accessibilityLabel="Done" onPress={() => {}} />
       </View>
@@ -231,6 +233,63 @@ export const DesktopSidebar: StoryObj = {
             { id: 'settings', label: 'הגדרות', icon: Settings },
             { id: 'admin', label: 'ניהול', icon: Shield },
           ]}
+        />
+      </View>
+    );
+  },
+};
+
+export const WebMobileSidebarDrawer: StoryObj = {
+  render: () => {
+    const [active, setActive] = useState('homework');
+    const [open, setOpen] = useState(false);
+    const user = {
+      id: 'u-1',
+      username: 'parent1',
+      firstName: 'דוד',
+      lastName: 'כהן',
+      role: 'admin' as const,
+      familyRole: 'parent' as const,
+      linkedChildId: null,
+    };
+    const navItems = [
+      { id: 'homework', label: 'שיעורי בית', icon: BookOpen },
+      { id: 'incidents', label: 'אירועים', icon: AlertCircle },
+      { id: 'exams', label: 'מבחנים', icon: FileCheck },
+      { id: 'schedule', label: 'מערכת שעות', icon: CalendarDays },
+      { id: 'settings', label: 'הגדרות', icon: Settings },
+      { id: 'admin', label: 'ניהול', icon: Shield },
+    ];
+
+    return (
+      <View style={{ height: 520, position: 'relative', overflow: 'hidden' }}>
+        <MobileHeader
+          inline
+          title="שיעורי בית"
+          user={user}
+          isAccountActive={active === 'account'}
+          onPressAccount={() => setActive('account')}
+          onPressSync={() => {}}
+          onPressMenu={() => setOpen(true)}
+          endAction={{
+            icon: Plus,
+            accessibilityLabel: 'Add',
+            onPress: () => {},
+          }}
+        />
+        <View style={{ padding: 16 }}>
+          <Text>Active tab: {active}</Text>
+        </View>
+        <AppSidebarDrawer
+          visible={open}
+          onClose={() => setOpen(false)}
+          currentUser={user}
+          activeTab={active}
+          onSelectTab={setActive}
+          onPressAccount={() => setActive('account')}
+          onPressSync={() => {}}
+          lastSyncedAt={new Date().toISOString()}
+          navItems={navItems}
         />
       </View>
     );

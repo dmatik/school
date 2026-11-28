@@ -26,6 +26,7 @@ import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
 import {
   HeaderActionButton,
+  MenuButton,
   SyncButton,
   type HeaderActionButtonProps,
 } from './Buttons';
@@ -53,6 +54,7 @@ export interface MobileHeaderProps {
   isAccountActive?: boolean;
   onPressAccount: () => void;
   onPressSync: () => void;
+  onPressMenu?: () => void;
   syncing?: boolean;
   syncSuccess?: boolean;
   endAction?: HeaderActionButtonProps | null;
@@ -156,6 +158,7 @@ export function MobileHeader({
   isAccountActive = false,
   onPressAccount,
   onPressSync,
+  onPressMenu,
   syncing = false,
   syncSuccess = false,
   endAction = null,
@@ -218,6 +221,7 @@ export function MobileHeader({
   });
 
   const formattedSync = lastSyncedAt ? formatSystemDateTime(lastSyncedAt) : '';
+  const sideMinWidth = endAction || onPressMenu ? 80 : 36;
 
   const isWeb = Platform.OS === 'web';
   const nativeBorderColor = isDark
@@ -265,7 +269,7 @@ export function MobileHeader({
         <View
           style={[
             styles.startSlot,
-            { minWidth: endAction ? 80 : 36, flexDirection: flexRow },
+            { minWidth: sideMinWidth, flexDirection: flexRow },
           ]}
         >
           <Pressable
@@ -278,6 +282,11 @@ export function MobileHeader({
           >
             <UserAvatar user={user} size={36} activeRing={isAccountActive} />
           </Pressable>
+          {onPressMenu ? (
+            <View style={styles.sideSlot}>
+              <MenuButton testID="header-menu-button" onPress={onPressMenu} />
+            </View>
+          ) : null}
         </View>
 
         <View style={styles.titleWrap}>
@@ -323,7 +332,7 @@ export function MobileHeader({
         <View
           style={[
             styles.endSlot,
-            { minWidth: endAction ? 80 : 36, flexDirection: flexRow },
+            { minWidth: sideMinWidth, flexDirection: flexRow },
           ]}
         >
           <View style={styles.sideSlot}>
@@ -404,6 +413,7 @@ const styles = StyleSheet.create({
     height: 36,
     alignItems: 'center',
     justifyContent: 'flex-start',
+    gap: 8,
   },
   endSlot: {
     height: 36,
