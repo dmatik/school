@@ -46,9 +46,11 @@ import {
   SearchInput,
   SelectField,
   SwitchField,
+  ToggleSwitch,
   ColorSwatchPicker,
   LiquidTabs,
 } from '../src/components/ui/FormFields';
+import { setAppLanguage } from '../src/i18n';
 import {
   HomeworkCard,
   IncidentCard,
@@ -699,11 +701,73 @@ describe('Mobile & Desktop Shared UI Components', () => {
       fireEvent.press(getByText('Yoav'));
       expect(onSelectChange).toHaveBeenCalledWith('c2');
 
-      fireEvent(getByRole('switch'), 'valueChange', true);
+      fireEvent.press(getByRole('switch'));
       expect(onSwitchChange).toHaveBeenCalledWith(true);
 
       fireEvent.press(getByText('15:00'));
       expect(onTimeChange).toHaveBeenCalledWith('15:00');
+    });
+
+    it('ToggleSwitch supports toggle, disabled state, accessibility state, and RTL/LTR direction', async () => {
+      const onChange = jest.fn();
+      await act(async () => {
+        await setAppLanguage('en');
+      });
+
+      const { getByRole, rerender } = render(
+        <TestProviders>
+          <ToggleSwitch
+            value={false}
+            onValueChange={onChange}
+            accessibilityLabel="Auto sync"
+          />
+        </TestProviders>
+      );
+
+      const switchEl = getByRole('switch');
+      expect(switchEl.props.accessibilityState).toEqual({ checked: false, disabled: false });
+
+      fireEvent.press(switchEl);
+      expect(onChange).toHaveBeenCalledWith(true);
+
+      rerender(
+        <TestProviders>
+          <ToggleSwitch
+            value
+            onValueChange={onChange}
+            accessibilityLabel="Auto sync"
+          />
+        </TestProviders>
+      );
+      expect(getByRole('switch').props.accessibilityState).toEqual({
+        checked: true,
+        disabled: false,
+      });
+
+      fireEvent.press(getByRole('switch'));
+      expect(onChange).toHaveBeenCalledWith(false);
+
+      onChange.mockClear();
+      rerender(
+        <TestProviders>
+          <ToggleSwitch
+            value={false}
+            disabled
+            onValueChange={onChange}
+            accessibilityLabel="Auto sync"
+          />
+        </TestProviders>
+      );
+      expect(getByRole('switch').props.accessibilityState).toEqual({
+        checked: false,
+        disabled: true,
+      });
+      fireEvent.press(getByRole('switch'));
+      expect(onChange).not.toHaveBeenCalled();
+
+      await act(async () => {
+        await setAppLanguage('he');
+      });
     });
   });
 

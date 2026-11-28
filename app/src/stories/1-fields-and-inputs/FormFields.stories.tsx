@@ -13,6 +13,7 @@ import {
   SelectField,
   SwitchField,
   TimePresetInput,
+  ToggleSwitch,
 } from '../../components/ui/FormFields';
 import { DatePickerField } from '../../components/ui/LiquidDatePicker';
 import { SectionCard } from '../../components/ui/Surfaces';
@@ -194,6 +195,23 @@ export const InputsShowcase: StoryObj = {
           value={enabled}
           onValueChange={setEnabled}
         />
+        <SwitchField
+          label="סנכרון אוטומטי (מושבת - פעיל)"
+          value
+          disabled
+          onValueChange={() => {}}
+        />
+        <SwitchField
+          label="סנכרון אוטומטי (מושבת - כבוי)"
+          value={false}
+          disabled
+          onValueChange={() => {}}
+        />
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <ToggleSwitch value={enabled} onValueChange={setEnabled} accessibilityLabel="Toggle active" />
+          <ToggleSwitch value={false} onValueChange={() => {}} accessibilityLabel="Toggle off" />
+          <ToggleSwitch value disabled onValueChange={() => {}} accessibilityLabel="Toggle disabled" />
+        </View>
       </ScrollView>
     );
   },

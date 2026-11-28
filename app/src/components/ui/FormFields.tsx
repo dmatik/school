@@ -11,7 +11,6 @@ import {
   Text,
   TextInput,
   Pressable,
-  Switch,
   ScrollView,
   StyleSheet,
   useWindowDimensions,
@@ -19,6 +18,11 @@ import {
   type TextInputProps,
   type ViewStyle,
 } from 'react-native';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 import { Search, X, ChevronDown, Check, type LucideIcon } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
@@ -587,6 +591,106 @@ export function SelectField({
   );
 }
 
+const SWITCH_WIDTH = 48;
+const SWITCH_HEIGHT = 28;
+const SWITCH_PADDING = 2;
+const SWITCH_THUMB_SIZE = 24;
+const SWITCH_TRAVEL = SWITCH_WIDTH - SWITCH_PADDING * 2 - SWITCH_THUMB_SIZE;
+const SWITCH_SPRING = { stiffness: 500, damping: 35, mass: 1 } as const;
+
+export function ToggleSwitch({
+  value,
+  onValueChange,
+  disabled = false,
+  accessibilityLabel,
+  style,
+}: {
+  value: boolean;
+  onValueChange: (val: boolean) => void;
+  disabled?: boolean;
+  accessibilityLabel?: string;
+  style?: StyleProp<ViewStyle>;
+}) {
+  const { palette } = useTheme();
+  const { isRTL } = useDirection();
+
+  const targetTranslateX = isRTL
+    ? value
+      ? 0
+      : SWITCH_TRAVEL
+    : value
+      ? SWITCH_TRAVEL
+      : 0;
+
+  const translateX = useSharedValue(targetTranslateX);
+  const activeOpacity = useSharedValue(value ? 1 : 0);
+  const isFirstRender = useRef(true);
+  const prevIsRTL = useRef(isRTL);
+
+  useEffect(() => {
+    const shouldSnap = isFirstRender.current || prevIsRTL.current !== isRTL;
+    if (shouldSnap) {
+      translateX.value = targetTranslateX;
+      activeOpacity.value = value ? 1 : 0;
+    } else {
+      translateX.value = withSpring(targetTranslateX, SWITCH_SPRING);
+      activeOpacity.value = withSpring(value ? 1 : 0, SWITCH_SPRING);
+    }
+    isFirstRender.current = false;
+    prevIsRTL.current = isRTL;
+  }, [value, isRTL, targetTranslateX, translateX, activeOpacity]);
+
+  const thumbAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: translateX.value }],
+  }));
+
+  const activeTrackAnimatedStyle = useAnimatedStyle(() => ({
+    opacity: activeOpacity.value,
+  }));
+
+  return (
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityLabel={accessibilityLabel}
+      accessibilityState={{ checked: value, disabled }}
+      disabled={disabled}
+      hitSlop={6}
+      onPress={() => {
+        if (!disabled) {
+          onValueChange(!value);
+        }
+      }}
+      style={[
+        styles.toggleTrack,
+        {
+          backgroundColor: palette.switchTrackOff,
+          opacity: disabled ? 0.45 : 1,
+        },
+        Platform.OS === 'web'
+          ? ({ cursor: disabled ? 'not-allowed' : 'pointer' } as any)
+          : null,
+        style,
+      ]}
+    >
+      <Animated.View
+        pointerEvents="none"
+        style={[
+          StyleSheet.absoluteFill,
+          {
+            borderRadius: SWITCH_HEIGHT / 2,
+            backgroundColor: palette.primary,
+          },
+          activeTrackAnimatedStyle,
+        ]}
+      />
+      <Animated.View
+        pointerEvents="none"
+        style={[styles.toggleThumb, thumbAnimatedStyle]}
+      />
+    </Pressable>
+  );
+}
+
 export function SwitchField({
   label,
   description,
@@ -602,7 +706,6 @@ export function SwitchField({
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { palette } = useTheme();
   const { flexRow } = useDirection();
 
   return (
@@ -610,12 +713,11 @@ export function SwitchField({
       <View style={{ flex: 1, minWidth: 0 }}>
         <FieldLabel label={label} description={description} />
       </View>
-      <Switch
+      <ToggleSwitch
         value={value}
         onValueChange={onValueChange}
         disabled={disabled}
         accessibilityLabel={label}
-        trackColor={{ false: palette.switchTrackOff, true: palette.primary }}
       />
     </View>
   );
@@ -1165,6 +1267,30 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: 16,
+  },
+  toggleTrack: {
+    width: SWITCH_WIDTH,
+    height: SWITCH_HEIGHT,
+    borderRadius: SWITCH_HEIGHT / 2,
+    padding: SWITCH_PADDING,
+    justifyContent: 'center',
+    overflow: 'hidden',
+    flexShrink: 0,
+  },
+  toggleThumb: {
+    width: SWITCH_THUMB_SIZE,
+    height: SWITCH_THUMB_SIZE,
+    borderRadius: SWITCH_THUMB_SIZE / 2,
+    backgroundColor: '#ffffff',
+    ...(Platform.OS === 'web'
+      ? { boxShadow: '0 1px 3px rgba(15, 23, 42, 0.24)' }
+      : {
+          shadowColor: '#0f172a',
+          shadowOffset: { width: 0, height: 1 },
+          shadowOpacity: 0.22,
+          shadowRadius: 2.5,
+          elevation: 2,
+        }),
   },
   swatchRow: {
     flexWrap: 'wrap',
