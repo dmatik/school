@@ -51,7 +51,8 @@
     "last_sync": "עודכן: {{date}}",
     "clear_search": "נקה חיפוש",
     "print": "הדפסה",
-    "share": "שיתוף"
+    "share": "שיתוף",
+    "open_menu": "פתח תפריט"
   },
   "incidents": {
     "title": "אירועי משמעת",
@@ -219,7 +220,8 @@
     "scroll_backward": "גלול אחורה",
     "scroll_forward": "גלול קדימה",
     "print": "הדפסה",
-    "share": "שיתוף"
+    "share": "שיתוף",
+    "open_menu": "פתח תפריט"
   },
   "auth": {
     "login_subtitle": "התחברות למערכת בית הספר",

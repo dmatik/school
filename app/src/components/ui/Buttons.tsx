@@ -20,6 +20,7 @@ import Reanimated, {
 import {
   RefreshCw,
   Check,
+  Menu,
   Sun,
   Moon,
   Languages,
@@ -533,6 +534,37 @@ export function SyncButton({
           <RefreshCw size={22} strokeWidth={2} color={palette.foreground} />
         </Reanimated.View>
       )}
+    </Pressable>
+  );
+}
+
+export function MenuButton({
+  onPress,
+  testID,
+  style,
+}: {
+  onPress: () => void;
+  testID?: string;
+  style?: ViewStyle;
+}) {
+  const { t } = useTranslation();
+  const { palette } = useTheme();
+
+  return (
+    <Pressable
+      testID={testID}
+      accessibilityLabel={t('common.open_menu')}
+      accessibilityRole="button"
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.iconOnlySync,
+        pressed && { opacity: 0.7 },
+        Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
+        style,
+      ]}
+    >
+      <Menu size={22} strokeWidth={2} color={palette.foreground} />
     </Pressable>
   );
 }

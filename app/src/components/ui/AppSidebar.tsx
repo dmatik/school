@@ -1,5 +1,7 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Animated,
+  Easing,
   View,
   Text,
   Pressable,
@@ -17,12 +19,26 @@ import { SIDEBAR_WIDTH } from '../../hooks/useResponsiveLayout';
 import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
 import { SyncButton } from './Buttons';
+import { ModalLayer } from './ModalPortal';
 import type { User } from '../../../../shared/types';
 
 export interface SidebarNavItem {
   id: string;
   label: string;
   icon: LucideIcon;
+}
+
+export interface AppSidebarProps {
+  currentUser: User;
+  activeTab: string;
+  onSelectTab: (id: string) => void;
+  onPressAccount: () => void;
+  navItems: SidebarNavItem[];
+  onPressSync: () => void;
+  syncing?: boolean;
+  syncSuccess?: boolean;
+  lastSyncedAt?: string | null;
+  testID?: string;
 }
 
 export function SidebarNavButton({
@@ -103,17 +119,8 @@ export function AppSidebar({
   syncing = false,
   syncSuccess = false,
   lastSyncedAt,
-}: {
-  currentUser: User;
-  activeTab: string;
-  onSelectTab: (id: string) => void;
-  onPressAccount: () => void;
-  navItems: SidebarNavItem[];
-  onPressSync: () => void;
-  syncing?: boolean;
-  syncSuccess?: boolean;
-  lastSyncedAt?: string | null;
-}) {
+  testID = 'desktop-sidebar',
+}: AppSidebarProps) {
   const { t } = useTranslation();
   const { palette, isDark } = useTheme();
   const { flexRow, textAlign, isRTL } = useDirection();
@@ -131,7 +138,7 @@ export function AppSidebar({
 
   return (
     <View
-      testID="desktop-sidebar"
+      testID={testID}
       style={[
         styles.sidebar,
         sideBorderStyle,
@@ -243,6 +250,127 @@ export function AppSidebar({
   );
 }
 
+export function AppSidebarDrawer({
+  visible,
+  onClose,
+  onSelectTab,
+  onPressAccount,
+  ...sidebarProps
+}: AppSidebarProps & {
+  visible: boolean;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation();
+  const { isDark } = useTheme();
+  const { isRTL } = useDirection();
+  const [mounted, setMounted] = useState(visible);
+  const progress = useRef(new Animated.Value(visible ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (visible) {
+      setMounted(true);
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 240,
+        easing: Easing.out(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }).start();
+    } else if (mounted) {
+      Animated.timing(progress, {
+        toValue: 0,
+        duration: 200,
+        easing: Easing.in(Easing.cubic),
+        useNativeDriver: Platform.OS !== 'web',
+      }).start(({ finished }) => {
+        if (finished) {
+          setMounted(false);
+        }
+      });
+    }
+  }, [visible, mounted, progress]);
+
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [visible, onClose]);
+
+  if (!mounted) {
+    return null;
+  }
+
+  const closedOffset = isRTL ? SIDEBAR_WIDTH : -SIDEBAR_WIDTH;
+  const translateX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [closedOffset, 0],
+  });
+
+  const drawerShadowStyle =
+    Platform.OS === 'web'
+      ? ({
+          boxShadow: isDark
+            ? '0 16px 40px rgba(0, 0, 0, 0.55)'
+            : '0 16px 40px rgba(15, 23, 42, 0.18)',
+        } as any)
+      : {
+          shadowColor: '#000',
+          shadowOpacity: isDark ? 0.45 : 0.18,
+          shadowRadius: 20,
+          shadowOffset: { width: 0, height: 8 },
+          elevation: 16,
+        };
+
+  return (
+    <ModalLayer
+      visible={mounted}
+      onRequestClose={onClose}
+      animationType="none"
+    >
+      <View
+        testID="mobile-sidebar-drawer"
+        style={styles.drawerRoot}
+        pointerEvents={visible ? 'auto' : 'none'}
+      >
+        <Animated.View style={[StyleSheet.absoluteFill, styles.drawerBackdrop, { opacity: progress }]}>
+          <Pressable
+            testID="mobile-sidebar-backdrop"
+            accessibilityLabel={t('common.close')}
+            accessibilityRole="button"
+            onPress={onClose}
+            style={StyleSheet.absoluteFill}
+          />
+        </Animated.View>
+
+        <Animated.View
+          style={[
+            styles.drawerPanel,
+            isRTL ? styles.drawerPanelRight : styles.drawerPanelLeft,
+            drawerShadowStyle,
+            { transform: [{ translateX }] },
+          ]}
+        >
+          <AppSidebar
+            {...sidebarProps}
+            onSelectTab={(id) => {
+              onSelectTab(id);
+              onClose();
+            }}
+            onPressAccount={() => {
+              onPressAccount();
+              onClose();
+            }}
+          />
+        </Animated.View>
+      </View>
+    </ModalLayer>
+  );
+}
+
 const styles = StyleSheet.create({
   sidebar: {
     flexShrink: 0,
@@ -307,5 +435,25 @@ const styles = StyleSheet.create({
     fontSize: 10,
     ...heeboFont('400'),
     flexShrink: 1,
+  },
+  drawerRoot: {
+    flex: 1,
+    position: 'relative',
+  },
+  drawerBackdrop: {
+    backgroundColor: 'rgba(15, 23, 42, 0.42)',
+  },
+  drawerPanel: {
+    position: 'absolute',
+    top: 0,
+    bottom: 0,
+    height: '100%',
+    width: SIDEBAR_WIDTH,
+  },
+  drawerPanelLeft: {
+    left: 0,
+  },
+  drawerPanelRight: {
+    right: 0,
   },
 });

@@ -35,7 +35,7 @@ import {
   useActiveMobileHeaderAction,
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
-import { AppSidebar, type SidebarNavItem } from './src/components/ui/AppSidebar';
+import { AppSidebar, AppSidebarDrawer, type SidebarNavItem } from './src/components/ui/AppSidebar';
 import { LiquidDock, type DockTabItem } from './src/components/ui/LiquidDock';
 import { AndroidBlurTarget, AndroidBlurTargetProvider } from './src/components/ui/GlassBackdrop';
 import { ModalPortalProvider } from './src/components/ui/ModalPortal';
@@ -98,7 +98,14 @@ function AppShell() {
 
   const [syncing, setSyncing] = useState(false);
   const [syncSuccess, setSyncSuccess] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const syncSuccessTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (isDesktop) {
+      setSidebarOpen(false);
+    }
+  }, [isDesktop]);
 
   useEffect(() => {
     return () => {
@@ -183,6 +190,7 @@ function AppShell() {
 
   const handleLogout = useCallback(async () => {
     resetScroll();
+    setSidebarOpen(false);
     await clearAuthOnly();
     setCurrentUser(null);
     tabHistoryRef.current = [];
@@ -355,6 +363,7 @@ function AppShell() {
                 isAccountActive: activeTab === 'account',
                 onPressAccount: () => selectTab('account'),
                 onPressSync: handleGlobalSync,
+                onPressMenu: () => setSidebarOpen(true),
                 syncing,
                 syncSuccess,
                 endAction: activeHeaderAction,
@@ -413,27 +422,41 @@ function AppShell() {
         </AndroidBlurTarget>
       </WebMobileHeaderProvider>
 
-      {!isDesktop ? (
+      {!isDesktop && Platform.OS !== 'web' ? (
         <AndroidBlurTargetProvider value={contentBlurTargetRef}>
-          {Platform.OS !== 'web' ? (
-            <MobileHeader
-              title={headerTitle}
-              user={currentUser}
-              lastSyncedAt={lastSyncedAt}
-              isAccountActive={activeTab === 'account'}
-              onPressAccount={() => selectTab('account')}
-              onPressSync={handleGlobalSync}
-              syncing={syncing}
-              syncSuccess={syncSuccess}
-              endAction={activeHeaderAction}
-            />
-          ) : null}
+          <MobileHeader
+            title={headerTitle}
+            user={currentUser}
+            lastSyncedAt={lastSyncedAt}
+            isAccountActive={activeTab === 'account'}
+            onPressAccount={() => selectTab('account')}
+            onPressSync={handleGlobalSync}
+            syncing={syncing}
+            syncSuccess={syncSuccess}
+            endAction={activeHeaderAction}
+          />
           <LiquidDock
             items={dockItems}
             activeId={activeTab}
             onSelect={(id) => selectTab(id as AppTab)}
           />
         </AndroidBlurTargetProvider>
+      ) : null}
+
+      {!isDesktop && Platform.OS === 'web' ? (
+        <AppSidebarDrawer
+          visible={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          currentUser={currentUser}
+          activeTab={activeTab}
+          onSelectTab={(id) => selectTab(id as AppTab)}
+          onPressAccount={() => selectTab('account')}
+          navItems={sidebarItems}
+          onPressSync={handleGlobalSync}
+          syncing={syncing}
+          syncSuccess={syncSuccess}
+          lastSyncedAt={webtopState.configured ? lastSyncedAt : null}
+        />
       ) : null}
     </View>
   );

@@ -8,12 +8,13 @@ import { PageHeader } from '../src/components/ui/PageHeader';
 import { MobileHeader } from '../src/components/ui/MobileHeader';
 import { GlassBackdrop } from '../src/components/ui/GlassBackdrop';
 import { LIGHT_PALETTE } from '../src/lib/colors';
-import { AppSidebar } from '../src/components/ui/AppSidebar';
+import { AppSidebar, AppSidebarDrawer } from '../src/components/ui/AppSidebar';
 import { LiquidDock, getDockBottomMargin } from '../src/components/ui/LiquidDock';
 import {
   Button,
   ActionButton,
   SyncButton,
+  MenuButton,
   EditButton,
   DestructiveButton,
   LiquidButton,
@@ -352,6 +353,78 @@ describe('Mobile & Desktop Shared UI Components', () => {
         </TestProviders>
       );
       expect(getByText('onlyuser')).toBeTruthy();
+    });
+
+    it('renders MenuButton and MobileHeader hamburger menu button only when onPressMenu is provided', () => {
+      const onPressMenu = jest.fn();
+      const { getByTestId, rerender, queryByTestId } = render(
+        <TestProviders>
+          <MenuButton testID="menu-btn" onPress={onPressMenu} />
+        </TestProviders>
+      );
+      fireEvent.press(getByTestId('menu-btn'));
+      expect(onPressMenu).toHaveBeenCalledTimes(1);
+
+      const onHeaderMenu = jest.fn();
+      rerender(
+        <TestProviders>
+          <MobileHeader
+            title="Homework"
+            user={sampleUser}
+            onPressAccount={jest.fn()}
+            onPressSync={jest.fn()}
+          />
+        </TestProviders>
+      );
+      expect(queryByTestId('header-menu-button')).toBeNull();
+
+      rerender(
+        <TestProviders>
+          <MobileHeader
+            title="Homework"
+            user={sampleUser}
+            onPressAccount={jest.fn()}
+            onPressSync={jest.fn()}
+            onPressMenu={onHeaderMenu}
+          />
+        </TestProviders>
+      );
+      fireEvent.press(getByTestId('header-menu-button'));
+      expect(onHeaderMenu).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders AppSidebarDrawer when visible and closes on tab select, account press, or backdrop press', () => {
+      const onClose = jest.fn();
+      const onSelectTab = jest.fn();
+      const onPressAccount = jest.fn();
+      const { getByTestId, getByText } = render(
+        <TestProviders>
+          <AppSidebarDrawer
+            visible={true}
+            onClose={onClose}
+            currentUser={sampleUser}
+            activeTab="homework"
+            onSelectTab={onSelectTab}
+            onPressAccount={onPressAccount}
+            navItems={navItems}
+            onPressSync={jest.fn()}
+          />
+        </TestProviders>
+      );
+
+      expect(getByTestId('mobile-sidebar-drawer')).toBeTruthy();
+      expect(getByTestId('desktop-sidebar')).toBeTruthy();
+
+      fireEvent.press(getByText('Incidents'));
+      expect(onSelectTab).toHaveBeenCalledWith('incidents');
+      expect(onClose).toHaveBeenCalledTimes(1);
+
+      fireEvent.press(getByTestId('sidebar-account-button'));
+      expect(onPressAccount).toHaveBeenCalledTimes(1);
+      expect(onClose).toHaveBeenCalledTimes(2);
+
+      fireEvent.press(getByTestId('mobile-sidebar-backdrop'));
+      expect(onClose).toHaveBeenCalledTimes(3);
     });
 
     it('renders LiquidDock tabs, handles 5+ scrollable items, and clamps bottom margin', () => {

@@ -57,7 +57,8 @@ test.describe('Weekly Schedule Flow', () => {
 
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.getByTestId('dock-tab-schedule').click();
+    await page.getByTestId('header-menu-button').click();
+    await page.getByTestId('sidebar-tab-schedule').click();
     await expect(page.getByTestId('mobile-header-title')).toContainText(/מערכת שעות|Weekly Schedule/);
 
     // Check scroll hints exist on mobile
@@ -90,7 +91,8 @@ test.describe('Weekly Schedule Flow', () => {
 
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.getByTestId('dock-tab-admin').click();
+    await page.getByTestId('header-menu-button').click();
+    await page.getByTestId('sidebar-tab-admin').click();
     await expect(page.getByTestId('mobile-header-title')).toContainText(/ניהול מערכת|Administration/);
 
     await page.getByTestId('add-user-header-btn').click();
@@ -207,7 +209,8 @@ test.describe('Weekly Schedule Flow', () => {
 
     await page.setViewportSize({ width: 375, height: 667 });
 
-    await page.getByTestId('dock-tab-schedule').click();
+    await page.getByTestId('header-menu-button').click();
+    await page.getByTestId('sidebar-tab-schedule').click();
     await expect(page.getByTestId('mobile-header-title')).toContainText(/מערכת שעות|Weekly Schedule/);
 
     const shareBtn = page.getByTestId('schedule-share-btn');
