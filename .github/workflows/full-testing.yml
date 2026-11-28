@@ -119,7 +119,7 @@ jobs:
     name: "3 & 4. Maestro iOS Build & E2E"
     needs: playwright-e2e
     runs-on: macos-26
-    timeout-minutes: 45
+    timeout-minutes: 75
     outputs:
       build_outcome: ${{ steps.build-ios.outcome }}
       passed: ${{ steps.maestro.outputs.passed }}
@@ -139,6 +139,16 @@ jobs:
 
       - name: Install dependencies
         run: npm ci && npm --prefix app ci
+
+      - name: Cache React Native & Xcode DerivedData
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/Library/Caches/ReactNative
+            ~/Library/Developer/Xcode/DerivedData
+          key: ${{ runner.os }}-ios-${{ hashFiles('app/package-lock.json', 'app/app.json') }}
+          restore-keys: |
+            ${{ runner.os }}-ios-
 
       - name: Boot iOS Simulator
         shell: bash
