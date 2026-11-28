@@ -3,7 +3,6 @@ import {
   Animated,
   Platform,
   View,
-  RefreshControl,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -43,12 +42,10 @@ export function IncidentsScreen({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else if (!hasLoadedRef.current) setLoading(true);
+  const loadData = useCallback(async () => {
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const [cfgRes, incRes] = await Promise.all([
         apiFetch('/api/webtop/config'),
@@ -64,7 +61,6 @@ export function IncidentsScreen({
       console.error('Incidents load error:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 

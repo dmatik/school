@@ -51,7 +51,7 @@ export function SettingsScreen({
   onSyncCompleted: () => void;
 }) {
   const { t, i18n } = useTranslation();
-  const { themeMode, setThemeMode, palette, isDark } = useTheme();
+  const { themeMode, setThemeMode, palette } = useTheme();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('settings');
   const { flexRow, textAlign, isRTL } = useDirection();
   const { width, isDesktop, pageMaxWidth } = useResponsiveLayout();

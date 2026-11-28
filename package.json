@@ -8,7 +8,7 @@
     "server": "node server/index.js",
     "dev:all": "concurrently \"npm run server\" \"npm run app:web\"",
     "build": "npm --prefix app run build:web",
-    "lint": "eslint . && npm --prefix app run lint",
+    "lint": "eslint . --max-warnings=0 && npm --prefix app run lint",
     "typecheck": "tsc --noEmit && npm run app:typecheck",
     "test": "npm run test:server && npm run test:web",
     "test:server": "NODE_OPTIONS=--experimental-vm-modules jest --config jest.server.config.mjs",

@@ -68,7 +68,7 @@
     "storybook": "EXPO_PUBLIC_STORYBOOK_ENABLED=true NODE_USE_SYSTEM_CA=1 expo start --dev-client --port 8082",
     "storybook:generate": "sb-rn-get-stories --config-path .rnstorybook",
     "typecheck": "tsc --noEmit",
-    "lint": "eslint .",
+    "lint": "eslint . --max-warnings=0",
     "test": "jest"
   },
   "overrides": {

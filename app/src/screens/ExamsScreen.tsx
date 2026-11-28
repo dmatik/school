@@ -3,7 +3,6 @@ import {
   Animated,
   Platform,
   View,
-  RefreshControl,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -58,7 +57,6 @@ export function ExamsScreen({
   const [period, setPeriod] = useState<'future' | 'past'>('future');
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
 
   const [modalOpen, setModalOpen] = useState(false);
@@ -73,9 +71,8 @@ export function ExamsScreen({
   const [deleteTarget, setDeleteTarget] = useState<ExamItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else if (!hasLoadedRef.current) setLoading(true);
+  const loadData = useCallback(async () => {
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const [cfgRes, exRes] = await Promise.all([
         apiFetch('/api/webtop/config'),
@@ -97,7 +94,6 @@ export function ExamsScreen({
       console.error('Exams load error:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 

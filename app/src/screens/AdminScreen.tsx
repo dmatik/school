@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useRef, useState, type Componen
 import {
   Animated,
   View,
-  RefreshControl,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -45,7 +44,6 @@ export function AdminScreen({
   const [children, setChildren] = useState<WebtopChild[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
 
   const [userModalOpen, setUserModalOpen] = useState(false);
@@ -67,9 +65,8 @@ export function AdminScreen({
   const [deleteTarget, setDeleteTarget] = useState<User | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else if (!hasLoadedRef.current) setLoading(true);
+  const loadData = useCallback(async () => {
+    if (!hasLoadedRef.current) setLoading(true);
     try {
       const [usersRes, cfgRes] = await Promise.all([
         apiFetch('/api/admin/users'),
@@ -88,7 +85,6 @@ export function AdminScreen({
       console.error('Admin load error:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 

@@ -55,13 +55,16 @@ export interface MobileHeaderProps {
 }
 
 const WebMobileHeaderContext = createContext<Omit<MobileHeaderProps, 'inline'> | null>(null);
+const WebMobileHeaderActiveContext = createContext<boolean>(true);
 
 export const WebMobileHeaderProvider = WebMobileHeaderContext.Provider;
+export const WebMobileHeaderActiveProvider = WebMobileHeaderActiveContext.Provider;
 
 export function InlineWebMobileHeader() {
   const headerProps = useContext(WebMobileHeaderContext);
+  const isActiveTab = useContext(WebMobileHeaderActiveContext);
   const { isDesktop } = useResponsiveLayout();
-  if (Platform.OS !== 'web' || isDesktop || !headerProps) {
+  if (Platform.OS !== 'web' || isDesktop || !headerProps || !isActiveTab) {
     return null;
   }
   return <MobileHeader {...headerProps} inline />;

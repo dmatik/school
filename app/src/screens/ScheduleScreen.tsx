@@ -393,6 +393,7 @@ export function ScheduleScreen({
             resetScrollKey={selectedChildId}
             onPressCell={(dayOfWeek, hourNum, lesson) => {
               if (!isParent || !isEditMode) return;
+              setActionError(null);
               setEditingLesson({
                 dayOfWeek,
                 hourNum,
@@ -402,6 +403,7 @@ export function ScheduleScreen({
             }}
             onPressFinishTime={(dayOfWeek, currentFinish) => {
               if (!isParent || !isEditMode) return;
+              setActionError(null);
               setEditingFinishDay(dayOfWeek);
               setFormFinishTime(currentFinish || '');
             }}
@@ -426,7 +428,10 @@ export function ScheduleScreen({
 
       <FullScreenModal
         visible={Boolean(editingLesson)}
-        onClose={() => setEditingLesson(null)}
+        onClose={() => {
+          setActionError(null);
+          setEditingLesson(null);
+        }}
         title={
           editingLesson?.hasExisting
             ? t('schedule.lesson_modal_title_edit')
@@ -459,7 +464,10 @@ export function ScheduleScreen({
                 label={t('common.cancel')}
                 variant="outline"
                 size="sm"
-                onPress={() => setEditingLesson(null)}
+                onPress={() => {
+                  setActionError(null);
+                  setEditingLesson(null);
+                }}
               />
               <Button
                 label={t('common.save')}
@@ -472,6 +480,7 @@ export function ScheduleScreen({
           </View>
         }
       >
+        {actionError ? <NoticeBanner variant="destructive" description={actionError} /> : null}
         <CounterField
           label={t('schedule.subject_label')}
           currentLength={formSubject.length}
@@ -488,7 +497,10 @@ export function ScheduleScreen({
 
       <FullScreenModal
         visible={editingFinishDay !== null}
-        onClose={() => setEditingFinishDay(null)}
+        onClose={() => {
+          setActionError(null);
+          setEditingFinishDay(null);
+        }}
         maxWidth="sm"
         title={t('schedule.finish_time_modal_title')}
         description={
@@ -518,7 +530,10 @@ export function ScheduleScreen({
                 label={t('common.cancel')}
                 variant="outline"
                 size="sm"
-                onPress={() => setEditingFinishDay(null)}
+                onPress={() => {
+                  setActionError(null);
+                  setEditingFinishDay(null);
+                }}
               />
               <Button
                 label={t('common.save')}
@@ -531,6 +546,7 @@ export function ScheduleScreen({
           </View>
         }
       >
+        {actionError ? <NoticeBanner variant="destructive" description={actionError} /> : null}
         <TimePresetInput
           label={t('schedule.finish_time_label')}
           value={formFinishTime}
