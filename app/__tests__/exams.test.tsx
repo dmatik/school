@@ -155,7 +155,7 @@ describe('ExamsScreen', () => {
 
   it('shows add exam button for parents and hides edit/add controls for child accounts', async () => {
     const { getByLabelText, queryByLabelText, rerender } = render(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="exams">
         <ExamsScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>
     );
@@ -165,7 +165,7 @@ describe('ExamsScreen', () => {
     });
 
     rerender(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="exams">
         <ExamsScreen currentUser={childUser} syncTrigger={0} />
       </TestProviders>
     );
@@ -177,16 +177,16 @@ describe('ExamsScreen', () => {
 
   it('opens Add Exam modal and creates a new exam via POST /api/exams', async () => {
     const { getByTestId, getByPlaceholderText } = render(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="exams">
         <ExamsScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>
     );
 
     await waitFor(() => {
-      expect(getByTestId('add-exam-fab')).toBeTruthy();
+      expect(getByTestId('add-exam-header-btn')).toBeTruthy();
     });
 
-    fireEvent.press(getByTestId('add-exam-fab'));
+    fireEvent.press(getByTestId('add-exam-header-btn'));
 
     await waitFor(() => {
       expect(getByPlaceholderText(/שם המבחן|מתמטיקה|subject/i)).toBeTruthy();

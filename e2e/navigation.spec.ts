@@ -134,10 +134,20 @@ test.describe('Navigation Flow', () => {
     await expect(mobileTitle).toContainText(/ניהול מערכת|Administration/);
     await expect(page.getByTestId('desktop-page-header')).not.toBeVisible();
 
-    // Floating round Add User button should be visible on Admin
-    const floatingAddUserBtn = page.getByTestId('add-user-fab');
-    await expect(floatingAddUserBtn).toBeVisible();
-    await floatingAddUserBtn.click();
+    // Round Add User button should be visible in mobile header at 36x36 matching avatar
+    const headerAddUserBtn = page.getByTestId('add-user-header-btn');
+    await expect(headerAddUserBtn).toBeVisible();
+    const addBtnBox = await headerAddUserBtn.boundingBox();
+    const accountBtnBox = await page.getByTestId('header-account-button').boundingBox();
+    expect(addBtnBox).not.toBeNull();
+    expect(accountBtnBox).not.toBeNull();
+    if (addBtnBox && accountBtnBox) {
+      expect(Math.round(addBtnBox.width)).toBe(36);
+      expect(Math.round(addBtnBox.height)).toBe(36);
+      expect(Math.round(addBtnBox.width)).toBe(Math.round(accountBtnBox.width));
+      expect(Math.round(addBtnBox.height)).toBe(Math.round(accountBtnBox.height));
+    }
+    await headerAddUserBtn.click();
     await expect(page.getByTestId('user-modal')).toBeVisible();
     await page.getByTestId('create-user-cancel').click();
 

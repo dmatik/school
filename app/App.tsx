@@ -28,9 +28,11 @@ import {
 import { useServerSync } from './src/hooks/useServerSync';
 import {
   MobileHeader,
+  MobileHeaderActionProvider,
   ScrollHeaderProvider,
   WebMobileHeaderActiveProvider,
   WebMobileHeaderProvider,
+  useActiveMobileHeaderAction,
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
 import { AppSidebar, type SidebarNavItem } from './src/components/ui/AppSidebar';
@@ -82,6 +84,7 @@ function AppShell() {
     account: 0,
   });
   const activeTabRef = useRef<AppTab>(activeTab);
+  const activeHeaderAction = useActiveMobileHeaderAction(activeTab);
   useEffect(() => {
     activeTabRef.current = activeTab;
   }, [activeTab]);
@@ -354,6 +357,7 @@ function AppShell() {
                 onPressSync: handleGlobalSync,
                 syncing,
                 syncSuccess,
+                endAction: activeHeaderAction,
               }
             : null
         }
@@ -421,6 +425,7 @@ function AppShell() {
               onPressSync={handleGlobalSync}
               syncing={syncing}
               syncSuccess={syncSuccess}
+              endAction={activeHeaderAction}
             />
           ) : null}
           <LiquidDock
@@ -487,9 +492,11 @@ export default function App() {
     <SafeAreaProvider>
       <ThemeProvider>
         <ScrollHeaderProvider>
-          <ModalPortalProvider>
-            <AppShell />
-          </ModalPortalProvider>
+          <MobileHeaderActionProvider>
+            <ModalPortalProvider>
+              <AppShell />
+            </ModalPortalProvider>
+          </MobileHeaderActionProvider>
         </ScrollHeaderProvider>
       </ThemeProvider>
     </SafeAreaProvider>

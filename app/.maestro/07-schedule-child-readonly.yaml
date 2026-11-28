@@ -20,4 +20,4 @@ appId: com.dmatik.school
 - assertNotVisible:
     id: "schedule-child-selector"
 - assertNotVisible:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"

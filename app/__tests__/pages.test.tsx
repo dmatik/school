@@ -344,7 +344,7 @@ describe('Mobile & Web Application Screens', () => {
   describe('AdminScreen', () => {
     it('renders user list, filters by search, and opens add-user modal', async () => {
       const { getByText, queryByText, getByTestId } = render(
-        <TestProviders>
+        <TestProviders mobileHeaderTab="admin">
           <AdminScreen currentUser={adminUser} syncTrigger={0} />
         </TestProviders>
       );
@@ -362,7 +362,7 @@ describe('Mobile & Web Application Screens', () => {
       });
 
       fireEvent.changeText(getByTestId('admin-search-input'), '');
-      fireEvent.press(getByTestId('add-user-fab'));
+      fireEvent.press(getByTestId('add-user-header-btn'));
 
       await waitFor(() => {
         expect(getByText(/שם משתמש|username/i)).toBeTruthy();

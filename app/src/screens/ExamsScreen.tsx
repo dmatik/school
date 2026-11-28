@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -27,10 +27,13 @@ import { DatePickerField } from '../components/ui/LiquidDatePicker';
 import { EmptyStateCard, NoticeBanner, SectionDateHeader } from '../components/ui/Surfaces';
 import { formatDateSectionHeader } from '../lib/dateUtils';
 import { ExamCard } from '../components/ui/Cards';
-import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
-import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
+import { Button, HeaderActionButton, type HeaderActionButtonProps } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
-import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
+import {
+  InlineWebMobileHeader,
+  useMobileHeaderAction,
+  useScrollHeader,
+} from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { ExamItem, WebtopConfig, User } from '../../../shared/types';
@@ -47,7 +50,6 @@ export function ExamsScreen({
   const { flexRow } = useDirection();
   const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('exams');
-  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const isChild = currentUser.familyRole === 'child';
   const isParent = !isChild;
 
@@ -221,7 +223,15 @@ export function ExamsScreen({
     config?.linkedChildren?.find((c) => c.id === childId || c.externalId === childId)?.color;
 
   const hasChildFilter = !isChild && (config?.linkedChildren?.length || 0) > 1;
-  const bottomPadding = useFabScrollPadding(isParent);
+  const headerAction: HeaderActionButtonProps | null = isParent
+    ? {
+        testID: 'add-exam-header-btn',
+        icon: Plus,
+        accessibilityLabel: t('exams.add_exam_button'),
+        onPress: openAddModal,
+      }
+    : null;
+  useMobileHeaderAction('exams', headerAction);
   const sections = useMemo(
     () => groupedByDate.map(([date, data]) => ({ title: date, data })),
     [groupedByDate]
@@ -311,9 +321,9 @@ export function ExamsScreen({
           alignSelf: 'center' as const,
           paddingHorizontal: 24,
           paddingTop: 12,
-          paddingBottom: bottomPadding,
+          paddingBottom: 24,
         }
-      : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
+      : { paddingTop: headerHeight + 8 },
   ];
 
   const renderExamSectionHeader = (title: string) =>
@@ -339,8 +349,11 @@ export function ExamsScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <PageHeader title={t('exams.title')} />
-      <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
+      <PageHeader
+        title={t('exams.title')}
+        actions={headerAction ? <HeaderActionButton {...headerAction} /> : undefined}
+      />
+      <AndroidStickyBlurHost>
         {Platform.OS === 'web' ? (
           <Animated.ScrollView
             ref={scrollRef as any}
@@ -430,17 +443,6 @@ export function ExamsScreen({
           />
         )}
       </AndroidStickyBlurHost>
-
-      {isParent && (
-        <AndroidBlurTargetProvider value={fabBlurTargetRef}>
-          <FloatingActionButton
-            testID="add-exam-fab"
-            icon={Plus}
-            accessibilityLabel={t('exams.add_exam_button')}
-            onPress={openAddModal}
-          />
-        </AndroidBlurTargetProvider>
-      )}
 
       <FullScreenModal
         testID="exam-modal"

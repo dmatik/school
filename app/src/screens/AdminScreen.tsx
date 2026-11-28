@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   View,
@@ -18,10 +18,13 @@ import {
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { AdminUserRow } from '../components/ui/Cards';
-import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
-import { AndroidBlurTarget, AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
+import { Button, HeaderActionButton, type HeaderActionButtonProps } from '../components/ui/Buttons';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
-import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
+import {
+  InlineWebMobileHeader,
+  useMobileHeaderAction,
+  useScrollHeader,
+} from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User, WebtopChild } from '../../../shared/types';
@@ -38,7 +41,6 @@ export function AdminScreen({
   const { flexRow } = useDirection();
   const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('admin');
-  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
 
   const [users, setUsers] = useState<User[]>([]);
   const [children, setChildren] = useState<WebtopChild[]>([]);
@@ -225,7 +227,13 @@ export function AdminScreen({
     }
   };
 
-  const bottomPadding = useFabScrollPadding();
+  const headerAction: HeaderActionButtonProps = {
+    testID: 'add-user-header-btn',
+    icon: UserPlus,
+    accessibilityLabel: t('admin.add_user_button'),
+    onPress: openCreateModal,
+  };
+  useMobileHeaderAction('admin', headerAction);
 
   const listHeader = (
     <>
@@ -254,67 +262,59 @@ export function AdminScreen({
 
   return (
     <View style={{ flex: 1 }}>
-      <PageHeader title={t('admin.title')} />
-      <AndroidBlurTarget targetRef={fabBlurTargetRef} style={{ flex: 1 }}>
-        <Animated.FlatList
-          ref={scrollRef as any}
-          style={styles.container}
-          contentContainerStyle={[
-            styles.content,
-            isDesktop
-              ? {
-                  maxWidth: pageMaxWidth,
-                  width: '100%',
-                  alignSelf: 'center',
-                  paddingHorizontal: 24,
-                  paddingTop: 12,
-                  paddingBottom: bottomPadding,
-                }
-              : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
-          ]}
-          showsVerticalScrollIndicator={false}
-          data={loading ? [] : filtered}
-          keyExtractor={(u) => u.id}
-          ListHeaderComponent={listHeader}
-          ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
-          ListEmptyComponent={listEmpty}
-          ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
-          renderItem={({ item: u }) => {
-            const linked = children.find(
-              (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
-            );
-            const linkedName = linked
-              ? `${linked.firstName} ${linked.lastName}`.trim()
-              : null;
+      <PageHeader
+        title={t('admin.title')}
+        actions={<HeaderActionButton {...headerAction} />}
+      />
+      <Animated.FlatList
+        ref={scrollRef as any}
+        style={styles.container}
+        contentContainerStyle={[
+          styles.content,
+          isDesktop
+            ? {
+                maxWidth: pageMaxWidth,
+                width: '100%',
+                alignSelf: 'center',
+                paddingHorizontal: 24,
+                paddingTop: 12,
+                paddingBottom: 24,
+              }
+            : { paddingTop: headerHeight + 8 },
+        ]}
+        showsVerticalScrollIndicator={false}
+        data={loading ? [] : filtered}
+        keyExtractor={(u) => u.id}
+        ListHeaderComponent={listHeader}
+        ListHeaderComponentStyle={{ zIndex: 20, elevation: 20 }}
+        ListEmptyComponent={listEmpty}
+        ItemSeparatorComponent={() => <View style={{ height: 12 }} />}
+        renderItem={({ item: u }) => {
+          const linked = children.find(
+            (c) => c.id === u.linkedChildId || c.externalId === u.linkedChildId
+          );
+          const linkedName = linked
+            ? `${linked.firstName} ${linked.lastName}`.trim()
+            : null;
 
-            return (
-              <AdminUserRow
-                user={u}
-                isSelf={u.id === currentUser.id}
-                linkedChildName={linkedName}
-                onEdit={() => openEditModal(u)}
-                onResetPassword={() => {
-                  setResetTarget(u);
-                  setResetPassword('');
-                }}
-                onDelete={() => setDeleteTarget(u)}
-              />
-            );
-          }}
-          onScroll={onScroll}
-          scrollEventThrottle={16}
-          {...pullToRefreshProps}
-        />
-      </AndroidBlurTarget>
-
-      <AndroidBlurTargetProvider value={fabBlurTargetRef}>
-        <FloatingActionButton
-          testID="add-user-fab"
-          icon={UserPlus}
-          accessibilityLabel={t('admin.add_user_button')}
-          onPress={openCreateModal}
-        />
-      </AndroidBlurTargetProvider>
+          return (
+            <AdminUserRow
+              user={u}
+              isSelf={u.id === currentUser.id}
+              linkedChildName={linkedName}
+              onEdit={() => openEditModal(u)}
+              onResetPassword={() => {
+                setResetTarget(u);
+                setResetPassword('');
+              }}
+              onDelete={() => setDeleteTarget(u)}
+            />
+          );
+        }}
+        onScroll={onScroll}
+        scrollEventThrottle={16}
+        {...pullToRefreshProps}
+      />
 
       <FullScreenModal
         testID="user-modal"

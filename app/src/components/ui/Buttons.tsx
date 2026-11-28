@@ -27,19 +27,10 @@ import {
   Trash2,
   type LucideIcon,
 } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection, setAppLanguage } from '../../i18n';
-import {
-  PAGE_MAX_WIDTH,
-  SIDEBAR_WIDTH,
-  useResponsiveLayout,
-} from '../../hooks/useResponsiveLayout';
-import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
-import { getDockBottomMargin } from './LiquidDock';
-import { getScrollVisibilityWebStyle, useOptionalScrollHeader } from './ScrollHeaderContext';
 
 export function Button({
   label,
@@ -350,101 +341,51 @@ export function LiquidButton({
   );
 }
 
-const FAB_SIZE = 50;
-const FAB_DOCK_GAP = 78;
-const FAB_CONTENT_CLEARANCE = 16;
-
-/**
- * Returns the bottom scroll padding needed so the last item scrolls cleanly
- * above the FloatingActionButton (or above the dock when no FAB is visible).
- */
-export function useFabScrollPadding(visible = true): number {
-  const insets = useSafeAreaInsets();
-  const { isDesktop } = useResponsiveLayout();
-  if (isDesktop) {
-    return visible ? 96 : 24;
-  }
-  const baseBottom = getDockBottomMargin(insets.bottom);
-  if (!visible) {
-    return baseBottom + FAB_DOCK_GAP;
-  }
-  return baseBottom + FAB_DOCK_GAP + FAB_SIZE + FAB_CONTENT_CLEARANCE;
-}
-
-export function FloatingActionButton({
-  icon: Icon,
-  onPress,
-  accessibilityLabel,
-  testID,
-  variant = 'primary',
-  hideOnScroll = true,
-}: {
+export interface HeaderActionButtonProps {
   icon: LucideIcon;
   onPress: () => void;
   accessibilityLabel: string;
   testID?: string;
-  variant?: 'primary' | 'success';
-  hideOnScroll?: boolean;
-}) {
-  const insets = useSafeAreaInsets();
-  const { palette, isDark } = useTheme();
-  const { isRTL } = useDirection();
-  const { width, isDesktop } = useResponsiveLayout();
-  const scrollCtx = useOptionalScrollHeader();
-  const isHidden = hideOnScroll && Boolean(scrollCtx?.isScrolling);
-  const visibilityStyle =
-    Platform.OS === 'web'
-      ? getScrollVisibilityWebStyle(isHidden, 20, 0.85)
-      : { opacity: 1 };
+  variant?: 'default' | 'success';
+  disabled?: boolean;
+}
 
-  const bottomOffset = isDesktop ? 24 : getDockBottomMargin(insets.bottom) + FAB_DOCK_GAP;
-  const contentAreaWidth = isDesktop ? width - SIDEBAR_WIDTH : width;
-  const sideOffset = isDesktop
-    ? Math.max(24, Math.floor((contentAreaWidth - PAGE_MAX_WIDTH) / 2) + 24)
-    : 16;
+export function HeaderActionButton({
+  icon: Icon,
+  onPress,
+  accessibilityLabel,
+  testID,
+  variant = 'default',
+  disabled = false,
+}: HeaderActionButtonProps) {
+  const { palette } = useTheme();
   const isSuccess = variant === 'success';
 
   return (
-    <View
-      testID={testID ? `${testID}-container` : undefined}
-      pointerEvents={isHidden ? 'none' : 'auto'}
-      accessibilityElementsHidden={isHidden}
-      importantForAccessibility={isHidden ? 'no-hide-descendants' : 'yes'}
-      style={[
-        styles.fabPosition,
+    <Pressable
+      testID={testID}
+      accessibilityLabel={accessibilityLabel}
+      accessibilityRole="button"
+      disabled={disabled}
+      onPress={onPress}
+      hitSlop={6}
+      style={({ pressed }) => [
+        styles.headerActionBtn,
         {
-          bottom: bottomOffset,
-          left: isRTL ? sideOffset : undefined,
-          right: isRTL ? undefined : sideOffset,
+          backgroundColor: isSuccess ? palette.tealSoft : palette.card,
+          borderColor: isSuccess ? palette.teal : palette.border,
+          opacity: disabled ? 0.5 : pressed ? 0.78 : 1,
+          transform: [{ scale: pressed ? 0.92 : 1 }],
         },
-        visibilityStyle,
+        Platform.OS === 'web' ? ({ cursor: 'pointer' } as any) : null,
       ]}
     >
-      <Pressable
-        testID={testID}
-        accessibilityLabel={accessibilityLabel}
-        accessibilityRole="button"
-        onPress={onPress}
-        style={({ pressed }) => [
-          styles.fab,
-          getGlassShadow(isDark),
-          {
-            backgroundColor: isSuccess ? palette.tealSoft : undefined,
-            borderColor: isSuccess ? palette.teal : undefined,
-            transform: [{ scale: pressed ? 0.92 : 1 }],
-          },
-        ]}
-      >
-        <GlassBackdrop />
-        <View style={styles.fabIconWrap}>
-          <Icon
-            size={22}
-            strokeWidth={2.2}
-            color={isSuccess ? palette.teal : palette.foreground}
-          />
-        </View>
-      </Pressable>
-    </View>
+      <Icon
+        size={18}
+        strokeWidth={isSuccess ? 2.2 : 2}
+        color={isSuccess ? palette.teal : palette.foreground}
+      />
+    </Pressable>
   );
 }
 
@@ -679,14 +620,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     ...heeboFont('500'),
   },
-  fabPosition: {
-    position: 'absolute',
-    zIndex: 30,
-  },
-  fab: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  headerActionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

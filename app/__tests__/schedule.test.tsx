@@ -205,7 +205,7 @@ describe('ScheduleScreen', () => {
 
   it('enters edit mode, edits a lesson cell, and saves via PUT /api/schedule/lesson', async () => {
     const { getByTestId, getByText, getByDisplayValue } = render(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="schedule">
         <ScheduleScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>
     );
@@ -214,7 +214,7 @@ describe('ScheduleScreen', () => {
       expect(getByText('מתמטיקה')).toBeTruthy();
     });
 
-    fireEvent.press(getByTestId('schedule-edit-fab'));
+    fireEvent.press(getByTestId('schedule-edit-header-btn'));
     fireEvent.press(getByText('מתמטיקה'));
 
     await waitFor(() => {
@@ -234,7 +234,7 @@ describe('ScheduleScreen', () => {
 
   it('clears a lesson from the edit modal via PUT /api/schedule/lesson', async () => {
     const { getByTestId, getByText } = render(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="schedule">
         <ScheduleScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>
     );
@@ -243,7 +243,7 @@ describe('ScheduleScreen', () => {
       expect(getByText('מתמטיקה')).toBeTruthy();
     });
 
-    fireEvent.press(getByTestId('schedule-edit-fab'));
+    fireEvent.press(getByTestId('schedule-edit-header-btn'));
     fireEvent.press(getByText('מתמטיקה'));
 
     await waitFor(() => {
@@ -262,7 +262,7 @@ describe('ScheduleScreen', () => {
 
   it('edits finish time in edit mode via PUT /api/schedule/finish-time', async () => {
     const { getByTestId, getByText } = render(
-      <TestProviders>
+      <TestProviders mobileHeaderTab="schedule">
         <ScheduleScreen currentUser={parentUser} syncTrigger={0} />
       </TestProviders>
     );
@@ -271,7 +271,7 @@ describe('ScheduleScreen', () => {
       expect(getByText('13:30')).toBeTruthy();
     });
 
-    fireEvent.press(getByTestId('schedule-edit-fab'));
+    fireEvent.press(getByTestId('schedule-edit-header-btn'));
     fireEvent.press(getByText('13:30'));
 
     await waitFor(() => {

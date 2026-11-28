@@ -17,7 +17,7 @@ import {
   EditButton,
   DestructiveButton,
   LiquidButton,
-  FloatingActionButton,
+  HeaderActionButton,
   ModeToggleButton,
 } from '../src/components/ui/Buttons';
 import {
@@ -174,6 +174,31 @@ describe('Mobile & Desktop Shared UI Components', () => {
         </TestProviders>
       );
       expect(getByText('מבחנים')).toBeTruthy();
+    });
+
+    it('renders optional endAction in header alongside sync button', () => {
+      const onEndAction = jest.fn();
+      const { getByTestId } = render(
+        <TestProviders>
+          <MobileHeader
+            title="מבחנים"
+            user={user}
+            onPressAccount={jest.fn()}
+            onPressSync={jest.fn()}
+            endAction={{
+              testID: 'header-end-action',
+              icon: Plus,
+              accessibilityLabel: 'Add exam',
+              onPress: onEndAction,
+            }}
+          />
+        </TestProviders>
+      );
+      const btn = getByTestId('header-end-action');
+      expect(btn).toBeTruthy();
+      expect(getByTestId('header-sync-button')).toBeTruthy();
+      fireEvent.press(btn);
+      expect(onEndAction).toHaveBeenCalledTimes(1);
     });
 
     it('renders scroll-animated GlassBackdrop without solid bg on native mobile', () => {
@@ -439,11 +464,11 @@ describe('Mobile & Desktop Shared UI Components', () => {
       expect(getByText('Done!')).toBeTruthy();
     });
 
-    it('renders ActionButton, EditButton, DestructiveButton, LiquidButton, FloatingActionButton, and ModeToggleButton', () => {
+    it('renders ActionButton, EditButton, DestructiveButton, LiquidButton, HeaderActionButton, and ModeToggleButton', () => {
       const onEdit = jest.fn();
       const onDelete = jest.fn();
       const onLiquid = jest.fn();
-      const onFab = jest.fn();
+      const onHeaderAction = jest.fn();
 
       const { getByLabelText, getByText } = render(
         <TestProviders>
@@ -452,7 +477,8 @@ describe('Mobile & Desktop Shared UI Components', () => {
             <EditButton onPress={onEdit} accessibilityLabel="Edit item" />
             <DestructiveButton onPress={onDelete} accessibilityLabel="Delete item" />
             <LiquidButton label="Share" onPress={onLiquid} active={true} />
-            <FloatingActionButton icon={Plus} onPress={onFab} accessibilityLabel="Add item" />
+            <HeaderActionButton icon={Plus} onPress={onHeaderAction} accessibilityLabel="Add item" />
+            <HeaderActionButton icon={Plus} variant="success" onPress={onHeaderAction} accessibilityLabel="Active item" />
             <ModeToggleButton />
           </View>
         </TestProviders>
@@ -463,12 +489,13 @@ describe('Mobile & Desktop Shared UI Components', () => {
       fireEvent.press(getByLabelText('Edit item'));
       fireEvent.press(getByLabelText('Delete item'));
       fireEvent.press(getByLabelText('Add item'));
+      fireEvent.press(getByLabelText('Active item'));
       fireEvent.press(getByLabelText(/ערכת נושא|theme/i));
 
       expect(onLiquid).toHaveBeenCalledTimes(2);
       expect(onEdit).toHaveBeenCalledTimes(1);
       expect(onDelete).toHaveBeenCalledTimes(1);
-      expect(onFab).toHaveBeenCalledTimes(1);
+      expect(onHeaderAction).toHaveBeenCalledTimes(2);
     });
   });
 

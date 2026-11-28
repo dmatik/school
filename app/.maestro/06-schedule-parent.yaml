@@ -35,14 +35,14 @@ appId: com.dmatik.school
 - tapOn:
     text: "${CHILD1_NAME}"
 
-# Toggle edit mode FAB on and off
+# Toggle edit mode header button on and off
 - assertVisible:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"
 - tapOn:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"
 - assertVisible:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"
 - tapOn:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"
 - assertVisible:
-    id: "schedule-edit-fab"
+    id: "schedule-edit-header-btn"

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Platform,
@@ -24,7 +24,11 @@ import { useDirection } from '../../i18n';
 import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
-import { SyncButton } from './Buttons';
+import {
+  HeaderActionButton,
+  SyncButton,
+  type HeaderActionButtonProps,
+} from './Buttons';
 import { GlassBackdrop } from './GlassBackdrop';
 import {
   PULL_THRESHOLD,
@@ -51,7 +55,82 @@ export interface MobileHeaderProps {
   onPressSync: () => void;
   syncing?: boolean;
   syncSuccess?: boolean;
+  endAction?: HeaderActionButtonProps | null;
   inline?: boolean;
+}
+
+interface MobileHeaderActionRegistry {
+  actions: Record<string, HeaderActionButtonProps | null>;
+  setAction: (tabId: string, action: HeaderActionButtonProps | null) => void;
+}
+
+const MobileHeaderActionContext = createContext<MobileHeaderActionRegistry | null>(null);
+
+export function MobileHeaderActionProvider({ children }: { children: React.ReactNode }) {
+  const [actions, setActions] = useState<Record<string, HeaderActionButtonProps | null>>({});
+
+  const setAction = useCallback((tabId: string, action: HeaderActionButtonProps | null) => {
+    setActions((prev) => {
+      if (action === null && !(tabId in prev)) {
+        return prev;
+      }
+      if (action === null) {
+        const next = { ...prev };
+        delete next[tabId];
+        return next;
+      }
+      return { ...prev, [tabId]: action };
+    });
+  }, []);
+
+  return (
+    <MobileHeaderActionContext.Provider value={{ actions, setAction }}>
+      {children}
+    </MobileHeaderActionContext.Provider>
+  );
+}
+
+export function useMobileHeaderAction(
+  tabId: string,
+  action: HeaderActionButtonProps | null
+) {
+  const ctx = useContext(MobileHeaderActionContext);
+  const setAction = ctx?.setAction;
+  const onPressRef = useRef(action?.onPress);
+  onPressRef.current = action?.onPress;
+
+  const hasAction = Boolean(action);
+  const icon = action?.icon;
+  const accessibilityLabel = action?.accessibilityLabel;
+  const testID = action?.testID;
+  const variant = action?.variant;
+  const disabled = action?.disabled;
+
+  useEffect(() => {
+    if (!setAction) return;
+    if (!hasAction || !icon || !accessibilityLabel) {
+      setAction(tabId, null);
+      return;
+    }
+    setAction(tabId, {
+      icon,
+      accessibilityLabel,
+      testID,
+      variant,
+      disabled,
+      onPress: () => onPressRef.current?.(),
+    });
+  }, [setAction, tabId, hasAction, icon, accessibilityLabel, testID, variant, disabled]);
+
+  useEffect(() => {
+    if (!setAction) return;
+    return () => setAction(tabId, null);
+  }, [setAction, tabId]);
+}
+
+export function useActiveMobileHeaderAction(tabId: string): HeaderActionButtonProps | null {
+  const ctx = useContext(MobileHeaderActionContext);
+  return ctx?.actions[tabId] ?? null;
 }
 
 const WebMobileHeaderContext = createContext<Omit<MobileHeaderProps, 'inline'> | null>(null);
@@ -79,6 +158,7 @@ export function MobileHeader({
   onPressSync,
   syncing = false,
   syncSuccess = false,
+  endAction = null,
   inline = false,
 }: MobileHeaderProps) {
   const insets = useSafeAreaInsets();
@@ -182,16 +262,23 @@ export function MobileHeader({
           },
         ]}
       >
-        <Pressable
-          testID="header-account-button"
-          accessibilityLabel={t('common.account')}
-          accessibilityRole="button"
-          onPress={onPressAccount}
-          hitSlop={8}
-          style={styles.sideSlot}
+        <View
+          style={[
+            styles.startSlot,
+            { minWidth: endAction ? 80 : 36, flexDirection: flexRow },
+          ]}
         >
-          <UserAvatar user={user} size={36} activeRing={isAccountActive} />
-        </Pressable>
+          <Pressable
+            testID="header-account-button"
+            accessibilityLabel={t('common.account')}
+            accessibilityRole="button"
+            onPress={onPressAccount}
+            hitSlop={8}
+            style={styles.sideSlot}
+          >
+            <UserAvatar user={user} size={36} activeRing={isAccountActive} />
+          </Pressable>
+        </View>
 
         <View style={styles.titleWrap}>
           <Text
@@ -233,13 +320,21 @@ export function MobileHeader({
           ) : null}
         </View>
 
-        <View style={styles.sideSlot}>
-          <SyncButton
-            testID="header-sync-button"
-            syncing={syncing}
-            success={syncSuccess}
-            onPress={onPressSync}
-          />
+        <View
+          style={[
+            styles.endSlot,
+            { minWidth: endAction ? 80 : 36, flexDirection: flexRow },
+          ]}
+        >
+          <View style={styles.sideSlot}>
+            <SyncButton
+              testID="header-sync-button"
+              syncing={syncing}
+              success={syncSuccess}
+              onPress={onPressSync}
+            />
+          </View>
+          {endAction ? <HeaderActionButton {...endAction} /> : null}
         </View>
       </View>
 
@@ -304,6 +399,17 @@ const styles = StyleSheet.create({
     gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',
+  },
+  startSlot: {
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+  },
+  endSlot: {
+    height: 36,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 8,
   },
   sideSlot: {
     width: 36,

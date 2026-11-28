@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState, type ComponentRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   AppState,
@@ -23,10 +23,13 @@ import {
 } from '../components/ui/FormFields';
 import { EmptyStateCard, NoticeBanner } from '../components/ui/Surfaces';
 import { ScheduleTable } from '../components/ui/ScheduleTable';
-import { Button, FloatingActionButton, LiquidButton, useFabScrollPadding } from '../components/ui/Buttons';
-import { AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
+import { Button, HeaderActionButton, LiquidButton, type HeaderActionButtonProps } from '../components/ui/Buttons';
 import { FullScreenModal } from '../components/ui/Modal';
-import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
+import {
+  InlineWebMobileHeader,
+  useMobileHeaderAction,
+  useScrollHeader,
+} from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
@@ -46,7 +49,6 @@ export function ScheduleScreen({
   const { t } = useTranslation();
   const { palette } = useTheme();
   const { headerHeight, onScroll, pullToRefreshProps, scrollRef } = useScrollHeader('schedule');
-  const fabBlurTargetRef = useRef<ComponentRef<typeof View> | null>(null);
   const { flexRow, isRTL } = useDirection();
   const { isDesktop, pageMaxWidth } = useResponsiveLayout();
   const isChild = currentUser.familyRole === 'child';
@@ -300,12 +302,27 @@ export function ScheduleScreen({
   }, [sharingPdf, lessons, finishTimes, childColor, isRTL, t]);
 
   const hasChildFilter = isParent && (config?.linkedChildren?.length || 0) > 0;
-  const bottomPadding = useFabScrollPadding(Boolean(isParent && selectedChildId));
+  const headerAction: HeaderActionButtonProps | null =
+    isParent && selectedChildId
+      ? {
+          testID: 'schedule-edit-header-btn',
+          icon: isEditMode ? Check : Pencil,
+          variant: isEditMode ? 'success' : 'default',
+          accessibilityLabel: isEditMode
+            ? t('schedule.edit_mode_disable')
+            : t('schedule.edit_mode_enable'),
+          onPress: () => setIsEditMode((prev) => !prev),
+        }
+      : null;
+  useMobileHeaderAction('schedule', headerAction);
 
   return (
     <View style={{ flex: 1 }}>
-      <PageHeader title={t('schedule.title')} />
-      <AndroidStickyBlurHost blurTargetRef={fabBlurTargetRef}>
+      <PageHeader
+        title={t('schedule.title')}
+        actions={headerAction ? <HeaderActionButton {...headerAction} /> : undefined}
+      />
+      <AndroidStickyBlurHost>
         <Animated.ScrollView
           ref={scrollRef}
           style={styles.container}
@@ -318,9 +335,9 @@ export function ScheduleScreen({
                   alignSelf: 'center',
                   paddingHorizontal: 24,
                   paddingTop: 12,
-                  paddingBottom: bottomPadding,
+                  paddingBottom: 24,
                 }
-              : { paddingTop: headerHeight + 8, paddingBottom: bottomPadding },
+              : { paddingTop: headerHeight + 8 },
           ]}
           showsVerticalScrollIndicator={false}
           onScroll={onScroll}
@@ -411,20 +428,6 @@ export function ScheduleScreen({
         )}
       </Animated.ScrollView>
       </AndroidStickyBlurHost>
-
-      {isParent && selectedChildId ? (
-        <AndroidBlurTargetProvider value={fabBlurTargetRef}>
-          <FloatingActionButton
-            testID="schedule-edit-fab"
-            icon={isEditMode ? Check : Pencil}
-            variant={isEditMode ? 'success' : 'primary'}
-            accessibilityLabel={
-              isEditMode ? t('schedule.edit_mode_disable') : t('schedule.edit_mode_enable')
-            }
-            onPress={() => setIsEditMode((prev) => !prev)}
-          />
-        </AndroidBlurTargetProvider>
-      ) : null}
 
       <FullScreenModal
         visible={Boolean(editingLesson)}
