@@ -20,7 +20,6 @@ import Reanimated, {
   type SharedValue,
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Svg, { Defs, LinearGradient, Rect, Stop } from 'react-native-svg';
 import { RefreshCw } from 'lucide-react-native';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
@@ -30,6 +29,7 @@ import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { formatSystemDateTime } from '../../lib/dateUtils';
 import { UserAvatar } from './Badges';
 import { SyncButton } from './Buttons';
+import { GlassBackdrop } from './GlassBackdrop';
 import type { User } from '../../../../shared/types';
 
 const PULL_THRESHOLD = 110;
@@ -308,37 +308,47 @@ export function MobileHeader({
 
   const formattedSync = lastSyncedAt ? formatSystemDateTime(lastSyncedAt) : '';
 
-  const bgHex = isDark ? '#090d16' : '#f6f7fc';
-
-  // Softly fade the gradient overlay in/out smoothly on scroll so there is never a hard line
-  const gradientOpacity = scrollY.interpolate({
-    inputRange: [0, 32],
-    outputRange: [1, 0.96],
+  const isWeb = Platform.OS === 'web';
+  const nativeBorderColor = isDark
+    ? 'rgba(255, 255, 255, 0.12)'
+    : 'rgba(15, 23, 42, 0.09)';
+  const scrollProgress = scrollY.interpolate({
+    inputRange: [0, 16],
+    outputRange: [0, 1],
     extrapolate: 'clamp',
   });
 
   return (
-    <View testID="mobile-header" style={styles.headerOuter} pointerEvents="box-none">
-      {/* Gradual vertical fade extending below the header so there is no hard edge */}
-      <Animated.View
-        pointerEvents="none"
-        style={[styles.gradientWrap, { opacity: gradientOpacity }]}
-      >
-        <Svg width="100%" height="100%">
-          <Defs>
-            <LinearGradient id="headerFade" x1="0" y1="0" x2="0" y2="1">
-              <Stop offset="0" stopColor={bgHex} stopOpacity="0.84" />
-              <Stop offset="0.42" stopColor={bgHex} stopOpacity="0.82" />
-              <Stop offset="0.56" stopColor={bgHex} stopOpacity="0.7" />
-              <Stop offset="0.7" stopColor={bgHex} stopOpacity="0.48" />
-              <Stop offset="0.84" stopColor={bgHex} stopOpacity="0.24" />
-              <Stop offset="0.93" stopColor={bgHex} stopOpacity="0.08" />
-              <Stop offset="1" stopColor={bgHex} stopOpacity="0" />
-            </LinearGradient>
-          </Defs>
-          <Rect x="0" y="0" width="100%" height="100%" fill="url(#headerFade)" />
-        </Svg>
-      </Animated.View>
+    <View
+      testID="mobile-header"
+      style={[
+        styles.headerOuter,
+        isWeb ? { backgroundColor: palette.background } : null,
+      ]}
+      pointerEvents="box-none"
+    >
+      {!isWeb ? (
+        <Animated.View
+          testID="mobile-header-glass"
+          pointerEvents="none"
+          style={[styles.backdropWrap, { opacity: scrollProgress }]}
+        >
+          <GlassBackdrop borderRadius={0} showBorder={false} />
+          <View
+            testID="mobile-header-bottom-border"
+            style={[styles.bottomBorder, { backgroundColor: nativeBorderColor }]}
+          />
+        </Animated.View>
+      ) : (
+        <Animated.View
+          testID="mobile-header-bottom-border"
+          pointerEvents="none"
+          style={[
+            styles.bottomBorder,
+            { backgroundColor: palette.border, opacity: scrollProgress },
+          ]}
+        />
+      )}
 
       <View
         style={[
@@ -446,19 +456,25 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    paddingBottom: 14,
     zIndex: 20,
   },
-  gradientWrap: {
+  backdropWrap: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
   },
+  bottomBorder: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: Platform.OS === 'web' ? 1 : StyleSheet.hairlineWidth,
+  },
   headerRow: {
     paddingHorizontal: 16,
-    paddingBottom: 4,
+    paddingBottom: 10,
     gap: 8,
     alignItems: 'center',
     justifyContent: 'space-between',

@@ -58,7 +58,13 @@ export function getGlassShadow(isDark: boolean) {
   };
 }
 
-export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number }) {
+export function GlassBackdrop({
+  borderRadius = 999,
+  showBorder = true,
+}: {
+  borderRadius?: number;
+  showBorder?: boolean;
+}) {
   const { palette, isDark } = useTheme();
   const androidBlurTarget = useAndroidBlurTarget();
 
@@ -80,16 +86,18 @@ export function GlassBackdrop({ borderRadius = 999 }: { borderRadius?: number })
         style={[styles.fill, { borderRadius }]}
       />
       <View style={[styles.fill, { backgroundColor: palette.glassBg }]} />
-      <View
-        style={[
-          styles.fill,
-          {
-            borderRadius,
-            borderWidth: 1,
-            borderColor: palette.glassBorder,
-          },
-        ]}
-      />
+      {showBorder ? (
+        <View
+          style={[
+            styles.fill,
+            {
+              borderRadius,
+              borderWidth: 1,
+              borderColor: palette.glassBorder,
+            },
+          ]}
+        />
+      ) : null}
     </View>
   );
 }

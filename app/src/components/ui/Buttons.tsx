@@ -319,16 +319,17 @@ export function LiquidButton({
       disabled={disabled || loading}
       style={({ pressed }) => [
         styles.liquidShell,
-        getGlassShadow(isDark),
         {
           flexDirection: flexRow,
+          backgroundColor: palette.card,
+          borderWidth: 1,
+          borderColor: palette.glassBorder,
           opacity: disabled || loading ? 0.5 : pressed ? 0.78 : 1,
           transform: [{ scale: pressed ? 0.97 : 1 }],
         },
         style,
       ]}
     >
-      <GlassBackdrop />
       {loading ? (
         <View style={styles.fabIconWrap}>
           <ActivityIndicator size="small" color={tintColor} />

@@ -1,16 +1,11 @@
 import React, {
-  createContext,
   startTransition,
   useCallback,
-  useContext,
   useEffect,
-  useMemo,
   useRef,
   useState,
-  type ComponentRef,
 } from 'react';
 import {
-  Animated,
   Platform,
   View,
   Text,
@@ -29,15 +24,10 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
-import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import { ModalLayer } from './ModalPortal';
 import { CHILD_COLOR_TOKENS } from '../../lib/colors';
-import { useScrollHeader } from './MobileHeader';
 import {
   AndroidBlurTarget,
-  AndroidBlurTargetProvider,
-  GlassBackdrop,
-  getGlassShadow,
   type AndroidBlurTargetRef,
 } from './GlassBackdrop';
 import { SlidingPill } from './SlidingPill';
@@ -744,24 +734,10 @@ export function ColorSwatchPicker({
   );
 }
 
-interface AndroidStickySlot {
-  node: React.ReactNode;
-  naturalY: number | null;
-  relativeToHeader: boolean;
-}
-
-interface AndroidStickyBlurContextValue {
-  setSlot: (slot: AndroidStickySlot | null) => void;
-  barHeight: number;
-}
-
-const AndroidStickyBlurContext = createContext<AndroidStickyBlurContextValue | null>(null);
-
 /**
- * On Android, wraps a screen's scrollable list in expo-blur's BlurTargetView and
- * hosts any nested StickyFilterBar as a sibling overlay so LiquidTabs,
- * LiquidDatePicker, and LiquidButton get real hardware blur as content scrolls
- * underneath them. On iOS and web, renders children directly with zero overhead.
+ * On Android, wraps a screen's scrollable content in expo-blur's BlurTargetView
+ * when a `blurTargetRef` is provided (e.g. for floating action buttons).
+ * On iOS and web (or when no ref is provided), renders children directly.
  */
 export function AndroidStickyBlurHost({
   children,
@@ -770,176 +746,26 @@ export function AndroidStickyBlurHost({
   children: React.ReactNode;
   blurTargetRef?: AndroidBlurTargetRef;
 }) {
-  const internalRef = useRef<ComponentRef<typeof View> | null>(null);
-  const resolvedRef = blurTargetRef ?? internalRef;
-  const { headerHeight, scrollY } = useScrollHeader();
-  const [slot, setSlot] = useState<AndroidStickySlot | null>(null);
-  const [barHeight, setBarHeight] = useState(40);
-
-  const ctxValue = useMemo<AndroidStickyBlurContextValue>(
-    () => ({ setSlot, barHeight }),
-    [barHeight]
-  );
-
-  if (Platform.OS !== 'android') {
-    return <>{children}</>;
+  if (Platform.OS === 'android' && blurTargetRef) {
+    return (
+      <AndroidBlurTarget targetRef={blurTargetRef} style={{ flex: 1 }}>
+        {children}
+      </AndroidBlurTarget>
+    );
   }
-
-  const stickyTop = headerHeight + 8;
-  const offset =
-    slot?.naturalY !== null && slot?.naturalY !== undefined
-      ? Math.max(0, slot.relativeToHeader ? slot.naturalY : slot.naturalY - stickyTop)
-      : slot?.relativeToHeader
-        ? 52
-        : 0;
-
-  const translateY =
-    offset > 0
-      ? scrollY.interpolate({
-          inputRange: [0, offset],
-          outputRange: [0, -offset],
-          extrapolate: 'clamp',
-        })
-      : 0;
-
-  return (
-    <View style={{ flex: 1 }}>
-      <AndroidStickyBlurContext.Provider value={ctxValue}>
-        <AndroidBlurTarget targetRef={resolvedRef} style={{ flex: 1 }}>
-          {children}
-        </AndroidBlurTarget>
-      </AndroidStickyBlurContext.Provider>
-
-      {slot ? (
-        <AndroidBlurTargetProvider value={resolvedRef}>
-          <Animated.View
-            pointerEvents="box-none"
-            onLayout={(e) => {
-              const h = Math.round(e.nativeEvent.layout.height);
-              if (h > 0 && h !== barHeight) {
-                setBarHeight(h);
-              }
-            }}
-            style={[
-              styles.stickyFilterBar,
-              {
-                position: 'absolute',
-                left: 16,
-                right: 16,
-                top: stickyTop + offset,
-                transform: [{ translateY }],
-              },
-            ]}
-          >
-            {slot.node}
-          </Animated.View>
-        </AndroidBlurTargetProvider>
-      ) : null}
-    </View>
-  );
+  return <>{children}</>;
 }
 
 export function StickyFilterBar({
   children,
   style,
-  relativeToHeader = false,
 }: {
   children: React.ReactNode;
   style?: ViewStyle;
-  /** Set true when rendered inside a FlatList/SectionList ListHeaderComponent whose top already sits at headerHeight + 8. */
+  /** Retained for caller compatibility; filter bars now scroll with content on all platforms. */
   relativeToHeader?: boolean;
 }) {
-  const { isDesktop } = useResponsiveLayout();
-  const { headerHeight, scrollY } = useScrollHeader();
-  const androidHost = useContext(AndroidStickyBlurContext);
-  const [naturalY, setNaturalY] = useState<number | null>(null);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !androidHost) return;
-    androidHost.setSlot({
-      node: children,
-      naturalY,
-      relativeToHeader,
-    });
-  }, [androidHost, children, naturalY, relativeToHeader]);
-
-  useEffect(() => {
-    if (Platform.OS !== 'android' || !androidHost) return;
-    return () => {
-      androidHost.setSlot(null);
-    };
-  }, [androidHost]);
-
-  if (Platform.OS === 'web') {
-    return (
-      <View
-        style={[
-          styles.stickyFilterBar,
-          {
-            position: 'sticky' as unknown as 'relative',
-            top: isDesktop ? 2 : headerHeight + 8,
-            zIndex: 20,
-          },
-          style,
-        ]}
-      >
-        {children}
-      </View>
-    );
-  }
-
-  if (Platform.OS === 'android' && androidHost) {
-    return (
-      <View
-        pointerEvents="none"
-        onLayout={(e) => {
-          const y = e.nativeEvent.layout.y;
-          if (y !== naturalY) {
-            setNaturalY(y);
-          }
-        }}
-        style={[style, { height: androidHost.barHeight }]}
-      />
-    );
-  }
-
-  const stickyTop = headerHeight + 8;
-  const threshold =
-    naturalY !== null
-      ? Math.max(0, relativeToHeader ? naturalY : naturalY - stickyTop)
-      : 52;
-
-  const translateY =
-    threshold > 0
-      ? scrollY.interpolate({
-          inputRange: [0, threshold, threshold + 10000],
-          outputRange: [0, 0, 10000],
-          extrapolate: 'clamp',
-        })
-      : scrollY.interpolate({
-          inputRange: [0, 10000],
-          outputRange: [0, 10000],
-          extrapolate: 'clamp',
-        });
-
-  return (
-    <Animated.View
-      pointerEvents="box-none"
-      onLayout={(e) => {
-        const y = e.nativeEvent.layout.y;
-        if (y > 0 && y !== naturalY) {
-          setNaturalY(y);
-        }
-      }}
-      style={[
-        styles.stickyFilterBar,
-        style,
-        { transform: [{ translateY }] },
-      ]}
-    >
-      {children}
-    </Animated.View>
-  );
+  return <View style={[styles.stickyFilterBar, style]}>{children}</View>;
 }
 
 const TAB_GAP = 8;
@@ -961,7 +787,9 @@ export function LiquidTabs({
   const tabLayouts = useRef<Record<string, { x: number; width: number; height: number }>>({});
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const viewportWidth = useRef(0);
+  const contentWidth = useRef(0);
   const scrollOffset = useRef(0);
+  const [isScrollable, setIsScrollable] = useState(false);
   const [hasMeasured, setHasMeasured] = useState(false);
   const [pillHeight, setPillHeight] = useState(32);
   const [visualValue, setVisualValue] = useState(value);
@@ -976,22 +804,32 @@ export function LiquidTabs({
     };
   }, []);
 
-  const scrollToTab = useCallback((layout: { x: number; width: number }) => {
-    if (scrollRef.current && viewportWidth.current > 0) {
-      const leftEdge = layout.x - TAB_GAP;
-      const rightEdge = layout.x + layout.width + TAB_GAP;
-      const currentLeft = scrollOffset.current;
-      const currentRight = currentLeft + viewportWidth.current;
+  const updateScrollable = useCallback(() => {
+    const canScroll =
+      viewportWidth.current > 0 && contentWidth.current > viewportWidth.current + 1;
+    setIsScrollable((prev) => (prev === canScroll ? prev : canScroll));
+  }, []);
 
-      if (leftEdge < currentLeft) {
-        const nextX = Math.max(0, leftEdge);
-        scrollRef.current.scrollTo({ x: nextX, animated: true });
-        scrollOffset.current = nextX;
-      } else if (rightEdge > currentRight) {
-        const nextX = rightEdge - viewportWidth.current;
-        scrollRef.current.scrollTo({ x: nextX, animated: true });
-        scrollOffset.current = nextX;
-      }
+  const scrollToTab = useCallback((layout: { x: number; width: number }) => {
+    if (!scrollRef.current || viewportWidth.current <= 0) return;
+    const maxScroll = contentWidth.current - viewportWidth.current;
+    if (maxScroll <= 1) return;
+
+    const leftEdge = layout.x - TAB_GAP;
+    const rightEdge = layout.x + layout.width + TAB_GAP;
+    const currentLeft = scrollOffset.current;
+    const currentRight = currentLeft + viewportWidth.current;
+
+    let nextX: number | null = null;
+    if (leftEdge < currentLeft - 1) {
+      nextX = Math.max(0, leftEdge);
+    } else if (rightEdge > currentRight + 1) {
+      nextX = Math.min(maxScroll, rightEdge - viewportWidth.current);
+    }
+
+    if (nextX !== null && Math.abs(nextX - currentLeft) > 1) {
+      scrollRef.current.scrollTo({ x: nextX, animated: true });
+      scrollOffset.current = nextX;
     }
   }, []);
 
@@ -1039,24 +877,42 @@ export function LiquidTabs({
   const alignStart = isRTL ? ('flex-end' as const) : ('flex-start' as const);
 
   return (
-    <View style={[styles.tabsOuter, getGlassShadow(isDark), { alignSelf: alignStart }]}>
+    <View style={[styles.tabsOuter, { alignSelf: alignStart }]}>
       <View
         style={[
           styles.tabsShell,
           {
             alignSelf: alignStart,
+            backgroundColor: palette.card,
           },
         ]}
       >
-        <GlassBackdrop />
+        <View
+          pointerEvents="none"
+          style={[
+            StyleSheet.absoluteFill,
+            {
+              borderRadius: 999,
+              borderWidth: 1,
+              borderColor: palette.glassBorder,
+            },
+          ]}
+        />
         <ScrollView
           ref={scrollRef}
           horizontal
+          scrollEnabled={isScrollable}
+          bounces={false}
           showsHorizontalScrollIndicator={false}
           testID={testID}
           style={styles.tabsScroll}
           onLayout={(e) => {
             viewportWidth.current = e.nativeEvent.layout.width;
+            updateScrollable();
+          }}
+          onContentSizeChange={(w) => {
+            contentWidth.current = w;
+            updateScrollable();
           }}
           onScroll={(e) => {
             scrollOffset.current = e.nativeEvent.contentOffset.x;
@@ -1361,7 +1217,6 @@ const styles = StyleSheet.create({
   tabsScroll: {
     flexGrow: 0,
     flexShrink: 0,
-    borderRadius: 999,
   },
   tabsContainer: {
     paddingHorizontal: TAB_GAP,
