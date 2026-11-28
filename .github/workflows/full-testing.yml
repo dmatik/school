@@ -167,6 +167,7 @@ jobs:
             process.exit(1);
           ')
           echo "Booting iOS Simulator: $UDID"
+          echo "SIMULATOR_UDID=$UDID" >> "$GITHUB_ENV"
           xcrun simctl boot "$UDID" || true
           xcrun simctl bootstatus "$UDID" -b
 
@@ -180,13 +181,34 @@ jobs:
         id: build-ios
         shell: bash
         run: |
-          if ! npm run app:ios:maestro; then
+          set -euo pipefail
+          cd app
+          export NODE_USE_SYSTEM_CA=1
+          export NODE_BINARY="$(which node)"
+
+          npx expo prebuild --platform ios
+          (cd ios && pod install)
+
+          DERIVED_DATA="$HOME/Library/Developer/Xcode/DerivedData/school-maestro"
+          mkdir -p .expo
+
+          if ! xcodebuild \
+            -workspace ios/app.xcworkspace \
+            -scheme app \
+            -configuration Release \
+            -destination "id=$SIMULATOR_UDID" \
+            -derivedDataPath "$DERIVED_DATA" \
+            COMPILER_INDEX_STORE_ENABLE=NO \
+            > .expo/xcodebuild.log 2>&1; then
             echo "::group::Xcodebuild Error Log Tail"
-            [ -f app/.expo/xcodebuild-error.log ] && tail -n 100 app/.expo/xcodebuild-error.log || true
-            [ -f app/.expo/xcodebuild.log ] && tail -n 100 app/.expo/xcodebuild.log || true
+            tail -n 120 .expo/xcodebuild.log || true
             echo "::endgroup::"
             exit 1
           fi
+
+          APP_PATH="$DERIVED_DATA/Build/Products/Release-iphonesimulator/app.app"
+          xcrun simctl install "$SIMULATOR_UDID" "$APP_PATH"
+          xcrun simctl launch "$SIMULATOR_UDID" com.dmatik.school
 
       - name: "Stage 4: Run Maestro E2E Tests (iOS)"
         id: maestro
