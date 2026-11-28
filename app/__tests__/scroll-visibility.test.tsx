@@ -1,7 +1,7 @@
 import React from 'react';
 import { Dimensions, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { render, act } from '@testing-library/react-native';
-import { BookOpen, Plus } from 'lucide-react-native';
+import { BookOpen } from 'lucide-react-native';
 import { ThemeProvider } from '../src/theme/ThemeContext';
 import { LIGHT_PALETTE } from '../src/lib/colors';
 import {
@@ -10,7 +10,6 @@ import {
   useScrollHeader,
 } from '../src/components/ui/MobileHeader';
 import { LiquidDock } from '../src/components/ui/LiquidDock';
-import { FloatingActionButton } from '../src/components/ui/Buttons';
 import type { User } from '../../shared/types';
 
 const TEST_USER: User = {
@@ -43,13 +42,6 @@ function ScrollChromeHarness({
         user={TEST_USER}
         onPressAccount={() => {}}
         onPressSync={() => {}}
-      />
-      <FloatingActionButton
-        testID="test-fab"
-        icon={Plus}
-        accessibilityLabel="Add"
-        onPress={() => {}}
-        hideOnScroll={hideOnScroll}
       />
       <LiquidDock
         items={[{ id: 'homework', label: 'Homework', icon: BookOpen }]}
@@ -94,7 +86,7 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
     });
   });
 
-  it('hides LiquidDock and FloatingActionButton on Web mobile scroll, shows them after scrolling stops, and keeps MobileHeader borderless without opacity hide', () => {
+  it('hides LiquidDock on Web mobile scroll, shows it after scrolling stops, and keeps MobileHeader borderless without opacity hide', () => {
     Platform.OS = 'web';
     const { getByTestId, queryByTestId } = render(
       <ThemeProvider>
@@ -105,15 +97,12 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
     );
 
     const header = getByTestId('mobile-header');
-    const fabWrapper = getByTestId('test-fab-container');
     const dockWrapper = getByTestId('mobile-dock-container');
 
     expect(StyleSheet.flatten(header.props.style).backgroundColor).toBe(LIGHT_PALETTE.background);
     expect(queryByTestId('mobile-header-bottom-border')).toBeNull();
     expect(getByTestId('scrolling-flag').props.children).toBe('false');
-    expect(StyleSheet.flatten(fabWrapper.props.style).opacity).toBe(1);
     expect(StyleSheet.flatten(dockWrapper.props.style).opacity).toBe(1);
-    expect(fabWrapper.props.pointerEvents).toBe('auto');
     expect(dockWrapper.props.pointerEvents).toBe('auto');
 
     // Start scrolling on Web mobile
@@ -122,9 +111,7 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
     });
 
     expect(getByTestId('scrolling-flag').props.children).toBe('true');
-    expect(StyleSheet.flatten(fabWrapper.props.style).opacity).toBe(0);
     expect(StyleSheet.flatten(dockWrapper.props.style).opacity).toBe(0);
-    expect(fabWrapper.props.pointerEvents).toBe('none');
     expect(dockWrapper.props.pointerEvents).toBe('none');
 
     // Advance 300ms and scroll again -> timer should extend, still hidden
@@ -145,9 +132,7 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
       jest.advanceTimersByTime(100);
     });
     expect(getByTestId('scrolling-flag').props.children).toBe('false');
-    expect(StyleSheet.flatten(fabWrapper.props.style).opacity).toBe(1);
     expect(StyleSheet.flatten(dockWrapper.props.style).opacity).toBe(1);
-    expect(fabWrapper.props.pointerEvents).toBe('auto');
     expect(dockWrapper.props.pointerEvents).toBe('auto');
   });
 
@@ -168,13 +153,12 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
 
       expect(getByTestId('scrolling-flag').props.children).toBe('false');
       expect(getByTestId('mobile-header-bottom-border')).toBeTruthy();
-      expect(StyleSheet.flatten(getByTestId('test-fab-container').props.style).opacity).toBe(1);
       expect(StyleSheet.flatten(getByTestId('mobile-dock-container').props.style).opacity).toBe(1);
       unmount();
     }
   });
 
-  it('does not hide FAB on Web desktop (>= 768px) when scrolling', () => {
+  it('does not hide LiquidDock on Web desktop (>= 768px) when scrolling', () => {
     Platform.OS = 'web';
     act(() => {
       Dimensions.set({
@@ -195,7 +179,7 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
     });
 
     expect(getByTestId('scrolling-flag').props.children).toBe('false');
-    expect(StyleSheet.flatten(getByTestId('test-fab-container').props.style).opacity).toBe(1);
+    expect(StyleSheet.flatten(getByTestId('mobile-dock-container').props.style).opacity).toBe(1);
   });
 
   it('restores visibility immediately on switchTabScroll and ignores programmatic reset scroll', () => {
@@ -236,7 +220,6 @@ describe('Web Mobile Chrome Auto-Hide & Non-Sticky Header on Scroll', () => {
     });
 
     expect(getByTestId('scrolling-flag').props.children).toBe('true');
-    expect(StyleSheet.flatten(getByTestId('test-fab-container').props.style).opacity).toBe(1);
     expect(StyleSheet.flatten(getByTestId('mobile-dock-container').props.style).opacity).toBe(1);
   });
 });

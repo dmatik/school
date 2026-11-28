@@ -61,7 +61,7 @@ appId: com.dmatik.school
 - assertVisible:
     text: "ניהול מערכת|Administration|System Administration"
 - assertVisible:
-    id: "add-user-fab"
+    id: "add-user-header-btn"
 
 # 7. Account screen via header avatar
 - tapOn:

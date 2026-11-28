@@ -1,7 +1,7 @@
 import React from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import type { Meta, StoryObj } from '@storybook/react-native';
-import { BookOpen, GraduationCap, Palette, Trash2 } from 'lucide-react-native';
+import { BookOpen, GraduationCap, Palette, Plus, Trash2 } from 'lucide-react-native';
 import {
   CardSurface,
   SectionCard,
@@ -19,7 +19,7 @@ import {
   FilledTextarea,
   SelectField,
 } from '../../components/ui/FormFields';
-import { Button } from '../../components/ui/Buttons';
+import { Button, HeaderActionButton } from '../../components/ui/Buttons';
 import { ConfirmModal, Modal } from '../../components/ui/Modal';
 import {
   HomeworkCard,
@@ -323,6 +323,7 @@ export const DesktopPageHeader: StoryObj = {
     <PageHeader
       title="שיעורי בית"
       description="מעקב משימות יומיות"
+      actions={<HeaderActionButton icon={Plus} accessibilityLabel="הוסף" onPress={() => {}} />}
     />
   ),
 };

@@ -9,15 +9,15 @@ appId: com.dmatik.school
       USERNAME: "${ADMIN_USERNAME}"
       PASSWORD: "${ADMIN_PASSWORD}"
 
-# 1. Exams floating Add Exam button & modal
+# 1. Exams header Add Exam button & modal
 - tapOn:
     id: "dock-tab-exams"
 - assertVisible:
     text: "מבחנים|Exams"
 - assertVisible:
-    id: "add-exam-fab"
+    id: "add-exam-header-btn"
 - tapOn:
-    id: "add-exam-fab"
+    id: "add-exam-header-btn"
 - assertVisible:
     id: "exam-modal"
 - assertVisible:
@@ -39,9 +39,9 @@ appId: com.dmatik.school
 - tapOn:
     id: "dock-tab-admin"
 - assertVisible:
-    id: "add-user-fab"
+    id: "add-user-header-btn"
 - tapOn:
-    id: "add-user-fab"
+    id: "add-user-header-btn"
 - assertVisible:
     id: "user-modal"
 - assertVisible:

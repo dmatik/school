@@ -48,7 +48,7 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ })).toBeVisible();
 
     await expect(page.getByTestId('schedule-child-selector')).not.toBeVisible();
-    await expect(page.getByTestId('schedule-edit-fab')).not.toBeVisible();
+    await expect(page.getByTestId('schedule-edit-header-btn')).not.toBeVisible();
   });
 
   test('mobile mode renders schedule with scroll hints and aligned header/dismissal columns', async ({ page }) => {
@@ -93,7 +93,7 @@ test.describe('Weekly Schedule Flow', () => {
     await page.getByTestId('dock-tab-admin').click();
     await expect(page.getByTestId('mobile-header-title')).toContainText(/ניהול מערכת|Administration/);
 
-    await page.getByTestId('add-user-fab').click();
+    await page.getByTestId('add-user-header-btn').click();
 
     const modal = page.getByTestId('user-modal');
     await expect(modal).toBeVisible();
@@ -110,37 +110,34 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(page.getByTestId('create-user-cancel')).toBeVisible();
   });
 
-  test('floating round action button renders on page away from sidebar, has 50x50 size, and toggles edit mode to V', async ({ page }) => {
+  test('round action button renders in desktop header at end of row, has 36x36 size matching avatar, and toggles edit mode to V', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
     await page.getByTestId('sidebar-tab-schedule').click();
-    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ })).toBeVisible();
+    const pageHeader = page.getByTestId('desktop-page-header').filter({ hasText: /מערכת שעות|Weekly Schedule/ });
+    await expect(pageHeader).toBeVisible();
 
-    const fab = page.getByTestId('schedule-edit-fab');
-    await expect(fab).toBeVisible();
+    const editBtn = page.getByTestId('schedule-edit-header-btn');
+    await expect(editBtn).toBeVisible();
 
-    const box = await fab.boundingBox();
+    const box = await editBtn.boundingBox();
+    const headerBox = await pageHeader.boundingBox();
+    const avatarBox = await page.getByTestId('sidebar-account-button').boundingBox();
     expect(box).not.toBeNull();
-    if (box) {
-      expect(Math.round(box.width)).toBe(50);
-      expect(Math.round(box.height)).toBe(50);
+    expect(headerBox).not.toBeNull();
+    expect(avatarBox).not.toBeNull();
+    if (box && headerBox && avatarBox) {
+      expect(Math.round(box.width)).toBe(36);
+      expect(Math.round(box.height)).toBe(36);
+      expect(Math.round(box.width)).toBe(Math.round(avatarBox.width));
+      expect(Math.round(box.height)).toBe(Math.round(avatarBox.height));
+      expect(box.y).toBeGreaterThanOrEqual(headerBox.y);
+      expect(box.y + box.height).toBeLessThanOrEqual(headerBox.y + headerBox.height);
     }
 
-    const aside = page.getByTestId('desktop-sidebar');
-    const asideBox = await aside.boundingBox();
-    expect(asideBox).not.toBeNull();
-    if (box && asideBox) {
-      // In RTL desktop (default), sidebar is on the right (x > 0); in LTR, on the left
-      if (asideBox.x > 0) {
-        expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
-      } else {
-        expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
-      }
-    }
-
-    // Click floating Edit button -> turns into V checkmark button with no Cancel button
-    await fab.click();
+    // Click Edit button -> turns into V checkmark button with no Cancel button
+    await editBtn.click();
     await expect(page.getByRole('button', { name: /סיום עריכה|Finish editing/ })).toBeVisible();
     await expect(page.getByRole('button', { name: /בטל שינויים|Cancel editing/ })).not.toBeVisible();
 
@@ -149,36 +146,30 @@ test.describe('Weekly Schedule Flow', () => {
     await expect(page.getByRole('button', { name: /הפעל מצב עריכה|Enable edit mode/ })).toBeVisible();
   });
 
-  test('exams page renders floating 50x50 Add Exam button away from sidebar for parent', async ({ page }) => {
+  test('exams page renders 36x36 Add Exam button in desktop header for parent', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
     await page.getByTestId('sidebar-tab-exams').click();
-    await expect(page.getByTestId('desktop-page-header').filter({ hasText: /מבחנים|Exams/ })).toBeVisible();
+    const pageHeader = page.getByTestId('desktop-page-header').filter({ hasText: /מבחנים|Exams/ });
+    await expect(pageHeader).toBeVisible();
 
-    const addFab = page.getByTestId('add-exam-fab');
-    await expect(addFab).toBeVisible();
+    const addBtn = page.getByTestId('add-exam-header-btn');
+    await expect(addBtn).toBeVisible();
 
-    const box = await addFab.boundingBox();
+    const box = await addBtn.boundingBox();
+    const headerBox = await pageHeader.boundingBox();
     expect(box).not.toBeNull();
-    if (box) {
-      expect(Math.round(box.width)).toBe(50);
-      expect(Math.round(box.height)).toBe(50);
-    }
-
-    const aside = page.getByTestId('desktop-sidebar');
-    const asideBox = await aside.boundingBox();
-    expect(asideBox).not.toBeNull();
-    if (box && asideBox) {
-      if (asideBox.x > 0) {
-        expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
-      } else {
-        expect(box.x).toBeGreaterThanOrEqual(asideBox.x + asideBox.width);
-      }
+    expect(headerBox).not.toBeNull();
+    if (box && headerBox) {
+      expect(Math.round(box.width)).toBe(36);
+      expect(Math.round(box.height)).toBe(36);
+      expect(box.y).toBeGreaterThanOrEqual(headerBox.y);
+      expect(box.y + box.height).toBeLessThanOrEqual(headerBox.y + headerBox.height);
     }
   });
 
-  test('in Hebrew RTL desktop mode, floating button renders on bottom-left of the page away from sidebar', async ({ page }) => {
+  test('in Hebrew RTL desktop mode, header action button renders on the left end of the header row', async ({ page }) => {
     adminUser = createTestUser('admin');
     await loginWithUser(page, adminUser);
 
@@ -189,22 +180,24 @@ test.describe('Weekly Schedule Flow', () => {
     await page.reload();
 
     await page.getByTestId('sidebar-tab-exams').click();
-    await expect(page.getByTestId('desktop-page-header').filter({ hasText: 'מבחנים' })).toBeVisible();
+    const pageHeader = page.getByTestId('desktop-page-header').filter({ hasText: 'מבחנים' });
+    await expect(pageHeader).toBeVisible();
 
-    const addFab = page.getByTestId('add-exam-fab');
-    await expect(addFab).toBeVisible();
+    const addBtn = page.getByTestId('add-exam-header-btn');
+    await expect(addBtn).toBeVisible();
 
-    const box = await addFab.boundingBox();
+    const box = await addBtn.boundingBox();
+    const headerBox = await pageHeader.boundingBox();
     const asideBox = await page.getByTestId('desktop-sidebar').boundingBox();
     expect(box).not.toBeNull();
+    expect(headerBox).not.toBeNull();
     expect(asideBox).not.toBeNull();
-    if (box && asideBox) {
+    if (box && headerBox && asideBox) {
       // In RTL desktop, sidebar is on the right (x > 0)
       expect(asideBox.x).toBeGreaterThan(0);
-      // FAB is on the page (to the left of the sidebar)
+      // Button is at the left end of the desktop header row
+      expect(box.x).toBeLessThanOrEqual(headerBox.x + 20);
       expect(box.x + box.width).toBeLessThanOrEqual(asideBox.x);
-      // Specifically at the bottom-left of the page
-      expect(box.x).toBeLessThan(200);
     }
   });
 

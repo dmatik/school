@@ -10,13 +10,14 @@ import {
   Shield,
   Plus,
   Share2,
+  Check,
 } from 'lucide-react-native';
 import {
   ActionButton,
   Button,
   DestructiveButton,
   EditButton,
-  FloatingActionButton,
+  HeaderActionButton,
   LiquidButton,
   SyncButton,
   ModeToggleButton,
@@ -58,6 +59,8 @@ export const Buttons: StoryObj = {
       <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
         <ModeToggleButton />
         <LanguageToggleButton />
+        <HeaderActionButton icon={Plus} accessibilityLabel="Add" onPress={() => {}} />
+        <HeaderActionButton icon={Check} variant="success" accessibilityLabel="Done" onPress={() => {}} />
       </View>
 
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
@@ -158,11 +161,11 @@ export const DockAndHeader: StoryObj = {
           }}
           onPressAccount={() => {}}
           onPressSync={() => {}}
-        />
-        <FloatingActionButton
-          icon={Plus}
-          accessibilityLabel="Add"
-          onPress={() => {}}
+          endAction={{
+            icon: Plus,
+            accessibilityLabel: 'Add',
+            onPress: () => {},
+          }}
         />
         <LiquidDock
           items={[

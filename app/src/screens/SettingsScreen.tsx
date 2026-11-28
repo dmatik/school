@@ -308,7 +308,7 @@ export function SettingsScreen({
                 paddingTop: 12,
                 paddingBottom: 24,
               }
-            : { paddingTop: headerHeight + 18 },
+            : { paddingTop: headerHeight + 8 },
         ]}
         showsVerticalScrollIndicator={false}
         onScroll={onScroll}

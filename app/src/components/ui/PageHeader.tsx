@@ -89,6 +89,8 @@ const styles = StyleSheet.create({
   textWrap: {
     flex: 1,
     minWidth: 0,
+    minHeight: 36,
+    justifyContent: 'center',
     gap: 2,
   },
   title: {
