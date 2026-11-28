@@ -6,6 +6,8 @@ import { BookOpen, AlertCircle, CalendarDays, Settings, Plus, Globe } from 'luci
 import { TestProviders } from './testHelpers';
 import { PageHeader } from '../src/components/ui/PageHeader';
 import { MobileHeader } from '../src/components/ui/MobileHeader';
+import { GlassBackdrop } from '../src/components/ui/GlassBackdrop';
+import { LIGHT_PALETTE } from '../src/lib/colors';
 import { AppSidebar } from '../src/components/ui/AppSidebar';
 import { LiquidDock, getDockBottomMargin } from '../src/components/ui/LiquidDock';
 import {
@@ -172,6 +174,81 @@ describe('Mobile & Desktop Shared UI Components', () => {
         </TestProviders>
       );
       expect(getByText('מבחנים')).toBeTruthy();
+    });
+
+    it('renders scroll-animated GlassBackdrop without solid bg on native mobile', () => {
+      const originalOS = RN.Platform.OS;
+      RN.Platform.OS = 'ios';
+      try {
+        const { getByTestId } = render(
+          <TestProviders>
+            <MobileHeader
+              title="שיעורי בית"
+              user={user}
+              onPressAccount={jest.fn()}
+              onPressSync={jest.fn()}
+            />
+          </TestProviders>
+        );
+        const header = getByTestId('mobile-header');
+        const flatStyle = RN.StyleSheet.flatten(header.props.style);
+        expect(flatStyle.backgroundColor).toBeUndefined();
+        expect(getByTestId('mobile-header-glass')).toBeTruthy();
+        expect(getByTestId('mobile-header-bottom-border')).toBeTruthy();
+      } finally {
+        RN.Platform.OS = originalOS;
+      }
+    });
+
+    it('renders solid background and scroll bottom border on web mobile', () => {
+      const originalOS = RN.Platform.OS;
+      RN.Platform.OS = 'web';
+      try {
+        const { getByTestId, queryByTestId } = render(
+          <TestProviders>
+            <MobileHeader
+              title="שיעורי בית"
+              user={user}
+              onPressAccount={jest.fn()}
+              onPressSync={jest.fn()}
+            />
+          </TestProviders>
+        );
+        const header = getByTestId('mobile-header');
+        const flatStyle = RN.StyleSheet.flatten(header.props.style);
+        expect(flatStyle.backgroundColor).toBe(LIGHT_PALETTE.background);
+        expect(queryByTestId('mobile-header-glass')).toBeNull();
+        expect(getByTestId('mobile-header-bottom-border')).toBeTruthy();
+      } finally {
+        RN.Platform.OS = originalOS;
+      }
+    });
+  });
+
+  describe('GlassBackdrop', () => {
+    it('renders border by default and omits it when showBorder is false', () => {
+      const withBorder = render(
+        <TestProviders>
+          <GlassBackdrop />
+        </TestProviders>
+      );
+      const withoutBorder = render(
+        <TestProviders>
+          <GlassBackdrop borderRadius={0} showBorder={false} />
+        </TestProviders>
+      );
+
+      const hasBorderStyle = (tree: any): boolean => {
+        const flat = RN.StyleSheet.flatten(tree?.props?.style);
+        if (flat?.borderWidth === 1 && flat?.borderColor === LIGHT_PALETTE.glassBorder) {
+          return true;
+        }
+        const children = Array.isArray(tree?.children) ? tree.children : [];
+        return children.some(hasBorderStyle);
+      };
+
+      expect(hasBorderStyle(withBorder.toJSON())).toBe(true);
+      expect(hasBorderStyle(withoutBorder.toJSON())).toBe(false);
     });
   });
 

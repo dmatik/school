@@ -338,18 +338,7 @@ function AppShell() {
           syncSuccess={syncSuccess}
           lastSyncedAt={webtopState.configured ? lastSyncedAt : null}
         />
-      ) : (
-        <MobileHeader
-          title={headerTitle}
-          user={currentUser}
-          lastSyncedAt={lastSyncedAt}
-          isAccountActive={activeTab === 'account'}
-          onPressAccount={() => selectTab('account')}
-          onPressSync={handleGlobalSync}
-          syncing={syncing}
-          syncSuccess={syncSuccess}
-        />
-      )}
+      ) : null}
 
       <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
         {visitedTabs.has('homework') && (
@@ -438,6 +427,16 @@ function AppShell() {
 
       {!isDesktop ? (
         <AndroidBlurTargetProvider value={contentBlurTargetRef}>
+          <MobileHeader
+            title={headerTitle}
+            user={currentUser}
+            lastSyncedAt={lastSyncedAt}
+            isAccountActive={activeTab === 'account'}
+            onPressAccount={() => selectTab('account')}
+            onPressSync={handleGlobalSync}
+            syncing={syncing}
+            syncSuccess={syncSuccess}
+          />
           <LiquidDock
             items={dockItems}
             activeId={activeTab}

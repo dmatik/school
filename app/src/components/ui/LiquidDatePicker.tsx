@@ -25,7 +25,6 @@ import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { ModalLayer } from './ModalPortal';
 import { Button } from './Buttons';
-import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
 import { FieldLabel } from './FormFields';
 
 function CalendarModal({
@@ -354,7 +353,7 @@ export function LiquidDatePicker({
   testID?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const { palette, isDark } = useTheme();
+  const { palette } = useTheme();
   const { isRTL, flexRow } = useDirection();
   const [open, setOpen] = useState(false);
   const [viewMonth, setViewMonth] = useState<Date>(() => date || new Date());
@@ -374,9 +373,17 @@ export function LiquidDatePicker({
 
   return (
     <>
-      <View style={[styles.pillOuter, getGlassShadow(isDark)]}>
-        <View style={styles.pillShell}>
-          <GlassBackdrop />
+      <View style={styles.pillOuter}>
+        <View
+          style={[
+            styles.pillShell,
+            {
+              backgroundColor: palette.card,
+              borderWidth: 1,
+              borderColor: palette.glassBorder,
+            },
+          ]}
+        >
           <View style={[styles.pillRow, { flexDirection: flexRow }]}>
             <Pressable
               testID={testID}
