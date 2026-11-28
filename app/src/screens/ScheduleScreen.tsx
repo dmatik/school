@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Animated,
   AppState,
   View,
   ActivityIndicator,
@@ -31,6 +30,7 @@ import {
   useScrollHeader,
 } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type {
   ScheduleLesson,
@@ -323,7 +323,7 @@ export function ScheduleScreen({
         actions={headerAction ? <HeaderActionButton {...headerAction} /> : undefined}
       />
       <AndroidStickyBlurHost>
-        <Animated.ScrollView
+        <ScreenScrollView
           ref={scrollRef}
           style={styles.container}
           contentContainerStyle={[
@@ -426,7 +426,7 @@ export function ScheduleScreen({
             }}
           />
         )}
-      </Animated.ScrollView>
+      </ScreenScrollView>
       </AndroidStickyBlurHost>
 
       <FullScreenModal

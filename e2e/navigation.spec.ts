@@ -187,4 +187,74 @@ test.describe('Navigation Flow', () => {
     // Logout button should be visible on Account screen
     await expect(page.getByTestId('logout-button')).toBeVisible();
   });
+
+  test('mobile web enables document-level scrolling and syncs Safari theme-color and color-scheme on theme change', async ({ page }) => {
+    adminUser = createTestUser('admin');
+    await loginWithUser(page, adminUser);
+
+    await page.setViewportSize({ width: 390, height: 844 });
+
+    // Body must allow document scrolling on mobile web (not overflow: hidden)
+    // and document width must not overflow the 390px viewport (prevents Safari auto-zoom)
+    const layoutMetrics = await page.evaluate(() => ({
+      overflowY: getComputedStyle(document.body).overflowY,
+      scrollWidth: document.documentElement.scrollWidth,
+      innerWidth: window.innerWidth,
+    }));
+    expect(layoutMetrics.overflowY).not.toBe('hidden');
+    expect(layoutMetrics.scrollWidth).toBeLessThanOrEqual(layoutMetrics.innerWidth);
+
+    // Navigate to Settings (long scrollable page)
+    await page.getByTestId('header-menu-button').click();
+    await page.getByTestId('sidebar-tab-settings').click();
+    await expect(page.getByTestId('desktop-sidebar')).not.toBeVisible();
+    await expect(page.getByTestId('settings-theme-selector')).toBeVisible();
+
+    // Scroll the top-level document and verify window.scrollY advances
+    await page.evaluate(() => window.scrollTo(0, 200));
+    const scrolledY = await page.evaluate(() => window.scrollY);
+    expect(scrolledY).toBeGreaterThan(0);
+
+    // Even when scrolled down, the mobile sidebar drawer must stay pinned to the 844px viewport
+    await page.evaluate(() => window.scrollTo(0, 0));
+    await page.getByTestId('header-menu-button').click();
+    const drawerBox = await page.getByTestId('desktop-sidebar').boundingBox();
+    expect(drawerBox).not.toBeNull();
+    if (drawerBox) {
+      expect(Math.round(drawerBox.height)).toBe(844);
+    }
+    await page.keyboard.press('Escape');
+    await expect(page.getByTestId('desktop-sidebar')).not.toBeVisible();
+
+    // Verify theme-color, color-scheme, and body background sync for Dark & Light
+    await page.getByTestId('settings-theme-selector').click();
+    await page.getByText(/^(כהה|Dark)$/).click();
+
+    await expect.poll(async () => {
+      return page.evaluate(() => ({
+        themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+        colorScheme: document.documentElement.style.colorScheme,
+        bodyBg: document.body.style.backgroundColor,
+      }));
+    }).toEqual({
+      themeColor: '#090d16',
+      colorScheme: 'dark',
+      bodyBg: 'rgb(9, 13, 22)',
+    });
+
+    await page.getByTestId('settings-theme-selector').click();
+    await page.getByText(/^(בהיר|Light)$/).click();
+
+    await expect.poll(async () => {
+      return page.evaluate(() => ({
+        themeColor: document.querySelector('meta[name="theme-color"]')?.getAttribute('content'),
+        colorScheme: document.documentElement.style.colorScheme,
+        bodyBg: document.body.style.backgroundColor,
+      }));
+    }).toEqual({
+      themeColor: '#f6f7fc',
+      colorScheme: 'light',
+      bodyBg: 'rgb(246, 247, 252)',
+    });
+  });
 });

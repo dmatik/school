@@ -117,3 +117,12 @@ npm test
 npm run test:e2e
 ```
 
+### Full Testing Protocol ("run full testing")
+Whenever the user asks to **run full testing**, follow [`.agents/rules/testing-strategy.md`](.agents/rules/testing-strategy.md) and run all stages **sequentially, one after another**:
+1. `npm test` — Full unit & component tests (Jest: server + app)
+2. `npm run test:e2e` — Full Playwright E2E tests
+3. `npm run app:ios:maestro` — Build and start the Maestro iOS app on Simulator
+4. `npm run test:maestro -- --ios` — Full Maestro E2E tests (iOS only)
+
+At the end, report a short status summary listing each stage with how many tests passed and failed.
+

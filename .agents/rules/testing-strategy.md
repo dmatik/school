@@ -1,22 +1,53 @@
 # Testing Strategy & Test Isolation Rules
 
-## 1. Dual Test Runner Separation
+## 1. Test Runner Separation
 
-| Concern | Vitest Suite | Playwright Suite |
-| :--- | :--- | :--- |
-| **Location** | `src/**/*.{test,spec}.{ts,tsx}` | `e2e/*.spec.ts` |
-| **Environment** | Node.js + `happy-dom` | Real Chromium Browser |
-| **Execution** | Local (`npm test`) & GitHub Actions CI | Local only (`npm run test:e2e`, `npm run test:e2e:headed`) |
-| **Speed** | Fast (~8s for entire suite) | Full journey (~35s for full suite) |
-| **What to Test** | Pure functions, calculation logic, component states, dialogs, form validation errors | End-to-end user journeys, session persistence across refresh, SQLite roundtrip |
+| Concern | Jest Suite | Playwright Suite | Maestro Suite (iOS) |
+| :--- | :--- | :--- | :--- |
+| **Location** | `server/__tests__/*.test.ts` & `app/__tests__/*.test.{ts,tsx}` | `e2e/*.spec.ts` | `app/.maestro/*.yaml` |
+| **Environment** | Node ESM (`server`) & `jest-expo` (`app`) | Real Chromium Browser (against co-hosted Expo Web) | iOS Simulator (`com.dmatik.school`) |
+| **Execution** | Local (`npm test`) & GitHub Actions CI | Local only (`npm run test:e2e`, `npm run test:e2e:headed`) | Local only (`npm run app:ios:maestro` then `npm run test:maestro -- --ios`) |
+| **What to Test** | Pure functions, API/DB logic, component states, dialogs, form validation | End-to-end web user journeys, responsive mobile/desktop web, SQLite roundtrip | Native iOS end-to-end user flows |
 
 ### Runner Configuration Rules
-1. `vite.config.ts` **must** explicitly include `src/**/*.{test,spec}.{ts,tsx}` and exclude `e2e/**` so Vitest never attempts to execute Playwright specs.
-2. `.github/workflows/build-and-test.yml` **must only run `npm test`**. Never add Playwright commands or browser installs to CI workflows.
+1. `.github/workflows/` **must only run Jest (`npm test`)**. Never add Playwright or Maestro commands or browser/simulator installs to CI workflows.
 
 ---
 
-## 2. Playwright E2E Test Isolation & Cleanup Rules
+## 2. Full Testing Protocol ("run full testing")
+
+Whenever the user asks to **run full testing** (e.g., "run full testing", "run full tests"), execute all four stages **sequentially, one after another** (do not run them in parallel):
+
+1. **Full Unit & Component Tests (Jest — Server + App)**:
+   ```bash
+   npm test
+   ```
+2. **Full Playwright E2E Tests (Expo Web)**:
+   ```bash
+   npm run test:e2e
+   ```
+3. **Start Maestro iOS App (Release build on iOS Simulator)**:
+   ```bash
+   npm run app:ios:maestro
+   ```
+4. **Full Maestro E2E Tests (iOS only)**:
+   ```bash
+   npm run test:maestro -- --ios
+   ```
+
+### Required Final Summary Format
+At the end of the run, always provide a **short status summary** showing each stage, its pass/fail status, and the exact passed/failed test counts, for example:
+
+| Stage | Status | Passed | Failed |
+| :--- | :--- | :---: | :---: |
+| 1. Unit Tests (Jest: server + app) | Pass / Fail | X | Y |
+| 2. Playwright E2E | Pass / Fail | X | Y |
+| 3. Start Maestro iOS App | Pass / Fail | — | — |
+| 4. Maestro E2E (iOS) | Pass / Fail | X | Y |
+
+---
+
+## 3. Playwright E2E Test Isolation & Cleanup Rules
 
 To guarantee that tests are 100% deterministic and leave zero garbage in the database:
 

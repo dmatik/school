@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="%LANG_ISO_CODE%">
+  <head>
+    <meta charset="utf-8" />
+    <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, shrink-to-fit=no, viewport-fit=cover"
+    />
+    <meta name="color-scheme" content="light dark" />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: light)"
+      content="#f6f7fc"
+    />
+    <meta
+      name="theme-color"
+      media="(prefers-color-scheme: dark)"
+      content="#090d16"
+    />
+    <title>%WEB_TITLE%</title>
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <!-- The `react-native-web` recommended style reset: https://necolas.github.io/react-native-web/docs/setup/#root-element -->
+    <style id="expo-reset">
+      html,
+      body {
+        background-color: #f6f7fc;
+      }
+      @media (prefers-color-scheme: dark) {
+        html,
+        body {
+          background-color: #090d16;
+        }
+      }
+      @media (max-width: 767px) {
+        html,
+        body {
+          width: 100%;
+          max-width: 100%;
+          height: auto;
+          min-height: 100%;
+          overflow-y: visible;
+          overflow-x: clip;
+        }
+        #root {
+          display: flex;
+          flex-direction: column;
+          width: 100%;
+          max-width: 100%;
+          min-width: 0;
+          min-height: 100dvh;
+          height: auto;
+          flex: 1;
+          overflow-x: clip;
+          padding-bottom: env(safe-area-inset-bottom);
+        }
+      }
+      @media (min-width: 768px) {
+        html,
+        body {
+          height: 100%;
+        }
+        body {
+          overflow: hidden;
+        }
+        #root {
+          display: flex;
+          height: 100%;
+          flex: 1;
+        }
+      }
+    </style>
+  </head>
+
+  <body>
+    <!-- Use static rendering with Expo Router to support running without JavaScript. -->
+    <noscript> You need to enable JavaScript to run this app. </noscript>
+    <!-- The root element for your Expo app. -->
+    <div id="root"></div>
+  </body>
+</html>

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
-  ScrollView,
   KeyboardAvoidingView,
   Platform,
   StyleSheet,
@@ -33,6 +32,7 @@ import {
   LanguageToggleButton,
   ModeToggleButton,
 } from '../components/ui/Buttons';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { FieldLabel, IconInput } from '../components/ui/FormFields';
 import { NoticeBanner } from '../components/ui/Surfaces';
 import { PasskeyAccountRow } from '../components/ui/Cards';
@@ -232,7 +232,7 @@ export function LoginScreen({
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <ScrollView
+        <ScreenScrollView
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
           keyboardShouldPersistTaps="handled"
@@ -369,7 +369,7 @@ export function LoginScreen({
               </>
             ) : null}
           </View>
-        </ScrollView>
+        </ScreenScrollView>
       </KeyboardAvoidingView>
 
       <Modal

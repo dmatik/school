@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  Animated,
   View,
   Text,
   Pressable,
@@ -37,6 +36,7 @@ import {
 import { ConfirmModal } from '../components/ui/Modal';
 import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
+import { ScreenScrollView } from '../components/ui/ScreenScrollView';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import appConfig from '../../app.json';
 import type { WebtopConfig, User } from '../../../shared/types';
@@ -294,7 +294,7 @@ export function SettingsScreen({
   return (
     <View style={{ flex: 1 }}>
       <PageHeader title={t('settings.title')} />
-      <Animated.ScrollView
+      <ScreenScrollView
         ref={scrollRef}
         style={styles.container}
         contentContainerStyle={[
@@ -627,7 +627,7 @@ export function SettingsScreen({
           loading={disconnecting}
         />
       )}
-      </Animated.ScrollView>
+      </ScreenScrollView>
     </View>
   );
 }
