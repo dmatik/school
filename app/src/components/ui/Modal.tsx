@@ -30,7 +30,6 @@ const hasNativeBlur =
 
 if (hasNativeBlur) {
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     NativeBlurView = require('expo-blur').BlurView;
   } catch {
     NativeBlurView = null;

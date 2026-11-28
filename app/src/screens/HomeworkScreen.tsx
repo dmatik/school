@@ -3,7 +3,6 @@ import {
   Animated,
   Platform,
   View,
-  RefreshControl,
   ActivityIndicator,
   StyleSheet,
 } from 'react-native';
@@ -50,12 +49,10 @@ export function HomeworkScreen({
   const [selectedDate, setSelectedDate] = useState<Date | undefined>(undefined);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
   const hasLoadedRef = useRef(false);
 
-  const loadData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else if (!hasLoadedRef.current) setLoading(true);
+  const loadData = useCallback(async () => {
+    if (!hasLoadedRef.current) setLoading(true);
 
     try {
       const [cfgRes, hwRes] = await Promise.all([
@@ -74,7 +71,6 @@ export function HomeworkScreen({
       console.error('Homework load error:', err);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, []);
 

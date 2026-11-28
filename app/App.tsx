@@ -29,6 +29,7 @@ import { useServerSync } from './src/hooks/useServerSync';
 import {
   MobileHeader,
   ScrollHeaderProvider,
+  WebMobileHeaderActiveProvider,
   WebMobileHeaderProvider,
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
@@ -359,52 +360,27 @@ function AppShell() {
       >
         <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
         {visitedTabs.has('homework') && (
-          <View
-            pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'homework'}
-            importantForAccessibility={activeTab === 'homework' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'homework' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'homework'}>
             <HomeworkScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.homework} />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('incidents') && (
-          <View
-            pointerEvents={activeTab === 'incidents' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'incidents'}
-            importantForAccessibility={activeTab === 'incidents' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'incidents' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'incidents'}>
             <IncidentsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.incidents} />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('exams') && (
-          <View
-            pointerEvents={activeTab === 'exams' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'exams'}
-            importantForAccessibility={activeTab === 'exams' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'exams' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'exams'}>
             <ExamsScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.exams} />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('schedule') && (
-          <View
-            pointerEvents={activeTab === 'schedule' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'schedule'}
-            importantForAccessibility={activeTab === 'schedule' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'schedule' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'schedule'}>
             <ScheduleScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.schedule} />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('settings') && (
-          <View
-            pointerEvents={activeTab === 'settings' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'settings'}
-            importantForAccessibility={activeTab === 'settings' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'settings' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'settings'}>
             <SettingsScreen
               currentUser={currentUser}
               syncTrigger={syncTrigger + tabSyncTriggers.settings}
@@ -413,32 +389,22 @@ function AppShell() {
                 void refreshConfig(false);
               }}
             />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('admin') && currentUser.role === 'admin' && (
-          <View
-            pointerEvents={activeTab === 'admin' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'admin'}
-            importantForAccessibility={activeTab === 'admin' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'admin' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'admin'}>
             <AdminScreen currentUser={currentUser} syncTrigger={syncTrigger + tabSyncTriggers.admin} />
-          </View>
+          </TabPane>
         )}
         {visitedTabs.has('account') && (
-          <View
-            pointerEvents={activeTab === 'account' ? 'auto' : 'none'}
-            accessibilityElementsHidden={activeTab !== 'account'}
-            importantForAccessibility={activeTab === 'account' ? 'yes' : 'no-hide-descendants'}
-            style={[styles.tabPane, activeTab !== 'account' && styles.tabPaneHidden]}
-          >
+          <TabPane active={activeTab === 'account'}>
             <AccountScreen
               currentUser={currentUser}
               syncTrigger={syncTrigger + tabSyncTriggers.account}
               onUserUpdated={setCurrentUser}
               onLogout={handleLogout}
             />
-          </View>
+          </TabPane>
         )}
         </AndroidBlurTarget>
       </WebMobileHeaderProvider>
@@ -470,6 +436,27 @@ function AppShell() {
 
 const STORYBOOK_ENABLED = process.env.EXPO_PUBLIC_STORYBOOK_ENABLED === 'true';
 
+function TabPane({
+  active,
+  children,
+}: {
+  active: boolean;
+  children: React.ReactNode;
+}) {
+  return (
+    <WebMobileHeaderActiveProvider value={active}>
+      <View
+        pointerEvents={active ? 'auto' : 'none'}
+        accessibilityElementsHidden={!active}
+        importantForAccessibility={active ? 'yes' : 'no-hide-descendants'}
+        style={[styles.tabPane, !active && styles.tabPaneHidden]}
+      >
+        {children}
+      </View>
+    </WebMobileHeaderActiveProvider>
+  );
+}
+
 export default function App() {
   const systemScheme = useColorScheme();
   const [fontsLoaded, fontError] = useFonts(HEEBO_FONTS);
@@ -492,7 +479,6 @@ export default function App() {
   }
 
   if (STORYBOOK_ENABLED) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const StorybookUIRoot = require('./.rnstorybook').default;
     return <StorybookUIRoot />;
   }
