@@ -1,5 +1,6 @@
 import React, { startTransition, useCallback, useEffect, useId, useRef, useState } from 'react';
 import {
+  Platform,
   View,
   Text,
   Pressable,
@@ -15,6 +16,7 @@ import { useTheme } from '../../theme/ThemeContext';
 import { heeboFont } from '../../theme/typography';
 import { useDirection } from '../../i18n';
 import { GlassBackdrop, getGlassShadow } from './GlassBackdrop';
+import { getScrollVisibilityWebStyle, useOptionalScrollHeader } from './ScrollHeaderContext';
 import { SlidingPill } from './SlidingPill';
 
 export interface DockTabItem {
@@ -72,16 +74,24 @@ export function LiquidDock({
   items,
   activeId,
   onSelect,
+  hideOnScroll = true,
 }: {
   items: DockTabItem[];
   activeId: string;
   onSelect: (id: string) => void;
+  hideOnScroll?: boolean;
 }) {
   const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { palette, isDark } = useTheme();
   const { flexRow } = useDirection();
   const { width: screenWidth } = useWindowDimensions();
+  const scrollCtx = useOptionalScrollHeader();
+  const isHidden = hideOnScroll && Boolean(scrollCtx?.isScrolling);
+  const visibilityStyle =
+    Platform.OS === 'web'
+      ? getScrollVisibilityWebStyle(isHidden, 28, 0.96)
+      : { opacity: 1 };
   const inactiveColor = palette.foreground;
   const activeIconFill = isDark
     ? 'rgba(87, 158, 224, 0.26)'
@@ -180,12 +190,17 @@ export function LiquidDock({
       pointerEvents="box-none"
     >
       <View
+        testID="mobile-dock-container"
+        pointerEvents={isHidden ? 'none' : 'auto'}
+        accessibilityElementsHidden={isHidden}
+        importantForAccessibility={isHidden ? 'no-hide-descendants' : 'yes'}
         style={[
           styles.dockShadow,
           {
             maxWidth: maxDockWidth,
           },
           getGlassShadow(isDark),
+          visibilityStyle,
         ]}
       >
         <View

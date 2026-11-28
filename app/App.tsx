@@ -29,6 +29,7 @@ import { useServerSync } from './src/hooks/useServerSync';
 import {
   MobileHeader,
   ScrollHeaderProvider,
+  WebMobileHeaderProvider,
   useScrollHeader,
 } from './src/components/ui/MobileHeader';
 import { AppSidebar, type SidebarNavItem } from './src/components/ui/AppSidebar';
@@ -340,7 +341,23 @@ function AppShell() {
         />
       ) : null}
 
-      <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
+      <WebMobileHeaderProvider
+        value={
+          !isDesktop && Platform.OS === 'web'
+            ? {
+                title: headerTitle,
+                user: currentUser,
+                lastSyncedAt,
+                isAccountActive: activeTab === 'account',
+                onPressAccount: () => selectTab('account'),
+                onPressSync: handleGlobalSync,
+                syncing,
+                syncSuccess,
+              }
+            : null
+        }
+      >
+        <AndroidBlurTarget targetRef={contentBlurTargetRef} style={styles.content}>
         {visitedTabs.has('homework') && (
           <View
             pointerEvents={activeTab === 'homework' ? 'auto' : 'none'}
@@ -423,20 +440,23 @@ function AppShell() {
             />
           </View>
         )}
-      </AndroidBlurTarget>
+        </AndroidBlurTarget>
+      </WebMobileHeaderProvider>
 
       {!isDesktop ? (
         <AndroidBlurTargetProvider value={contentBlurTargetRef}>
-          <MobileHeader
-            title={headerTitle}
-            user={currentUser}
-            lastSyncedAt={lastSyncedAt}
-            isAccountActive={activeTab === 'account'}
-            onPressAccount={() => selectTab('account')}
-            onPressSync={handleGlobalSync}
-            syncing={syncing}
-            syncSuccess={syncSuccess}
-          />
+          {Platform.OS !== 'web' ? (
+            <MobileHeader
+              title={headerTitle}
+              user={currentUser}
+              lastSyncedAt={lastSyncedAt}
+              isAccountActive={activeTab === 'account'}
+              onPressAccount={() => selectTab('account')}
+              onPressSync={handleGlobalSync}
+              syncing={syncing}
+              syncSuccess={syncSuccess}
+            />
+          ) : null}
           <LiquidDock
             items={dockItems}
             activeId={activeTab}

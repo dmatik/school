@@ -47,7 +47,7 @@ import {
 import { UserAvatar } from '../components/ui/Badges';
 import { Button } from '../components/ui/Buttons';
 import { Modal, ConfirmModal } from '../components/ui/Modal';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User } from '../../../shared/types';
@@ -344,6 +344,7 @@ export function AccountScreen({
         onScroll={onScroll}
         scrollEventThrottle={16}
       >
+        <InlineWebMobileHeader />
         {feedback ? (
           <NoticeBanner variant={feedback.variant} description={feedback.message} />
         ) : null}

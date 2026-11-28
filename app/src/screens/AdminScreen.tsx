@@ -22,7 +22,7 @@ import { AdminUserRow } from '../components/ui/Cards';
 import { Button, FloatingActionButton, useFabScrollPadding } from '../components/ui/Buttons';
 import { AndroidBlurTarget, AndroidBlurTargetProvider } from '../components/ui/GlassBackdrop';
 import { ConfirmModal, FullScreenModal } from '../components/ui/Modal';
-import { useScrollHeader } from '../components/ui/MobileHeader';
+import { InlineWebMobileHeader, useScrollHeader } from '../components/ui/MobileHeader';
 import { PageHeader } from '../components/ui/PageHeader';
 import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
 import type { User, WebtopChild } from '../../../shared/types';
@@ -232,13 +232,16 @@ export function AdminScreen({
   const bottomPadding = useFabScrollPadding();
 
   const listHeader = (
-    <SearchInput
-      testID="admin-search-input"
-      value={search}
-      onChangeText={setSearch}
-      placeholder={t('admin.search_placeholder')}
-      style={styles.searchBar}
-    />
+    <>
+      <InlineWebMobileHeader />
+      <SearchInput
+        testID="admin-search-input"
+        value={search}
+        onChangeText={setSearch}
+        placeholder={t('admin.search_placeholder')}
+        style={styles.searchBar}
+      />
+    </>
   );
 
   const listEmpty = loading ? (

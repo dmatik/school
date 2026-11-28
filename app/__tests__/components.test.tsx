@@ -200,7 +200,7 @@ describe('Mobile & Desktop Shared UI Components', () => {
       }
     });
 
-    it('renders solid background and scroll bottom border on web mobile', () => {
+    it('renders solid background without bottom border on web mobile', () => {
       const originalOS = RN.Platform.OS;
       RN.Platform.OS = 'web';
       try {
@@ -218,7 +218,7 @@ describe('Mobile & Desktop Shared UI Components', () => {
         const flatStyle = RN.StyleSheet.flatten(header.props.style);
         expect(flatStyle.backgroundColor).toBe(LIGHT_PALETTE.background);
         expect(queryByTestId('mobile-header-glass')).toBeNull();
-        expect(getByTestId('mobile-header-bottom-border')).toBeTruthy();
+        expect(queryByTestId('mobile-header-bottom-border')).toBeNull();
       } finally {
         RN.Platform.OS = originalOS;
       }
