@@ -73,6 +73,7 @@ Specialized skills are available in `.agents/skills/`:
 * `code-review`: Security, architecture, shared component/Storybook enforcement, and regression inspection checklist.
 * `test-writing`: Recipes for Vitest component tests and Playwright E2E tests.
 * `db-migration`: Safe SQLite schema migrations with WAL mode and foreign keys.
+* `devops-github-workflows`: DevOps engineering guide specializing in GitHub Actions workflows, CI/CD pipelines, Docker builds, release automation, and workflow security.
 
 ---
 
@@ -87,6 +88,7 @@ Whenever delegating specialized tasks, use these exact role names:
 * **`code-reviewer-mobile`**: Blue Team reviewer focused on the Expo/React Native mobile app (`mobile/`): Expo SDK & RN stack compliance, `mobile/src/components/` & RN Storybook (`mobile/src/stories/`), safe areas/gestures/reanimated performance, mobile RTL/i18n (`mobile/src/i18n/`), `expo-secure-store` usage, API parity, and Maestro E2E flows (`mobile/.maestro/`).
 * **`test-engineer`**: Writes and maintains Vitest component tests and Playwright E2E test suites with strict temporary user isolation and cleanup.
 * **`fullstack-engineer`**: Builds end-to-end features adhering to the project's exact stack (React 19, shared `src/components/ui/` & Storybook, Express 5, Better-SQLite3) with zero code duplication.
+* **`devops-engineer`**: DevOps expert specializing in GitHub Actions workflows (`.github/workflows/`), CI/CD optimization, workflow security hardening, multi-stage `Dockerfile` builds, and release/Expo OTA automation.
 
 ### Four-Agent Code Review Protocol (3 Blue Team + 1 Red Team)
 Whenever the user requests a code review ("perform code review", "review this PR/branch"), **always** dispatch all four subagents in parallel as defined in [`.agents/rules/code-review-strategy.md`](.agents/rules/code-review-strategy.md):
